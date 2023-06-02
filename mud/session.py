@@ -24,7 +24,9 @@ class Session:
         while True:
             data = await reader.read(1)
 
-            if data == b'\n':
+            if data == b'':
+                raise Exception("Lost connection to server.")
+            elif data == b'\n':
                 handler(self.outb.decode("UTF-8", errors="ignore").replace("\r"," "))
                 self.outb = b''
 
@@ -98,7 +100,7 @@ class Session:
                 # IAC UNKNOWN
                 else:
                     handler(f"IAC UNKNOWN {ord(data)}")
-                    
+
             # Catch everything else in our buffer        
             else:
                 self.outb = self.outb + data
