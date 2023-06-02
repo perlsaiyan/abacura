@@ -7,6 +7,7 @@ import os
 from mud.session import Session
 
 from rich.console import RenderableType
+from rich.pretty import Pretty
 
 from textual import events
 from textual.app import App, ComposeResult
@@ -52,6 +53,7 @@ class MudClient(App):
 
     BINDINGS = [
         ("ctrl+d", "toggle_dark", "Toggle dark mode"),
+        ("ctrl+p", "toggle_scroll", "Toggle scroll"),
         ("ctrl+q", "quit", "Quit"),
                 ]
 
@@ -92,7 +94,7 @@ class MudClient(App):
                     text_log.write(f"Connect to {line.lstrip().split()[1:]}")
                     self.run_worker(self.session.telnet_client(self.handle_mud_data))
                 elif cmd.lower() == "dump":
-                    text_log.write(f"OUTB {self.session.outb}")
+                    text_log.write(Pretty(self.session.options[69].values))
                 else:
 
                     self.session.send(line + "\n")
@@ -103,6 +105,10 @@ class MudClient(App):
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark
 
+    def action_toggle_scroll(self) -> None:
+        text_log = self.query_one(TextLog)
+        text_log.auto_scroll = not text_log.auto_scroll
+        
     def action_quit(self) -> None:
         exit()
 
