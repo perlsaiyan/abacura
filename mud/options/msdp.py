@@ -1,4 +1,5 @@
 from .default import TelnetOption, SB, DO, DONT, WILL, WONT, IAC, SE
+import time
 
 VAR = b'\x01'
 VAL = b'\x02'
@@ -39,6 +40,9 @@ class MSDP(TelnetOption):
 
     def request_all_values(self) -> None:
         for x in self.values["REPORTABLE_VARIABLES"]:
+            #self.handler(f"Requesting MSDP value {x}")
+            # without this sleep, I'm not getting GROUP?
+            time.sleep(0.0005)
             self.writer.write(b''.join(
                 [IAC, SB, self.hexcode,
                  VAR, bytes("REPORT", "UTF-8"), 
@@ -63,20 +67,18 @@ class MSDP(TelnetOption):
 
                 match var:
                     case "REPORTABLE_VARIABLES":
+                        #self.handler(f"MSDP: Requesting all variables from {var}")
                         self.values[var] = self.parse_reportable_variables(value)
                         self.request_all_values()
-                    case "GROUP":
-                        self.handler("NEED MSDP GROUP PARSER")
                     case other:
-                        self.values[var] = value.decode("UTF-8")
                         
+                        self.values[var] = value.decode("UTF-8")          
                         try: 
                             self.values[var] = int(self.values[var])
                         except ValueError:
                             pass
                         
-
-            case other:
+            case _:
                 self.handler(f"MSDP: Don't know how to handle {sb}")
 
         #self.handler(f"GOT MSDP SB - {sb}")

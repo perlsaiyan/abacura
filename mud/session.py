@@ -18,7 +18,7 @@ class Session:
         self.writer.write(bytes(msg + "\n", "UTF-8"))
 
     async def telnet_client(self, handler):
-        reader, self.writer = await asyncio.open_connection("kallistimud.com", 4005)
+        reader, self.writer = await asyncio.open_connection("kallistimud.com", 4000)
         #reader, self.writer = await asyncio.open_connection("66.8.164.129", 4000)
         self.register_options(handler)
         while True:
