@@ -96,10 +96,15 @@ class MudClient(App):
                 elif cmd.lower() == "dump":
                     self.dump_value(line.lstrip())
                 else:
-
-                    self.session.send(line + "\n")
+                    if self.session.connected:
+                        self.session.send(line + "\n")
+                    else:
+                        text_log.write("[bold red]# NO SESSION CONNECTED")
         except:
-            self.session.send("")
+            if self.session.connected: 
+                self.session.send("")
+            else:
+                text_log.write("[bold red]# NO SESSION CONNECTED")
             
     def dump_value(self, value):
         text_log = self.query_one(TextLog)
