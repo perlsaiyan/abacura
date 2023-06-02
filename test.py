@@ -35,19 +35,13 @@ class InputBar(Input):
         self.post_message(self.Command(self.value))
         self.value = ""
 
-
 class MudClient(App):
     """A Textual mudclient"""
 
     session = Session()
     
     AUTO_FOCUS = "InputBar"
-    CSS = """
-    Input {
-        margin: 0 0;
-        border: none;
-    }
-    """
+    CSS_PATH   = "abacura.css"
     LOGIN = re.compile(r"^Enter your account name.")
     PASSWORD = re.compile(r"^Please enter your account password")
 
@@ -60,10 +54,10 @@ class MudClient(App):
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app"""
-        yield Header()
-        yield TextLog(highlight=False, markup=True, name="inputbar", wrap=False)
+        yield Header(show_clock=True, name="Abacura", id="masthead", classes="masthead")
+        yield TextLog(highlight=False, markup=True, name="inputbar", wrap=False, classes="mudoutput")
         yield InputBar()
-        yield Footer()
+        #yield Footer()
         
     def handle_mud_data(self, data):
         text_log = self.query_one(TextLog)
