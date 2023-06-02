@@ -94,13 +94,20 @@ class MudClient(App):
                     text_log.write(f"Connect to {line.lstrip().split()[1:]}")
                     self.run_worker(self.session.telnet_client(self.handle_mud_data))
                 elif cmd.lower() == "dump":
-                    text_log.write(Pretty(self.session.options[69].values))
+                    self.dump_value(line.lstrip())
                 else:
 
                     self.session.send(line + "\n")
         except:
             self.session.send("")
             
+    def dump_value(self, value):
+        text_log = self.query_one(TextLog)
+        words = value.split()
+        if len(words) == 1:
+            text_log.write(Pretty(self.session.options[69].values))
+        else:
+            text_log.write(Pretty([words[1], self.session.options[69].values[words[1]]]))
 
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark
@@ -108,7 +115,7 @@ class MudClient(App):
     def action_toggle_scroll(self) -> None:
         text_log = self.query_one(TextLog)
         text_log.auto_scroll = not text_log.auto_scroll
-        
+
     def action_quit(self) -> None:
         exit()
 
