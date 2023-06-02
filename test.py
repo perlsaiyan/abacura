@@ -53,8 +53,9 @@ class MudClient(App):
 
     BINDINGS = [
         ("ctrl+d", "toggle_dark", "Toggle dark mode"),
-        ("ctrl+p", "toggle_scroll", "Toggle scroll"),
         ("ctrl+q", "quit", "Quit"),
+        ("pageup", "pageup", "PageUp"),
+        ("pagedown", "pagedown", "PageDown")        
                 ]
 
     def compose(self) -> ComposeResult:
@@ -117,9 +118,16 @@ class MudClient(App):
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark
 
-    def action_toggle_scroll(self) -> None:
+    def action_pageup(self) -> None:
         text_log = self.query_one(TextLog)
-        text_log.auto_scroll = not text_log.auto_scroll
+        text_log.auto_scroll = False
+        text_log.action_page_up()
+    
+    def action_pagedown(self) -> None:
+        text_log = self.query_one(TextLog)
+        text_log.action_page_down()
+        if text_log.scroll_offset.x == 0:
+            text_log.auto_scroll = True
 
     def action_quit(self) -> None:
         exit()
