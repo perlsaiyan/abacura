@@ -52,7 +52,6 @@ class MudClient(App):
 
     BINDINGS = [
         ("ctrl+d", "toggle_dark", "Toggle dark mode"),
-        ("ctrl+p", "do_stuff", "do stuff"),
         ("ctrl+q", "quit", "Quit"),
                 ]
 
@@ -67,6 +66,8 @@ class MudClient(App):
         text_log = self.query_one(TextLog)
         if data == "\r":
             text_log.write("")
+
+        # TODO action handlers
         else:
             if self.LOGIN.match(data):
                 self.session.send(os.environ["MUD_USERNAME"])
@@ -85,6 +86,8 @@ class MudClient(App):
             for line in lines:
             
                 cmd = line.lstrip().split()[0]
+
+                # TODO clean this up to support #commands
                 if cmd.lower() == "connect":
                     text_log.write(f"Connect to {line.lstrip().split()[1:]}")
                     self.run_worker(self.session.telnet_client(self.handle_mud_data))
@@ -102,10 +105,6 @@ class MudClient(App):
 
     def action_quit(self) -> None:
         exit()
-
-    def action_do_stuff(self) -> None:
-        text_log = self.query_one(TextLog)
-        text_log.write("foo", scroll_end=None)
 
 if __name__ == "__main__":
     app = MudClient()
