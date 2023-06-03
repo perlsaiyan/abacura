@@ -1,3 +1,7 @@
+Screen {
+        layers: below above;
+}
+
 Input {
     margin: 0 0;
     border: none;
@@ -10,10 +14,17 @@ Input {
     display: none;
 }
 
+SessionName {
+    display: block
+}
+
 .masthead {
     display: block;
 }
 
 .mudoutput {
+    height: 100%;
+    width: 100%;
+    display: block;
 }
 
