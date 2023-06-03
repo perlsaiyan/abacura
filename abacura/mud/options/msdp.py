@@ -40,7 +40,7 @@ class MSDP(TelnetOption):
 
     def request_all_values(self) -> None:
         for x in self.values["REPORTABLE_VARIABLES"]:
-            #self.handler(f"Requesting MSDP value {x}")
+            # self.handler(f"Requesting MSDP value {x}")
             # without this sleep, I'm not getting GROUP?
             time.sleep(0.0005)
             self.writer.write(b''.join(

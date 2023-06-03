@@ -1,7 +1,7 @@
 import asyncio
 import socket
 import time
-from mud.options.msdp import MSDP
+from abacura.mud.options.msdp import MSDP
 
 class Session():
     def __init__(self, name: str):

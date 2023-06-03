@@ -4,7 +4,7 @@ import csv
 import re
 import os
 
-from mud.session import Session
+from abacura.mud.session import Session
 
 from rich.console import RenderableType
 from rich.pretty import Pretty
@@ -168,10 +168,7 @@ class Abacura(App):
                         
                         
                 elif "#session".startswith(cmd.lower()):
-                    tl = self.mudoutput("null")
-                    tl.write(Pretty(self.sessions))
-                    for s in self.sessions:
-                        tl.write(Pretty(self.sessions[s].name))
+                    text_log.write(Pretty(self.sessions))
                     
                 elif cmd.lower() == "dump":
                     self.dump_value(line.lstrip())
@@ -219,7 +216,9 @@ class Abacura(App):
     def action_quit(self) -> None:
         exit()
 
-if __name__ == "__main__":
+def main():
     app = Abacura()
     app.run()
 
+if __name__ == "__main__":
+    main()
