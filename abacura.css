@@ -3,10 +3,17 @@ Input {
     border: none;
 }
 
+#sidebar {
+    dock: left;
+    width: 15;
+    height: 80%;
+    display: none;
+}
+
 .masthead {
-    display: block
+    display: block;
 }
 
 .mudoutput {
-
 }
+

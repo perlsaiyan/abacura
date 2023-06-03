@@ -11,7 +11,7 @@ from rich.pretty import Pretty
 
 from textual import events
 from textual.app import App, ComposeResult
-from textual.containers import ScrollableContainer
+from textual.containers import Container
 from textual.message import Message
 from textual.reactive import var
 from textual.scroll_view import ScrollView
@@ -35,7 +35,7 @@ class InputBar(Input):
         self.post_message(self.Command(self.value))
         self.value = ""
 
-class MudClient(App):
+class Abacura(App):
     """A Textual mudclient"""
 
     session = Session()
@@ -49,14 +49,17 @@ class MudClient(App):
         ("ctrl+d", "toggle_dark", "Toggle dark mode"),
         ("ctrl+q", "quit", "Quit"),
         ("pageup", "pageup", "PageUp"),
-        ("pagedown", "pagedown", "PageDown")        
+        ("pagedown", "pagedown", "PageDown"),
+        ("f2", "toggle_sidebar", "F2")        
                 ]
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app"""
         yield Header(show_clock=True, name="Abacura", id="masthead", classes="masthead")
-        yield TextLog(highlight=False, markup=True, name="inputbar", wrap=False, classes="mudoutput")
-        yield InputBar()
+        with Container(id="app-grid"):
+            yield Static("Sidebar\nSessions\nOther data", id="sidebar", name="sidebar")
+            yield TextLog(highlight=False, markup=True, name="inputbar", wrap=False, classes="mudoutput")
+            yield InputBar()
         #yield Footer()
         
     def handle_mud_data(self, data):
@@ -116,7 +119,15 @@ class MudClient(App):
         text_log = self.query_one(TextLog)
         text_log.auto_scroll = False
         text_log.action_page_up()
+
+    def action_toggle_sidebar(self) -> None:
+        sidebar = self.query_one("#sidebar")
     
+        if sidebar._css_styles.display == "block":
+            sidebar._css_styles.display = "none"
+        else:
+            sidebar._css_styles.display = "block"
+
     def action_pagedown(self) -> None:
         text_log = self.query_one(TextLog)
         text_log.action_page_down()
@@ -127,6 +138,6 @@ class MudClient(App):
         exit()
 
 if __name__ == "__main__":
-    app = MudClient()
+    app = Abacura()
     app.run()
 
