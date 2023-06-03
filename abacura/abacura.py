@@ -185,11 +185,13 @@ class Abacura(App):
             
     def dump_value(self, value):
         text_log = self.mudoutput(self.session)
+        ses = self.current_session()
+
         words = value.split()
         if len(words) == 1:
-            text_log.write(Pretty(self.session.options[69].values))
+            text_log.write(Pretty(ses.options[69].values))
         else:
-            text_log.write(Pretty([words[1], self.session.options[69].values[words[1]]]))
+            text_log.write(Pretty([words[1], ses.options[69].values[words[1]]]))
 
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark
