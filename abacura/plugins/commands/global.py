@@ -1,5 +1,7 @@
 from abacura.plugins import Plugin
 
+from rich.pretty import Pretty
+
 class foo(Plugin):
     """Sample plugin to knock around"""
     name = "foo"
@@ -34,3 +36,26 @@ class connect(Plugin):
             app.add_session(args[1])
             app.set_session(args[1])
             app.run_worker(app.sessions[args[1]].telnet_client(app.handle_mud_data, args[2], int(args[3])))
+
+class session(Plugin):
+    """Get information about sessions"""
+    name = "session"
+
+    def do(self, line, context) -> None:
+        manager = context["manager"]
+        sessions = context["app"].sessions
+        cur = context["app"].session
+        buf = "[bold red]# Current Sessions:\n"
+        for ses in sessions:
+            if ses == cur:
+                buf += "[bold green]>[white]"
+            else:
+                buf += " [white]"
+            s = sessions[ses]
+
+            if ses == "null":
+                buf += f"{s.name}: Main Session\n"
+            else:
+                buf += f"{s.name}: {s.host} {s.port}\n"
+        
+        manager.output(buf)

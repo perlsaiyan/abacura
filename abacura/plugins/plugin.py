@@ -49,7 +49,7 @@ class PluginManager(Plugin):
                 try:
                     p.do(line, context)
                 except Exception as e:
-                    self.app.handle_mud_data(self.app.session, f"[bold red] # ERROR: {p.get_plugin_name()}: {repr(e)}")
+                    self.output(f"[bold red] # ERROR: {p.get_plugin_name()}: {repr(e)}")
                 return True
         return False       
 
@@ -69,17 +69,24 @@ class PluginManager(Plugin):
         for pf in plugin_files:
             package = str(pf.relative_to(plugin_path.parent)).replace(os.sep, ".")
             package = package[:-3] # strip .py
-            module = import_module(package)
+            try:
+                module = import_module(package)
+            except Exception as e:
+                self.output(f"[bold red]# ERROR LOADING PLUGIN {package} (from {pf}): {repr(e)}")
+                continue
+
             modules.append(module)
             for name, c in inspect.getmembers(module, inspect.isclass):
-                if c.__module__ == module.__name__ and inspect.isclass(c) and issubclass(c, Plugin):
-                    p: Plugin = c()
-                    plugins[p.get_name()] = p
-                    #self.app.handle_mud_data(self.app.session,f"[bold red]# loading {p.get_name()}")
 
-                    h = PluginHandler(p)
-                    self.plugin_handlers.append(h)
-                    handlers[p.get_name()] = h
+                    if c.__module__ == module.__name__ and inspect.isclass(c) and issubclass(c, Plugin):
+                        p: Plugin = c()
+                        plugins[p.get_name()] = p
+                        #self.app.handle_mud_data(self.app.session,f"[bold red]# loading {p.get_name()}")
+
+                        h = PluginHandler(p)
+                        self.plugin_handlers.append(h)
+                        handlers[p.get_name()] = h
+
 
         #self.app.handle_mud_data(self.app.session,f"[bold red]# Loaded {len(plugins)} plugins and {len(self.plugin_handlers)} handlers")
         self.plugins = plugins

@@ -10,6 +10,8 @@ class Session():
         self.writer = None
         self.connected = False
         self.name = name
+        self.host = None
+        self.port = None
 
     def register_options(self, handler):
         self.options = {}
@@ -24,6 +26,8 @@ class Session():
 
     async def telnet_client(self, handler, host: str, port: int) -> None:
         self.handler = handler
+        self.host = host
+        self.port = port
         reader, self.writer = await asyncio.open_connection(host, port)
         self.connected = True
         self.register_options(handler)

@@ -10,7 +10,6 @@ from abacura.mud.session import Session
 from abacura.plugins.plugin import PluginManager
 
 from rich.console import RenderableType
-from rich.pretty import Pretty
 
 from textual import events
 from textual.app import App, ComposeResult
@@ -159,22 +158,16 @@ class Abacura(App):
 
                 cmd = line.lstrip().split()[0]
 
-                # This is a command
-                if cmd.startswith("@"):
-                    if self.plugin_manager.handle_command(line):
+                # This is a command for the global manager
+                if cmd.startswith("@") and self.plugin_manager.handle_command(line):
                         continue
 
-                # TODO clean this up to support #commands
-                if "#session".startswith(cmd.lower()):
-                    text_log.write(Pretty(self.sessions))
-                    
-                elif cmd.lower() == "dump":
-                    self.dump_value(line.lstrip())
-                else:
-                    if ses.connected:
-                        ses.send(line + "\n")
-                    else:
-                        text_log.write("[bold red]# NO SESSION CONNECTED")
+                if ses.connected:
+                    ses.send(line + "\n")
+                    continue
+
+                text_log.write("[bold red]# NO SESSION CONNECTED")
+
         except Exception as e:
             if ses.connected: 
                 ses.send("")
