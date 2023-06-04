@@ -5,7 +5,6 @@ from abacura.mud.options.msdp import MSDP
 
 class Session():
     def __init__(self, name: str):
-        self.test = "foo"
         self.client = None
         self.outb = b''
         self.writer = None

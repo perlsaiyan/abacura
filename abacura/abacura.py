@@ -4,7 +4,10 @@ import csv
 import re
 import os
 
+from abacura.mud.context import Context
 from abacura.mud.session import Session
+
+from abacura.plugins.plugin import PluginManager
 
 from rich.console import RenderableType
 from rich.pretty import Pretty
@@ -50,6 +53,7 @@ class Abacura(App):
         self.sessions = {}
         self.sessions["null"] = Session("null")
         self.session = "null"
+
         super().__init__()
     
     AUTO_FOCUS = "InputBar"
@@ -66,6 +70,10 @@ class Abacura(App):
         ("f3", "exit_with_info", "f3"),
         ("f4", "swap_session", "swap")
                 ]
+
+    def on_mount(self) -> None:
+        self.plugin_manager = PluginManager(self, "Global", None)
+        self.plugin_manager.load_plugins()
 
     def action_exit_with_info(self) -> None:
         op = self.mudoutput(self.session)
@@ -93,19 +101,13 @@ class Abacura(App):
 
     def set_session(self, id: str) -> None:
         old = self.mudoutput(self.session)
-        old.write(f"leaving {self.session}")
         self.session = id
         new = self.mudoutput(id)
-        #old._css_styles.layer = "below"
-        #new._css_styles.layer = "above"
         old._css_styles.display = "none"
         new._css_styles.display = "block"
-        old.write(f"LEFT HERE {old.name} : {id}")
-        new.write(f"HERE NOW {new.name} : {id}")
 
         self.query_one(SessionName).session = new.name
 
-        #exit(f"SESSION: {self.session} ({new.id}) is {new.layer}, old ({old.id}) is {old.layer}")
 
     def mudoutput(self, id: str) -> TextLog:
         return self.query_one(f"#mud-{id}", expect_type=TextLog)
@@ -127,6 +129,9 @@ class Abacura(App):
         #yield Footer()
         
     def handle_mud_data(self, id, data):
+        if id == None:
+            id = self.current_session().name
+
         text_log = self.mudoutput(id)
         ses = self.sessions[id]
         
@@ -151,23 +156,16 @@ class Abacura(App):
         try:
             lines = list.__next__()
             for line in lines:
-            
+
                 cmd = line.lstrip().split()[0]
 
+                # This is a command
+                if cmd.startswith("@"):
+                    if self.plugin_manager.handle_command(line):
+                        continue
+
                 # TODO clean this up to support #commands
-                if "#connect".startswith(cmd.lower()):
-                    args = line.split()
-                    if len(args) < 4:
-                        text_log.write(f"[bold red]#connect <session name> <host> <port>, got {len(args)} {args}")
-                    else:
-                        text_log.write(f"Spawn session {args[1]}")
-                        self.add_session(args[1])
-                        self.set_session(args[1])
-                       
-                        self.run_worker(self.sessions[args[1]].telnet_client(self.handle_mud_data, args[2], int(args[3])))
-                        
-                        
-                elif "#session".startswith(cmd.lower()):
+                if "#session".startswith(cmd.lower()):
                     text_log.write(Pretty(self.sessions))
                     
                 elif cmd.lower() == "dump":
@@ -181,7 +179,7 @@ class Abacura(App):
             if ses.connected: 
                 ses.send("")
             else:
-                text_log.write(f"[bold red]# NO SESSION CONNECTED {e}")
+                text_log.write(f"[bold red]# NO SESSION CONNECTED")
             
     def dump_value(self, value):
         text_log = self.mudoutput(self.session)
