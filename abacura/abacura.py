@@ -58,6 +58,8 @@ class Abacura(App):
         self.config = Config(config=config)
 
         super().__init__()
+        self.plugin_manager = PluginManager(self, "Global", None)
+        self.plugin_manager.load_plugins()        
     
     AUTO_FOCUS = "InputBar"
     CSS_PATH   = "abacura.css"
@@ -75,8 +77,7 @@ class Abacura(App):
                 ]
 
     def on_mount(self) -> None:
-        self.plugin_manager = PluginManager(self, "Global", None)
-        self.plugin_manager.load_plugins()
+        pass
 
     def action_exit_with_info(self) -> None:
         op = self.mudoutput(self.session)

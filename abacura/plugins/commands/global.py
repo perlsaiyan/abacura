@@ -71,7 +71,10 @@ class session(Plugin):
 
             manager.output(buf, markup=True, highlight=True)
         elif len(args)  == 2:
-            context["app"].set_session(args[1])
+            if args[1] in sessions:
+                context["app"].set_session(args[1])
+            else:
+                manager.output(f"[bold red]# INVALID SESSION {args[1]}", markup=True)
         else:
             manager.output(f"[bold red]@session <name>", markup=True, highlight=True)
 
