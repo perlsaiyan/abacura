@@ -47,20 +47,22 @@ class PluginManager(Plugin):
         for p in self.plugin_handlers:
             if p.plugin.get_name() == cmd and p.plugin.plugin_enabled:
                 try:
+                    self.output(f"[green][italic]> {line}", markup=True, highlight=True)
                     p.do(line, context)
                 except Exception as e:
-                    self.output(f"[bold red] # ERROR: {p.get_plugin_name()}: {repr(e)}")
+                    self.output(f"[bold red] # ERROR: {p.__class__} {p.get_plugin_name()}: {repr(e)}", markup=True, highlight=True)
                 return True
         return False       
 
-    def output(self, msg):
-        self.app.handle_mud_data(self.session, msg)
+    def output(self, msg, markup: bool=False, highlight: bool=False) -> None:
+        self.app.handle_mud_data(self.session, msg, markup, highlight)
 
     def load_plugins(self) -> None:
         """Load plugins"""
         framework_path = Path(os.path.realpath(__file__))
         plugin_path = framework_path.parent.parent
-        plugin_files = [pf for pf in plugin_path.glob('*/*/**/*.py') if not pf.name.startswith('_')]
+        
+        plugin_files = [pf for pf in plugin_path.glob('plugins/commands/*.py') if not pf.name.startswith('_')]
 
         modules = []
         plugins = {}
@@ -72,7 +74,7 @@ class PluginManager(Plugin):
             try:
                 module = import_module(package)
             except Exception as e:
-                self.output(f"[bold red]# ERROR LOADING PLUGIN {package} (from {pf}): {repr(e)}")
+                self.output(f"[bold red]# ERROR LOADING PLUGIN {package} (from {pf}): {repr(e)}", markup=True, highlight=True)
                 continue
 
             modules.append(module)

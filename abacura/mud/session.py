@@ -21,8 +21,8 @@ class Session():
     def send(self, msg):
         self.writer.write(bytes(msg + "\n", "UTF-8"))
     
-    def output(self, msg):
-        self.handler(self.name, msg)
+    def output(self, msg, markup: bool=False, highlight: bool=False):
+        self.handler(self.name, msg, markup=markup, highlight=highlight)
 
     async def telnet_client(self, handler, host: str, port: int) -> None:
         self.handler = handler

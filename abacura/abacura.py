@@ -4,10 +4,13 @@ import csv
 import re
 import os
 
+from abacura.config import Config
 from abacura.mud.context import Context
 from abacura.mud.session import Session
 
 from abacura.plugins.plugin import PluginManager
+
+import click
 
 from rich.console import RenderableType
 
@@ -48,10 +51,11 @@ class SessionName(Footer):
     
 class Abacura(App):
     """A Textual mudclient"""
-    def __init__(self,**kwargs):
+    def __init__(self,config,**kwargs):
         self.sessions = {}
         self.sessions["null"] = Session("null")
         self.session = "null"
+        self.config = Config(config=config)
 
         super().__init__()
     
@@ -94,8 +98,8 @@ class Abacura(App):
         
         outputs.mount(TL)
         
-        newsession = Session("pif")
-        self.sessions["pif"] = newsession
+        newsession = Session(id)
+        self.sessions[id] = newsession
         outputs._update_styles()
 
     def set_session(self, id: str) -> None:
@@ -127,7 +131,7 @@ class Abacura(App):
         yield SessionName()
         #yield Footer()
         
-    def handle_mud_data(self, id, data):
+    def handle_mud_data(self, id, data, markup: bool=False, highlight: bool=False):
         if id == None:
             id = self.current_session().name
 
@@ -144,7 +148,16 @@ class Abacura(App):
             elif self.PASSWORD.match(data):
                 text_log.write("Entered password")
                 ses.send(os.environ["MUD_PASSWORD"])
+            
+            if markup:
+                text_log.markup = True
+            if highlight:
+                text_log.highlight = True
+
             text_log.write(data)
+
+            text_log.markup = False
+            text_log.highlight = False
 
     async def on_input_bar_command(self, command: InputBar.Command) -> None:
         text_log = self.mudoutput(self.session)
@@ -165,24 +178,31 @@ class Abacura(App):
                 if ses.connected:
                     ses.send(line + "\n")
                     continue
-
+                
+                text_log.markup = True
                 text_log.write("[bold red]# NO SESSION CONNECTED")
+                text_log.markup = False
 
         except Exception as e:
             if ses.connected: 
                 ses.send("")
             else:
+                text_log.markup = True
                 text_log.write(f"[bold red]# NO SESSION CONNECTED")
+                text_log.markup = False
             
     def dump_value(self, value):
         text_log = self.mudoutput(self.session)
+        text_log.markup = True
         ses = self.current_session()
 
         words = value.split()
         if len(words) == 1:
-            text_log.write(Pretty(ses.options[69].values))
+            text_log.write(Pretty(ses.options[69].values), markup=True, highlight=True)
         else:
-            text_log.write(Pretty([words[1], ses.options[69].values[words[1]]]))
+            text_log.write(Pretty([words[1], ses.options[69].values[words[1]]]), markup=True, highlight=True)
+        
+        text_log.markup = False
 
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark
@@ -209,8 +229,11 @@ class Abacura(App):
     def action_quit(self) -> None:
         exit()
 
-def main():
-    app = Abacura()
+@click.command()
+@click.option("-c","--config", 'config')
+@click.pass_context
+def main(ctx,config):
+    app = Abacura(config)
     app.run()
 
 if __name__ == "__main__":
