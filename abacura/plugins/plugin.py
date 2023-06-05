@@ -19,7 +19,6 @@ class PluginHandler():
     def do(self, line, context):
         self.plugin.do(line, context)
 
-
 class PluginManager(Plugin):
 
     plugins = {}

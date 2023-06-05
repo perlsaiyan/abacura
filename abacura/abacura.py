@@ -63,8 +63,7 @@ class Abacura(App):
     
     AUTO_FOCUS = "InputBar"
     CSS_PATH   = "abacura.css"
-    LOGIN = re.compile(r"^Enter your account name.")
-    PASSWORD = re.compile(r"^Please enter your account password")
+
 
     BINDINGS = [
         ("ctrl+d", "toggle_dark", "Toggle dark mode"),
@@ -72,17 +71,12 @@ class Abacura(App):
         ("pageup", "pageup", "PageUp"),
         ("pagedown", "pagedown", "PageDown"),
         ("f2", "toggle_sidebar", "F2"),     
-        ("f3", "exit_with_info", "f3"),
         ("f4", "swap_session", "swap")
                 ]
 
     def on_mount(self) -> None:
         pass
 
-    def action_exit_with_info(self) -> None:
-        op = self.mudoutput(self.session)
-        ses = self.current_session()
-        exit(f"On session {op} {op._css_styles.__dict__}")
     
     def action_swap_session(self) -> None:
         if self.session == "null":
@@ -93,8 +87,6 @@ class Abacura(App):
     def add_session(self, id) -> None:
         outputs = self.query_one("#mudoutputs")
         TL = TextLog(highlight=False, markup=True, wrap=False, name=id, classes="mudoutput", id=f"mud-{id}")
-        #TL.disabled = False
-        #TL._css_styles.display = "block" 
         TL.write(f"[bold red]#SESSION {id}")
         
         outputs.mount(TL)
@@ -107,8 +99,8 @@ class Abacura(App):
         old = self.mudoutput(self.session)
         self.session = id
         new = self.mudoutput(id)
-        old._css_styles.display = "none"
-        new._css_styles.display = "block"
+        old.display = False
+        new.display = True
 
         self.query_one(SessionName).session = new.name
 
@@ -143,13 +135,7 @@ class Abacura(App):
             text_log.write("")
 
         # TODO action handlers
-        else:
-            if self.LOGIN.match(data):
-                ses.send(os.environ["MUD_USERNAME"])
-            elif self.PASSWORD.match(data):
-                text_log.write("Entered password")
-                ses.send(os.environ["MUD_PASSWORD"])
-            
+        else:       
             if markup:
                 text_log.markup = True
             if highlight:
@@ -215,11 +201,7 @@ class Abacura(App):
 
     def action_toggle_sidebar(self) -> None:
         sidebar = self.query_one("#sidebar")
-    
-        if sidebar._css_styles.display == "block":
-            sidebar._css_styles.display = "none"
-        else:
-            sidebar._css_styles.display = "block"
+        sidebar.display = not sidebar.display
 
     def action_pagedown(self) -> None:
         text_log = self.mudoutput(self.session)
