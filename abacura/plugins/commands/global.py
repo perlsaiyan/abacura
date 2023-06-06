@@ -10,7 +10,8 @@ class foo(Plugin):
     plugin_enabled = True
 
     def do(self, line, context) -> None:
-        context["manager"].output(f"[bold red]# FOO: {line} - {self.plugin_enabled}", markup=True, highlight=True)
+        s = context["manager"].sessions
+        context["manager"].output(f"[bold red]# FOO: {line} - {self.plugin_enabled}: {s}", markup=True, highlight=True)
 
 class plugindata(Plugin):
     """Get information about plugins"""

@@ -4,6 +4,7 @@ from importlib import import_module
 import inspect
 import os
 from pathlib import Path
+from serum import inject
 from typing import Optional
 from abacura.mud.session import Session
 from textual.app import App
@@ -19,10 +20,14 @@ class PluginHandler():
     def do(self, line, context):
         self.plugin.do(line, context)
 
+@inject
 class PluginManager(Plugin):
 
     plugins = {}
     plugin_handlers = []
+    
+    config: dict
+    sessions: dict
 
     def __init__(self, app: App, name: str, session: Optional[Session]):
         super().__init__()

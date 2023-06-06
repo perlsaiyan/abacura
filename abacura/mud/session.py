@@ -1,7 +1,16 @@
-import asyncio
+
 from abacura.mud.options.msdp import MSDP
 
+import asyncio
+from serum import inject
+from textual.app import App
+
+@inject
 class Session():
+    config: dict
+    abacura: App
+    all: dict
+    
     def __init__(self, name: str):
         self.client = None
         self.outb = b''

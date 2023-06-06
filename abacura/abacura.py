@@ -1,61 +1,39 @@
-import io
-import csv
-
+from abacura import InputBar, AbacuraFooter
 from abacura.config import Config
-from abacura.mud.context import Context
 from abacura.mud.session import Session
-
 from abacura.plugins.plugin import PluginManager
 
+import io
 import click
+import csv
+from serum import Context
 
-from rich.console import RenderableType
-
-from textual import events
 from textual.app import App, ComposeResult
 from textual.containers import Container
-from textual.message import Message
-from textual.reactive import var, reactive
-from textual.scroll_view import ScrollView
-from textual.widget import Widget
-from textual.widgets import Button, Footer, Header, Static, TextLog, Input
+from textual.widgets import Header, Static, TextLog
 
-from typing import TYPE_CHECKING, Optional, cast
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing_extensions import Self
 
-class InputBar(Input):
-    class Command(Message):
-        def __init__(self, command: str) -> None:
-            self.command = command
-            super().__init__()
-
-    def __init__(self,**kwargs):
-        super().__init__()
-        
-    def on_input_submitted(self, message: Input.Submitted) -> None:
-        self.post_message(self.Command(self.value))
-        self.value = ""
-
-class SessionName(Footer):
-    """Name of current session"""
-
-    session: reactive[str | None] = reactive[str | None]("null")
-
-    def render(self) -> str:
-        return f"#{self.session}"
-    
 class Abacura(App):
     """A Textual mudclient"""
+    sessions = {}
+
     def __init__(self,config,**kwargs):
-        self.sessions = {}
-        self.sessions["null"] = Session("null")
-        self.session = "null"
         self.config = Config(config=config)
+        with Context(all=self.sessions, config=self.config.config, abacura=self):
+            self.sessions["null"] = Session("null")
+        
+        self.session = "null"
+
 
         super().__init__()
-        self.plugin_manager = PluginManager(self, "Global", None)
+
+        with Context(config = self.config.config, sessions = self.sessions):
+            self.plugin_manager = PluginManager(self, "Global", None)
+
         self.plugin_manager.load_plugins()        
     
     AUTO_FOCUS = "InputBar"
@@ -88,7 +66,7 @@ class Abacura(App):
         old.display = False
         new.display = True
 
-        self.query_one(SessionName).session = new.name 
+        self.query_one(AbacuraFooter).session = new.name 
 
 
     def mudoutput(self, id: str) -> TextLog:
@@ -107,7 +85,7 @@ class Abacura(App):
                 yield TextLog(highlight=False, markup=True, wrap=False, name="null", classes="mudoutput", id="mud-null")
                 #yield TextLog(highlight=False, markup=True, wrap=False, name="pif", classes="mudoutput", id="mud-pif")
             yield InputBar()
-        yield SessionName()
+        yield AbacuraFooter()
         #yield Footer()
         
     def handle_mud_data(self, id, data, markup: bool=False, highlight: bool=False):
@@ -132,7 +110,7 @@ class Abacura(App):
             text_log.markup = False
             text_log.highlight = False
 
-    async def on_input_bar_command(self, command: InputBar.Command) -> None:
+    async def on_input_bar_usercommand(self, command: InputBar.UserCommand) -> None:
         text_log = self.mudoutput(self.session)
         ses = self.current_session()
         
