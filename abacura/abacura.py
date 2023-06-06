@@ -139,7 +139,7 @@ class Abacura(App):
                 ses.send("")
             else:
                 text_log.markup = True
-                text_log.write(f"[bold red]# NO SESSION CONNECTED")
+                text_log.write(f"[bold red]# NO SESSION CONNECTED {repr(e)}")
                 text_log.markup = False
             
     def action_toggle_dark(self) -> None:
