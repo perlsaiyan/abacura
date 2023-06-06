@@ -110,7 +110,7 @@ class Abacura(App):
             text_log.markup = False
             text_log.highlight = False
 
-    async def on_input_bar_usercommand(self, command: InputBar.UserCommand) -> None:
+    async def on_input_bar_user_command(self, command: InputBar.UserCommand) -> None:
         text_log = self.mudoutput(self.session)
         ses = self.current_session()
         
