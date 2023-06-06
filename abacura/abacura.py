@@ -41,7 +41,7 @@ class InputBar(Input):
 class SessionName(Footer):
     """Name of current session"""
 
-    session = reactive("null")
+    session: reactive[str | None] = reactive[str | None]("null")
 
     def render(self) -> str:
         return f"#{self.session}"
@@ -88,7 +88,7 @@ class Abacura(App):
         old.display = False
         new.display = True
 
-        self.query_one(SessionName).session = new.name
+        self.query_one(SessionName).session = new.name 
 
 
     def mudoutput(self, id: str) -> TextLog:

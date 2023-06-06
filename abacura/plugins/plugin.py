@@ -54,7 +54,7 @@ class PluginManager(Plugin):
         return False       
 
     def output(self, msg, markup: bool=False, highlight: bool=False) -> None:
-        self.app.handle_mud_data(self.session, msg, markup, highlight)
+        self.app.handle_mud_data(self.session, msg, markup, highlight) #type: ignore
 
     def load_plugins(self) -> None:
         """Load plugins"""

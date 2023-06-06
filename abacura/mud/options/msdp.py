@@ -1,4 +1,4 @@
-from .default import TelnetOption, SB, DO, DONT, WILL, WONT, IAC, SE
+from abacura.mud.options import *
 import time
 
 VAR = b'\x01'

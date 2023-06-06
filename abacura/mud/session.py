@@ -7,7 +7,7 @@ class Session():
         self.outb = b''
         self.writer = None
         self.connected = False
-        self.name = name
+        self.name: str =  name
         self.host = None
         self.port = None
 
@@ -16,8 +16,9 @@ class Session():
         msdp = MSDP(handler, self.writer)
         self.options[msdp.code] = msdp
 
-    def send(self, msg):
-        self.writer.write(bytes(msg + "\n", "UTF-8"))
+    def send(self, msg: str) -> None:
+        if self.writer is not None:
+            self.writer.write(bytes(msg + "\n", "UTF-8")) 
     
     def output(self, msg, markup: bool=False, highlight: bool=False):
         self.handler(self.name, msg, markup=markup, highlight=highlight)

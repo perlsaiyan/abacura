@@ -46,10 +46,10 @@ class connect(Plugin):
             app.run_worker(app.sessions[args[1]].telnet_client(app.handle_mud_data, args[2], int(args[3])))
 
 class session(Plugin):
-    """Get information about sessions"""
+    """@session <name>: Get information about sessions or swap to session <name>"""
     name = "session"
 
-    def do(self, line, context) -> None:
+    def do(self, line: str, context) -> None:
         manager = context["manager"]
         sessions = context["app"].sessions
 
