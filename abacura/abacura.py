@@ -1,9 +1,6 @@
 import io
 import csv
 
-import re
-import os
-
 from abacura.config import Config
 from abacura.mud.context import Context
 from abacura.mud.session import Session
@@ -71,18 +68,8 @@ class Abacura(App):
         ("pageup", "pageup", "PageUp"),
         ("pagedown", "pagedown", "PageDown"),
         ("f2", "toggle_sidebar", "F2"),     
-        ("f4", "swap_session", "swap")
                 ]
 
-    def on_mount(self) -> None:
-        pass
-
-    
-    def action_swap_session(self) -> None:
-        if self.session == "null":
-            self.set_session("pif")
-        else:
-            self.set_session("null")
 
     def add_session(self, id) -> None:
         outputs = self.query_one("#mudoutputs")
@@ -90,10 +77,9 @@ class Abacura(App):
         TL.write(f"[bold red]#SESSION {id}")
         
         outputs.mount(TL)
-        
         newsession = Session(id)
         self.sessions[id] = newsession
-        outputs._update_styles()
+
 
     def set_session(self, id: str) -> None:
         old = self.mudoutput(self.session)
@@ -178,30 +164,17 @@ class Abacura(App):
                 text_log.write(f"[bold red]# NO SESSION CONNECTED")
                 text_log.markup = False
             
-    def dump_value(self, value):
-        text_log = self.mudoutput(self.session)
-        text_log.markup = True
-        ses = self.current_session()
-
-        words = value.split()
-        if len(words) == 1:
-            text_log.write(Pretty(ses.options[69].values), markup=True, highlight=True)
-        else:
-            text_log.write(Pretty([words[1], ses.options[69].values[words[1]]]), markup=True, highlight=True)
-        
-        text_log.markup = False
-
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark
+
+    def action_toggle_sidebar(self) -> None:
+        sidebar = self.query_one("#sidebar")
+        sidebar.display = not sidebar.display
 
     def action_pageup(self) -> None:
         text_log = self.mudoutput(self.session)
         text_log.auto_scroll = False
         text_log.action_page_up()
-
-    def action_toggle_sidebar(self) -> None:
-        sidebar = self.query_one("#sidebar")
-        sidebar.display = not sidebar.display
 
     def action_pagedown(self) -> None:
         text_log = self.mudoutput(self.session)

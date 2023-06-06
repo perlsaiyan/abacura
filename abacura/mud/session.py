@@ -1,6 +1,4 @@
 import asyncio
-import socket
-import time
 from abacura.mud.options.msdp import MSDP
 
 class Session():
