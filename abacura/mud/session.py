@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 @inject
 class Session(BaseSession):
-    config: dict
+    _config: dict
     abacura: App   
     all: dict
     outb = b''
@@ -37,7 +37,10 @@ class Session(BaseSession):
         with Context(config = self.config, sessions = self.abacura.sessions, tl=self.tl, app=self.abacura, session=self):
             self.plugin_manager = PluginManager()     
         
-
+    @property
+    def config(self):
+        return self._config.config
+    
     def register_options(self, handler):
         self.options = {}
         msdp = MSDP(handler, self.writer)
@@ -73,9 +76,11 @@ class Session(BaseSession):
         self.tl.markup = False
         self.tl.highlight =  False
 
-        # temporary action so i can stream and share screen recordings
+        # TODO temporary action so i can stream and share screen recordings
         if re.match(r'^Please enter your account password', msg) and os.environ.get("MUD_PASSWORD") is not None:
             self.send(os.environ.get("MUD_PASSWORD"))
+        elif re.match(r'^Enter your account name. If you do not have an account,', msg) and self.name in self.config and "character_name" in self.config[self.name]:
+            self.send(self.config[self.name]["character_name"])
 
     async def telnet_client(self, handler, host: str, port: int) -> None:
         self.handler = handler

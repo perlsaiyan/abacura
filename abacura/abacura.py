@@ -48,7 +48,7 @@ class Abacura(App):
         self.create_session("null")
 
     def create_session(self, id: str) -> None:
-        with Context(all=self.sessions, config=self.config, abacura=self):
+        with Context(all=self.sessions, _config=self.config, abacura=self):
             self.sessions[id] = Session(id)
         
         
