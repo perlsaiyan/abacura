@@ -106,11 +106,11 @@ class config(Plugin):
 
         if len(args) == 1:
             if context["app"].session == "null":
-                c = escape(context["manager"].config.config.as_string())
+                c = escape(context["manager"].config.as_string())
             else:
-                c = escape(context["manager"].config.config[context["app"].session].as_string())
+                c = escape(context["manager"].config[context["app"].session].as_string())
         else:
-            c = escape(context["manager"].config.config[args[1]].as_string())
+            c = escape(context["manager"].config[args[1]].as_string())
 
         p = Panel(c, highlight = True)
         tl = context["app"].mudoutput(context["app"].session)
