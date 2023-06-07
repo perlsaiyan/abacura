@@ -1,10 +1,9 @@
 from abacura import InputBar, AbacuraFooter
 from abacura.config import Config
 from abacura.mud.session import Session
-from abacura.plugins.plugin import PluginManager
 
 import io
-import click
+
 import csv
 from serum import Context
 
@@ -12,52 +11,55 @@ from textual.app import App, ComposeResult
 from textual.containers import Container
 from textual.widgets import Header, Static, TextLog
 
+
+
+import click
+
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing_extensions import Self
 
+
 class Abacura(App):
     """A Textual mudclient"""
     sessions = {}
+    session = "null"
 
     def __init__(self,config,**kwargs):
+        self.config_file = config
         self.config = Config(config=config)
-        with Context(all=self.sessions, config=self.config.config, abacura=self):
-            self.sessions["null"] = Session("null")
-        
-        self.session = "null"
-
-
         super().__init__()
-
-        with Context(config = self.config.config, sessions = self.sessions):
-            self.plugin_manager = PluginManager(self, "Global", None)
-
-        self.plugin_manager.load_plugins()        
-    
+ 
     AUTO_FOCUS = "InputBar"
     CSS_PATH   = "abacura.css"
-
 
     BINDINGS = [
         ("ctrl+d", "toggle_dark", "Toggle dark mode"),
         ("ctrl+q", "quit", "Quit"),
         ("pageup", "pageup", "PageUp"),
         ("pagedown", "pagedown", "PageDown"),
-        ("f2", "toggle_sidebar", "F2"),     
+        ("f2", "toggle_sidebar", "F2"),
+        ("f3", "reload_config", "f3")    
                 ]
+    
+    def on_mount(self) -> None:
+        self.create_session("null")
 
-
-    def add_session(self, id) -> None:
+    def create_session(self, id: str) -> None:
+        with Context(all=self.sessions, config=self.config, abacura=self):
+            self.sessions[id] = Session(id)
+        
+        
+    def add_session(self, ses: Session) -> TextLog:
         outputs = self.query_one("#mudoutputs")
-        TL = TextLog(highlight=False, markup=True, wrap=False, name=id, classes="mudoutput", id=f"mud-{id}")
-        TL.write(f"[bold red]#SESSION {id}")
+        TL = TextLog(highlight=False, markup=True, wrap=False, name=ses.name, classes="mudoutput", id=f"mud-{ses.name}")
+        TL.write(f"[bold red]#SESSION {ses.name}")
         
         outputs.mount(TL)
-        newsession = Session(id)
-        self.sessions[id] = newsession
-
+        self.set_session(ses.name)
+        return TL
 
     def set_session(self, id: str) -> None:
         old = self.mudoutput(self.session)
@@ -82,7 +84,8 @@ class Abacura(App):
         with Container(id="app-grid"):
             yield Static("Sidebar\nSessions\nOther data", id="sidebar", name="sidebar")
             with Container(id="mudoutputs"):
-                yield TextLog(highlight=False, markup=True, wrap=False, name="null", classes="mudoutput", id="mud-null")
+                yield Static(name="MOTD", id="motd")
+                #yield TextLog(highlight=False, markup=True, wrap=False, name="null", classes="mudoutput", id="zero")
                 #yield TextLog(highlight=False, markup=True, wrap=False, name="pif", classes="mudoutput", id="mud-pif")
             yield InputBar()
         yield AbacuraFooter()
@@ -111,37 +114,26 @@ class Abacura(App):
             text_log.highlight = False
 
     async def on_input_bar_user_command(self, command: InputBar.UserCommand) -> None:
-        text_log = self.mudoutput(self.session)
-        ses = self.current_session()
         
+        ses = self.current_session()
         list = csv.reader(io.StringIO(command.command), delimiter=';', escapechar='\\')
-
+        
         try:
             lines = list.__next__()
             for line in lines:
-
-                cmd = line.lstrip().split()[0]
-
-                # This is a command for the global manager
-                if cmd.startswith("@") and self.plugin_manager.handle_command(line):
-                        continue
-
-                if ses.connected:
-                    ses.send(line + "\n")
-                    continue
+                ses.player_input(line)
                 
-                text_log.markup = True
-                text_log.write("[bold red]# NO SESSION CONNECTED")
-                text_log.markup = False
+        except StopIteration:
+            ses.player_input("")
 
-        except Exception as e:
-            if ses.connected: 
-                ses.send("")
-            else:
-                text_log.markup = True
-                text_log.write(f"[bold red]# NO SESSION CONNECTED {repr(e)}")
-                text_log.markup = False
             
+    def action_reload_config(self) -> None:
+        text_log = self.mudoutput(self.session)
+        self.config.reload()
+        text_log.markup = True
+        text_log.write(f"[bold red]# CONFIG: Reloaded configuration file")
+        text_log.markup = False
+
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark
 

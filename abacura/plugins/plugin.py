@@ -1,13 +1,20 @@
-from abacura.plugins import Plugin
+from abacura.mud import BaseSession
+from abacura.plugins import Plugin, action
 
 from importlib import import_module
 import inspect
 import os
 from pathlib import Path
-from serum import inject
+
+from rich.markup import escape
+from rich.panel import Panel
+from rich.pretty import Pretty
+
+from serum import inject, Context
+import traceback
 from typing import Optional
-from abacura.mud.session import Session
 from textual.app import App
+from textual.widgets import TextLog
 
 class PluginHandler():
     def __init__(self, plugin: Plugin):
@@ -28,12 +35,13 @@ class PluginManager(Plugin):
     
     config: dict
     sessions: dict
+    session: BaseSession
+    app: App
+    tl: TextLog
 
-    def __init__(self, app: App, name: str, session: Optional[Session]):
+    def __init__(self):
         super().__init__()
-        self.name = name
-        self.app = app
-        self.session = session
+        self.load_plugins()
 
     def handle_command(self, line: str) -> bool:
         """Handles command parsing, returns True if command handled
@@ -43,7 +51,6 @@ class PluginManager(Plugin):
         cmd = cmd[1:]
 
         context = {
-            "session": self.session,
             "app": self.app,
             "manager": self
         }
@@ -54,12 +61,16 @@ class PluginManager(Plugin):
                     self.output(f"[green][italic]> {line}", markup=True, highlight=True)
                     p.do(line, context)
                 except Exception as e:
-                    self.output(f"[bold red] # ERROR: {p.__class__} {p.get_plugin_name()}: {repr(e)}", markup=True, highlight=True)
+                    self.session.show_exception(
+                        f"[bold red] # ERROR: {p.__class__} {p.get_plugin_name()}: {repr(e)}", e
+                        )
                 return True
         return False       
 
     def output(self, msg, markup: bool=False, highlight: bool=False) -> None:
-        self.app.handle_mud_data(self.session, msg, markup, highlight) #type: ignore
+        self.tl.markup = markup
+        self.tl.markup = highlight
+        self.tl.write(msg)
 
     def load_plugins(self) -> None:
         """Load plugins"""
@@ -71,6 +82,22 @@ class PluginManager(Plugin):
         modules = []
         plugins = {}
         handlers = {}
+
+        plugin_list = []
+        for path, subdirs, files in os.walk(plugin_path):
+            for name in files:
+                if not name.startswith("_") and name.endswith(".py"):
+                    plugin_list.append(Path(os.path.join(path, name)))
+        
+        for pf in plugin_list:
+            package = str(pf.relative_to(plugin_path.parent)).replace(os.sep, ".")
+            package = package[:-3] # strip .py
+            try:
+                module = import_module(package)
+            except Exception as e:
+                self.output(f"[bold red]# ERROR LOADING PLUGIN {package} (from {pf}): {repr(e)}", markup=True, highlight=True)
+                continue
+
 
         for pf in plugin_files:
             package = str(pf.relative_to(plugin_path.parent)).replace(os.sep, ".")
@@ -96,3 +123,7 @@ class PluginManager(Plugin):
 
         #self.app.handle_mud_data(self.app.session,f"[bold red]# Loaded {len(plugins)} plugins and {len(self.plugin_handlers)} handlers")
         self.plugins = plugins
+
+    @action("^Enter your account name. If you do not have an account, just enter a new", "E")
+    def action_login(self, command_line: str):
+        self.tl.write("kensho")

@@ -1,8 +1,10 @@
 from abacura.plugins import Plugin
-
+from abacura.mud.session import Session
 from tomlkit import dumps
 
+from rich.markup import escape
 from rich.pretty import Pretty
+from rich.panel import Panel
 
 class foo(Plugin):
     """Sample plugin to knock around"""
@@ -10,9 +12,13 @@ class foo(Plugin):
     plugin_enabled = True
 
     def do(self, line, context) -> None:
-        s = context["manager"].sessions
-        context["manager"].output(f"[bold red]# FOO: {line} - {self.plugin_enabled}: {s}", markup=True, highlight=True)
+        s = context["manager"].config
+        m = context["manager"].session.options[69].values["HEALTH"]
+        app = context["app"]
 
+        context["manager"].output(f"{app.sessions}", markup=True)
+        context["manager"].output(f"MSDP HEALTH: {m}")
+        
 class plugindata(Plugin):
     """Get information about plugins"""
     name = "plugin"
@@ -32,16 +38,25 @@ class connect(Plugin):
         manager = context["manager"]
         app = context["app"]
         c = context["app"].config.config
-
+        
         args = line.split()
-        print(args[1])
+        
         if len(args) == 2 and args[1] in c:
-            app.add_session(args[1])
-            app.set_session(args[1])
+            if args[1] in app.sessions:
+                    manager.tl.markup = True
+                    manager.tl.write(f"[bold red]# SESSION ALREADY EXISTS")
+                    manager.tl.markup = False
+                    return
+            app.create_session(args[1])
             app.run_worker(app.sessions[args[1]].telnet_client(app.handle_mud_data, c[args[1]]["host"], int(c[args[1]]["port"])))
         elif len(args) < 4:
             manager.output(f" [bold red]#connect <session name> <host> <port>", markup=True, highlight=True)
         else:
+            if args[1] in app.sessions:
+                manager.tl.markup = True
+                manager.output(f"[bold red]# SESSION ALREADY EXISTS")
+                manager.tl.markup = False
+                return
             app.add_session(args[1])
             app.set_session(args[1])
             app.run_worker(app.sessions[args[1]].telnet_client(app.handle_mud_data, args[2], int(args[3])))
@@ -68,7 +83,10 @@ class session(Plugin):
                 if ses == "null":
                     buf += f"{s.name}: Main Session\n"
                 else:
-                    buf += f"{s.name}: {s.host} {s.port}\n"
+                    if s.connected:
+                        buf += f"{s.name}: {s.host} {s.port}\n"
+                    else:
+                        buf += f"{s.name}: {s.host} {s.port} [red]\\[disconnected]\n"
 
             manager.output(buf, markup=True, highlight=True)
         elif len(args)  == 2:
@@ -85,9 +103,17 @@ class config(Plugin):
 
     def do(self, line, context) -> None:
         args = line.split()
-        manager = context["manager"]
-        
+
         if len(args) == 1:
-            manager.output(dumps(context["app"].config.config))
+            if context["app"].session == "null":
+                c = escape(context["manager"].config.config.as_string())
+            else:
+                c = escape(context["manager"].config.config[context["app"].session].as_string())
         else:
-            manager.output(dumps(context["app"].config.config[' '.join(args[1:])]))
+            c = escape(context["manager"].config.config[args[1]].as_string())
+
+        p = Panel(c, highlight = True)
+        tl = context["app"].mudoutput(context["app"].session)
+        tl.markup = True
+        tl.write(p)
+        tl.markup = False

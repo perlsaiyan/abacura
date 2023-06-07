@@ -23,3 +23,4 @@ class AbacuraFooter(Footer):
 
     def render(self) -> str:
         return f"#{self.session}"    
+
