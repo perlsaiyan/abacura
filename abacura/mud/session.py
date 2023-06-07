@@ -1,25 +1,24 @@
+from __future__ import annotations
 from abacura.mud import BaseSession
 from abacura.mud.options.msdp import MSDP
 from abacura.plugins.plugin import PluginManager
 
-
 import asyncio
 import os
 import re
-from rich.markup import escape
 
 from serum import inject, Context
-from textual.app import App
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing_extensions import Self
+    from abacura.abacura import Abacura
 
 @inject
 class Session(BaseSession):
     _config: dict
-    abacura: App   
+    abacura: Abacura
     all: dict
     outb = b''
     writer = None
