@@ -6,13 +6,8 @@ import inspect
 import os
 from pathlib import Path
 
-from rich.markup import escape
-from rich.panel import Panel
-from rich.pretty import Pretty
-
 from serum import inject, Context
-import traceback
-from typing import Optional
+
 from textual.app import App
 from textual.widgets import TextLog
 
@@ -114,16 +109,15 @@ class PluginManager(Plugin):
                     if c.__module__ == module.__name__ and inspect.isclass(c) and issubclass(c, Plugin):
                         p: Plugin = c()
                         plugins[p.get_name()] = p
-                        #self.app.handle_mud_data(self.app.session,f"[bold red]# loading {p.get_name()}")
+                        
 
                         h = PluginHandler(p)
                         self.plugin_handlers.append(h)
                         handlers[p.get_name()] = h
 
-
-        #self.app.handle_mud_data(self.app.session,f"[bold red]# Loaded {len(plugins)} plugins and {len(self.plugin_handlers)} handlers")
         self.plugins = plugins
 
     @action("^Enter your account name. If you do not have an account, just enter a new", "E")
     def action_login(self, command_line: str):
-        self.tl.write("kensho")
+        if self.session.name in self.config and "account_name" in self.config[self.session.name]:
+            self.tl.write(self.config[self.session.name]["account_name"])

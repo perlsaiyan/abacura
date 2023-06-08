@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from abacura import SessionScreen, AbacuraFooter
 from abacura.mud import BaseSession
 from abacura.mud.options.msdp import MSDP
 from abacura.plugins.plugin import PluginManager
@@ -8,6 +10,12 @@ import os
 import re
 
 from serum import inject, Context
+
+from textual import log
+from textual.screen import Screen
+from textual.widgets import TextLog
+
+import time
 
 from typing import TYPE_CHECKING
 
@@ -31,7 +39,17 @@ class Session(BaseSession):
         self.host = None
         self.port = None
 
-        self.tl = self.abacura.add_session(self)
+        with Context(_config=self._config, _session=self):
+            self.abacura.install_screen(SessionScreen(name), name=name)
+        
+        self.abacura.push_screen(name)
+        self.screen = self.abacura.query_one(f"#screen-{name}", expect_type=Screen)
+        
+    def launch_screen(self):
+        self.screen.query_one(AbacuraFooter).session = self.name
+        log(f"stack: {self.abacura.screen_stack}")
+        log(f"output should be #output-{self.name}")
+        self.tl = self.screen.query_one(f"#output-{self.name}")
 
         with Context(config = self.config, sessions = self.abacura.sessions, tl=self.tl, app=self.abacura, session=self):
             self.plugin_manager = PluginManager()     
@@ -40,9 +58,9 @@ class Session(BaseSession):
     def config(self):
         return self._config.config
     
-    def register_options(self, handler):
+    def register_options(self):
         self.options = {}
-        msdp = MSDP(handler, self.writer)
+        msdp = MSDP(self.output, self.writer)
         self.options[msdp.code] = msdp
 
     def player_input(self, line) -> None:
@@ -81,13 +99,12 @@ class Session(BaseSession):
         elif re.match(r'^Enter your account name. If you do not have an account,', msg) and self.name in self.config and "character_name" in self.config[self.name]:
             self.send(self.config[self.name]["character_name"])
 
-    async def telnet_client(self, handler, host: str, port: int) -> None:
-        self.handler = handler
+    async def telnet_client(self, host: str, port: int) -> None:
         self.host = host
         self.port = port
         reader, self.writer = await asyncio.open_connection(host, port)
         self.connected = True
-        self.register_options(handler)
+        self.register_options()
         while self.connected == True:
             data = await reader.read(1)
 
