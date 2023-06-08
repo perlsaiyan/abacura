@@ -25,23 +25,22 @@ if TYPE_CHECKING:
 class SessionScreen(Screen):
     _config: Config
     _session: Session
+
     BINDINGS = [
         ("pageup", "pageup", "PageUp"),
         ("pagedown", "pagedown", "PageDown"),
         ("f2", "toggle_sidebar", "F2"),
     ]
+
     CSS_PATH = "abacura.css"
     AUTO_FOCUS = "InputBar"
 
     def __init__(self, name: str):
+
         super().__init__()
         
         self.id = f"screen-{name}"
         self.tlid = f"output-{name}"
-        
-        if name in self.config and "key_bindings" in self.config[name]:
-            for row in self.config[name]["key_bindings"]:
-                self.BINDINGS.append(row)
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the session"""

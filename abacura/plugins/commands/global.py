@@ -2,6 +2,7 @@ from abacura.plugins import Plugin
 
 from rich.markup import escape
 from rich.panel import Panel
+import sys
 
 class foo(Plugin):
     """Sample plugin to knock around"""
@@ -9,11 +10,14 @@ class foo(Plugin):
     plugin_enabled = True
 
     def do(self, line, context) -> None:
-        m = context["manager"].session.options[69].values["HEALTH"]
+        #m = context["manager"].session.options[69].values["HEALTH"]
         app = context["app"]
+        ses = app.sessions[app.session]
+        tl = context["manager"].session.screen
 
+        context["manager"].output(f"{sys.path}")
         context["manager"].output(f"{app.sessions}", markup=True)
-        context["manager"].output(f"MSDP HEALTH: {m}")
+        #context["manager"].output(f"MSDP HEALTH: {m}")
         
 class plugindata(Plugin):
     """Get information about plugins"""
@@ -40,7 +44,7 @@ class connect(Plugin):
     def do(self, line, context) -> None:
         manager = context["manager"]
         app = context["app"]
-        c = context["app"].config.config
+        c = context["app"].config
         
         args = line.split()
         

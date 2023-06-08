@@ -6,16 +6,15 @@ from abacura.mud.options.msdp import MSDP
 from abacura.plugins.plugin import PluginManager
 
 import asyncio
+from importlib import import_module
 import os
 import re
+import sys
 
 from serum import inject, Context
 
 from textual import log
 from textual.screen import Screen
-from textual.widgets import TextLog
-
-import time
 
 from typing import TYPE_CHECKING
 
@@ -26,6 +25,7 @@ if TYPE_CHECKING:
 @inject
 class Session(BaseSession):
     _config: dict
+    
     abacura: Abacura
     all: dict
     outb = b''
@@ -40,10 +40,21 @@ class Session(BaseSession):
         self.port = None
 
         with Context(_config=self._config, _session=self):
-            self.abacura.install_screen(SessionScreen(name), name=name)
+            if name in self.config and "screen_class" in self.config[name]:
+                (package, screen_class) = self.config[name]["screen_class"].rsplit(".",1)
+                log(f"Importing a package {package}")
+                log(sys.path)
+                mod = import_module(package)
+                sc = getattr(mod, screen_class)
+                self.abacura.install_screen(sc(name), name=name)
+
+            else:
+                self.abacura.install_screen(SessionScreen(name), name=name)
         
         self.abacura.push_screen(name)
         self.screen = self.abacura.query_one(f"#screen-{name}", expect_type=Screen)
+
+
         
     def launch_screen(self):
         self.screen.query_one(AbacuraFooter).session = self.name
