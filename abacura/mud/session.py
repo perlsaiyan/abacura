@@ -11,6 +11,7 @@ import os
 import re
 import sys
 
+from rich.text import Text
 from serum import inject, Context
 
 from textual import log
@@ -100,7 +101,7 @@ class Session(BaseSession):
     def output(self, msg, markup: bool=False, highlight: bool=False):
         self.tl.markup = markup
         self.tl.highlight = highlight
-        self.tl.write(msg)
+        self.tl.write(Text.from_ansi(msg))
         self.tl.markup = False
         self.tl.highlight =  False
 
