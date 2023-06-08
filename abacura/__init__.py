@@ -2,18 +2,21 @@ from __future__ import annotations
 
 from abacura.config import Config
 from abacura.inspector import Inspector
+from abacura.widgets.sidebar import Sidebar
+from abacura.widgets.commslog import CommsLog
 
 import csv
 import io
 from serum import inject
 
-from textual import log
 from textual.app import ComposeResult
 from textual.containers import Container
+
 from textual.message import Message
 from textual.reactive import reactive
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Input, Static, TextLog
+from textual.widgets import Footer, Header, Input, TextLog
+
 
 from typing import TYPE_CHECKING
 
@@ -31,6 +34,7 @@ class SessionScreen(Screen):
         ("pageup", "pageup", "PageUp"),
         ("pagedown", "pagedown", "PageDown"),
         ("f2", "toggle_sidebar", "F2"),
+        ("f3", "toggle_commslog", "F3")
     ]
 
     CSS_PATH = "abacura.css"
@@ -44,10 +48,13 @@ class SessionScreen(Screen):
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the session"""
+        commslog = CommsLog(id="commslog", name="commslog")
+        commslog.display = False
         yield Header(show_clock=True, name="Abacura", id="masthead", classes="masthead")
+        yield commslog
         
         with Container(id="app-grid"):
-            yield Static("Sidebar\nSessions\nOther data", id="sidebar", name="sidebar")
+            yield Sidebar(id="sidebar", name="sidebar")
             with Container(id="mudoutputs"):
                 yield TextLog(highlight=False, markup=False, wrap=False, name=self.tlid, classes="mudoutput", id=self.tlid)
             yield InputBar()
@@ -77,6 +84,10 @@ class SessionScreen(Screen):
         sidebar = self.query_one("#sidebar")
         sidebar.display = not sidebar.display
 
+    def action_toggle_commslog(self) -> None:
+        commslog = self.query_one("#commslog")
+        commslog.display = not commslog.display
+
     def action_pageup(self) -> None:
         self.tl.auto_scroll = False
         self.tl.action_page_up()
@@ -90,8 +101,6 @@ class SessionScreen(Screen):
     def config(self):
         return self._config.config
     
-
-
 class InputBar(Input):
     class UserCommand(Message):
         def __init__(self, command: str) -> None:
@@ -112,4 +121,5 @@ class AbacuraFooter(Footer):
 
     def render(self) -> str:
         return f"#{self.session}"    
+
 

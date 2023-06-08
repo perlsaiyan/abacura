@@ -9,8 +9,13 @@ Input {
 #sidebar {
     dock: left;
     width: 15;
-    height: 80%;
     display: none;
+}
+
+#commslog {
+    width: 100%;
+    display: block;
+    height: 10;
 }
 
 #mudoutputs {
