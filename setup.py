@@ -4,7 +4,7 @@ setup(
     name="abacura",
     description="Multi-session MUD client written in Python with Textual library",
     python_requires='>3.9',
-    version="0.0.6",
+    version="0.0.7",
     packages=["abacura", "abacura.mud", "abacura.plugins", "abacura.plugins.commands", "abacura.mud.options"],
     license="Proprietary",
     classifiers=[
