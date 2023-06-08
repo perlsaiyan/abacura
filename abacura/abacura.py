@@ -1,6 +1,7 @@
 from abacura import AbacuraFooter
 from abacura.config import Config
 from abacura.mud.session import Session
+from abacura import Inspector
 
 import click
 from tomlkit import TOMLDocument
@@ -9,6 +10,7 @@ from serum import Context, inject
 import sys
 
 from textual.app import App
+from textual.binding import Binding
 from textual.screen import Screen
 
 
@@ -32,7 +34,8 @@ class Abacura(App):
     BINDINGS = [
         ("ctrl+d", "toggle_dark", "Toggle dark mode"),
         ("ctrl+q", "quit", "Quit"),
-        ("f3", "reload_config", "f3")    
+        ("f3", "reload_config", "f3"),
+        Binding("f12", "toggle_inspector", ("Toggle Inspector")),
                 ]
 
     def __init__(self,**kwargs):
@@ -88,6 +91,12 @@ class Abacura(App):
 
     def action_quit(self) -> None:
         exit()
+
+    def action_toggle_inspector(self) -> None:
+        inspector = self.query_one(Inspector)
+        inspector.display = not inspector.display
+        if not inspector.display:
+            inspector.picking = False
 
     @property
     def config(self) -> TOMLDocument:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abacura.config import Config
+from abacura.inspector import Inspector
 
 import csv
 import io
@@ -51,7 +52,9 @@ class SessionScreen(Screen):
                 yield TextLog(highlight=False, markup=False, wrap=False, name=self.tlid, classes="mudoutput", id=self.tlid)
             yield InputBar()
         yield AbacuraFooter()
-    
+        inspector = Inspector()
+        inspector.display = False
+        yield inspector
     def on_mount(self) -> None:
         self.tl = self.query_one(f"#{self.tlid}", expect_type=TextLog)
         self._session.launch_screen()
