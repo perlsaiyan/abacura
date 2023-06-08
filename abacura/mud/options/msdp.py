@@ -59,26 +59,24 @@ class MSDP(TelnetOption):
     def sb(self, sb):
         sb = sb[1:]
         # TODO MSDP Subnegotiation Buffer
-        match sb[0:1]:
-            case b'\x01':
-                varname, sb = self.msdpvar(sb)
-                var = varname.decode("UTF-8")
-                value, sb = self.msdpval(sb)
+        ch = sb[0:1]
+        if ch == b'\x01':
+            varname, sb = self.msdpvar(sb)
+            var = varname.decode("UTF-8")
+            value, sb = self.msdpval(sb)
 
-                match var:
-                    case "REPORTABLE_VARIABLES":
-                        #self.handler(f"MSDP: Requesting all variables from {var}")
-                        self.values[var] = self.parse_reportable_variables(value)
-                        self.request_all_values()
-                    case other:
+            if var == "REPORTABLE_VARIABLES":
+                #self.handler(f"MSDP: Requesting all variables from {var}")
+                self.values[var] = self.parse_reportable_variables(value)
+                self.request_all_values()
+            else:
+                self.values[var] = value.decode("UTF-8")
+                try:
+                    self.values[var] = int(self.values[var])
+                except ValueError:
+                    pass
                         
-                        self.values[var] = value.decode("UTF-8")          
-                        try: 
-                            self.values[var] = int(self.values[var])
-                        except ValueError:
-                            pass
-                        
-            case _:
-                self.handler(f"MSDP: Don't know how to handle {sb}")
+        else:
+            self.handler(f"MSDP: Don't know how to handle {sb}")
 
         #self.handler(f"GOT MSDP SB - {sb}")

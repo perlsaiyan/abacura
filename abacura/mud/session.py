@@ -140,18 +140,18 @@ class Session(BaseSession):
                     if ord(data) in self.options:
                         self.options[ord(data)].do()
                     else:
-                        match data:
+                        if data == b'\x18':
                             # TTYPE
-                            case b'\x18':
-                                self.writer.write(b'\xff\xfb\x18')
-                                #self.output("IAC WILL TTYPE")
-                            case b'\x1f':
-                                # IAC WON'T NAWS
-                                self.writer.write(b'\xff\xfc\x1f')
-                                #self.output("IAC WON'T NAWS")
-                            case _:
-                                pass
-                                #self.output(f"IAC DO {ord(data)}")
+
+                            self.writer.write(b'\xff\xfb\x18')
+                            #self.output("IAC WILL TTYPE")
+                        elif data == b'\x1f':
+                            # IAC WON'T NAWS
+                            self.writer.write(b'\xff\xfc\x1f')
+                            #self.output("IAC WON'T NAWS")
+                        else:
+                            pass
+                            #self.output(f"IAC DO {ord(data)}")
 
                 # IAC DONT
                 if data == b'\xfe':

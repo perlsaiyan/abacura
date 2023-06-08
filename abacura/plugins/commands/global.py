@@ -10,14 +10,14 @@ class foo(Plugin):
     plugin_enabled = True
 
     def do(self, line, context) -> None:
-        #m = context["manager"].session.options[69].values["HEALTH"]
+        m = context["manager"].session.options[69].values["HEALTH"]
         app = context["app"]
         ses = app.sessions[app.session]
         tl = context["manager"].session.screen
 
         context["manager"].output(f"{sys.path}")
         context["manager"].output(f"{app.sessions}", markup=True)
-        #context["manager"].output(f"MSDP HEALTH: {m}")
+        context["manager"].output(f"MSDP HEALTH: {m}")
         
 class plugindata(Plugin):
     """Get information about plugins"""

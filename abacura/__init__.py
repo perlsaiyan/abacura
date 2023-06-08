@@ -36,9 +36,8 @@ class SessionScreen(Screen):
     AUTO_FOCUS = "InputBar"
 
     def __init__(self, name: str):
-
         super().__init__()
-        
+      
         self.id = f"screen-{name}"
         self.tlid = f"output-{name}"
 
