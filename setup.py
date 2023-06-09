@@ -3,8 +3,8 @@ from setuptools import setup
 setup(
     name="abacura",
     description="Multi-session MUD client written in Python with Textual library",
-    python_requires='>3.9',
-    version="0.0.8",
+    python_requires='>3.10',
+    version="0.0.9",
     packages=["abacura", "abacura.mud", "abacura.plugins", "abacura.plugins.commands", "abacura.mud.options", "abacura.widgets"],
     license="Proprietary",
     classifiers=[

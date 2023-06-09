@@ -51,7 +51,7 @@ port = 4000
 
 ## State of things
 Working:
-* sessions via the @connect command (should rename to #session)
+* sessions via the `@connect` command (should rename to #session)
 * `@config` command to view config, or `@config <section>` to view specific section
 * Overloading the layouts
 * session switching
