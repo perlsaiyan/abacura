@@ -31,8 +31,7 @@ Please include information about your PR.
 
 ## License
 
-Will likely be [MIT]
-(https://choosealicense.com/licenses/mit/)
+Will likely be [MIT](https://choosealicense.com/licenses/mit/)
 
 ## Sample configuration file (~/.abacura)
 * named sections can be used with `connect <section>` to avoid typing host
@@ -52,7 +51,7 @@ port = 4000
 
 ## State of things
 Working:
-* sessions via the #connect command (should rename to #session)
+* sessions via the @connect command (should rename to #session)
 * Overloading the layouts
 * session switching
 * scrollback
