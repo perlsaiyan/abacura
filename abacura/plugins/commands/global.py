@@ -17,7 +17,10 @@ class foo(Plugin):
 
         context["manager"].output(f"{sys.path}")
         context["manager"].output(f"{app.sessions}", markup=True)
-        context["manager"].output(f"MSDP HEALTH: {m}")
+
+        context["manager"].tl.markup=True
+        context["manager"].tl.write(f"MSDP HEALTH: [bold red]🛜 [bold green]🛜  {m}")
+        context["manager"].tl.markup=False
         
 class plugindata(Plugin):
     """Get information about plugins"""

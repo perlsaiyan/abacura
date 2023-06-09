@@ -9,6 +9,9 @@ import csv
 import io
 from serum import inject
 
+from rich.align import Align
+from rich.text import Text
+
 from textual.app import ComposeResult
 from textual.containers import Container
 
@@ -16,7 +19,6 @@ from textual.message import Message
 from textual.reactive import reactive
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Input, TextLog
-
 
 from typing import TYPE_CHECKING
 
@@ -62,6 +64,7 @@ class SessionScreen(Screen):
         inspector = Inspector()
         inspector.display = False
         yield inspector
+
     def on_mount(self) -> None:
         self.tl = self.query_one(f"#{self.tlid}", expect_type=TextLog)
         self._session.launch_screen()

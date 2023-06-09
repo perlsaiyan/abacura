@@ -39,10 +39,7 @@ class Abacura(App):
                 ]
 
     def __init__(self,**kwargs):
-
-
         super().__init__()
- 
     
     def on_mount(self) -> None:
         self.create_session("null")
@@ -57,31 +54,6 @@ class Abacura(App):
         self.push_screen(id)
         self.query_one(AbacuraFooter).session = id 
 
-    def current_session(self) -> Session:
-        return self.sessions[self.session]
-
-    def handle_mud_data(self, id, data, markup: bool=False, highlight: bool=False):
-        if id == None:
-            id = self.current_session().name
-
-        text_log = self.mudoutput(id)
-        ses = self.sessions[id]
-        
-        if data == "\r":
-            text_log.write("")
-
-        # TODO action handlers
-        else:       
-            if markup:
-                text_log.markup = True
-            if highlight:
-                text_log.highlight = True
-
-            text_log.write(data)
-
-            text_log.markup = False
-            text_log.highlight = False
-            
     def action_reload_config(self) -> None:
         tl = self.sessions[self.session].tl
         self.config.reload()
