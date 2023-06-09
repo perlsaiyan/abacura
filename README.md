@@ -52,10 +52,11 @@ port = 4000
 ## State of things
 Working:
 * sessions via the @connect command (should rename to #session)
+* `@config` command to view config, or `@config <section>` to view specific section
 * Overloading the layouts
 * session switching
 * scrollback
-* MSDP parsing (specific to Legends of Kallisti)
+* MSDP parsing (specific to Legends of Kallisti for complex values, view with `@msdp` command)
 * TOML config in ~/.abacura, but defaults if it doesn't exist
 
 todo:
