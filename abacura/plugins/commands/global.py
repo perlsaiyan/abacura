@@ -12,15 +12,11 @@ class foo(Plugin):
     def do(self, line, context) -> None:
         m = context["manager"].session.options[69].values["HEALTH"]
         app = context["app"]
-        ses = app.sessions[app.session]
-        tl = context["manager"].session.screen
 
         context["manager"].output(f"{sys.path}")
         context["manager"].output(f"{app.sessions}", markup=True)
-
-        context["manager"].tl.markup=True
-        context["manager"].tl.write(f"MSDP HEALTH: [bold red]🛜 [bold green]🛜  {m}")
-        context["manager"].tl.markup=False
+        context["manager"].output(f"MSDP HEALTH: [bold red]🛜 [bold green]🛜  {m}", markup=True)
+        
         
 class plugindata(Plugin):
     """Get information about plugins"""

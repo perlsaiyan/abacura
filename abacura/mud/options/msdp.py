@@ -55,10 +55,9 @@ class MSDP(TelnetOption):
         response = [IAC,SB,self.hexcode,VAR,b"LIST",VAL,b"REPORTABLE_VARIABLES",IAC,SE]
         self.writer.write(b''.join(response))
     
-    # TODO parse MSDP subnegotiations
+    # MSDP subnegotiation parser
     def sb(self, sb):
         sb = sb[1:]
-        # TODO MSDP Subnegotiation Buffer
         ch = sb[0:1]
         if ch == b'\x01':
             varname, sb = self.msdpvar(sb)
@@ -78,5 +77,3 @@ class MSDP(TelnetOption):
                         
         else:
             self.handler(f"MSDP: Don't know how to handle {sb}")
-
-        #self.handler(f"GOT MSDP SB - {sb}")

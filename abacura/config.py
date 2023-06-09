@@ -23,6 +23,9 @@ class Config():
             print(f"{cfile}: {repr(e)}")
             exit(1)
     
+    #TODO create a section check method instead of if "blah" in config and "config_option" 
+    #TODO maybe construct default and always return the answer
+
     @property
     def config(self):
         return self._config
