@@ -1,4 +1,6 @@
 from abacura.mud.options import *
+import re
+from textual import log
 import time
 
 VAR = b'\x01'
@@ -7,6 +9,10 @@ TABLE_OPEN = b'\x03'
 TABLE_CLOSE= b'\x04'
 ARRAY_OPEN = b'\x05'
 ARRAY_CLOSE= b'\x06'
+
+#TODO: Move ansi_escape somewhere else, we'll need it for triggers
+ansi_escape = re.compile(r'\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
 
 class MSDP(TelnetOption):
     """Handle MSDP TelnetOptions"""
@@ -38,11 +44,49 @@ class MSDP(TelnetOption):
         list = [x.decode("UTF-8") for x in buf.split(VAL) if len(x) > 1]
         return list
 
+    def parse_group(self, buf) -> list:
+
+        def parse_group_member(line) -> dict:
+            items = line.split(b'\x01')
+            member = {}
+            items = items[1:]
+            for item in items:
+                pair = item.split(b'\x02')
+                log(f"Found pair {pair}")
+                try:
+                    member[pair[0].decode("UTF-8")] = int(pair[1])
+                except ValueError:
+                    member[pair[0].decode("UTF-8")] = ansi_escape.sub('',pair[1].decode("UTF-8"))
+
+            return member
+
+        # Empty group
+        if buf == b'':
+            return []
+        
+        log(f"Start group parse with {buf}")
+        buf = buf[3:-2]
+        log(f"Stripped group parse to {buf}")
+        elements = buf.split(b'\x04\x02\x03')
+        
+        log(elements)
+
+        list = []
+        for element in elements:
+            log(f"Parsing {element}")
+            list.append(parse_group_member(element))
+        
+        log(list)
+        return list
+        
+        
+
+
     def request_all_values(self) -> None:
         for x in self.values["REPORTABLE_VARIABLES"]:
             # self.handler(f"Requesting MSDP value {x}")
             # without this sleep, I'm not getting GROUP?
-            time.sleep(0.0005)
+            time.sleep(0.001)
             self.writer.write(b''.join(
                 [IAC, SB, self.hexcode,
                  VAR, bytes("REPORT", "UTF-8"), 
@@ -57,6 +101,7 @@ class MSDP(TelnetOption):
     
     # MSDP subnegotiation parser
     def sb(self, sb):
+        log("MSDP SB parsing")
         sb = sb[1:]
         ch = sb[0:1]
         if ch == b'\x01':
@@ -68,8 +113,10 @@ class MSDP(TelnetOption):
                 #self.handler(f"MSDP: Requesting all variables from {var}")
                 self.values[var] = self.parse_reportable_variables(value)
                 self.request_all_values()
+            elif var == "GROUP":
+                self.values[var] = self.parse_group(value)
             else:
-                self.values[var] = value.decode("UTF-8")
+                self.values[var] = ansi_escape.sub('',value.decode("UTF-8"))
                 try:
                     self.values[var] = int(self.values[var])
                 except ValueError:

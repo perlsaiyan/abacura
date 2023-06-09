@@ -2,6 +2,8 @@ from abacura.plugins import Plugin
 
 from rich.markup import escape
 from rich.panel import Panel
+from rich.pretty import Pretty
+
 import sys
 
 class foo(Plugin):
@@ -102,6 +104,27 @@ class session(Plugin):
                 manager.output(f"[bold red]# INVALID SESSION {args[1]}", markup=True)
         else:
             manager.output(f"[bold red]@session <name>", markup=True, highlight=True)
+
+class msdp(Plugin):
+    """Dump MSDP values for debugging"""
+    name = "msdp"
+
+
+
+
+    def do(self, line, context) -> None:
+        m = context["app"].sessions[context["app"].session].options[69]
+        manager = context["manager"]
+        args = line.split()
+
+        if len(args) == 1:
+            p = Panel(Pretty(m.values), highlight = True)
+            manager.output(p, highlight = True)
+        elif len(args) == 2:
+            p = Panel(Pretty(m.values[args[1]]), highlight = True)
+            manager.output(p, highlight = True)
+        else:
+            manager.output("[bold red]# MSDP: too much args")
 
 class config(Plugin):
     """Show configuration information"""
