@@ -65,8 +65,7 @@ class connect(Plugin):
                 manager.output(f"[bold red]# SESSION ALREADY EXISTS")
                 manager.tl.markup = False
                 return
-            app.add_session(args[1])
-            app.set_session(args[1])
+            app.create_session(args[1])
             app.run_worker(app.sessions[args[1]].telnet_client(args[2], int(args[3])))
 
 class session(Plugin):
