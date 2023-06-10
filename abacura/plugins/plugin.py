@@ -6,6 +6,8 @@ import inspect
 import os
 from pathlib import Path
 
+from rich.markup import escape
+
 from serum import inject, Context
 
 from textual.app import App
@@ -53,7 +55,7 @@ class PluginManager(Plugin):
         for p in self.plugin_handlers:
             if p.plugin.get_name() == cmd and p.plugin.plugin_enabled:
                 try:
-                    self.output(f"[green][italic]> {line}", markup=True, highlight=True)
+                    self.output(f"[green][italic]> {escape(line)}", markup=True, highlight=True)
                     p.do(line, context)
                 except Exception as e:
                     self.session.show_exception(

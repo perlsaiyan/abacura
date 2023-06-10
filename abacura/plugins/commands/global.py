@@ -25,7 +25,7 @@ class showme(Plugin)        :
     def do(self, line, context) -> None:
         ses = context["app"].sessions[context["app"].session]
         data = line.split(' ',1)
-        ses.output(data[1])
+        ses.output(data[1], markup = True)
 
 
 class plugindata(Plugin):
