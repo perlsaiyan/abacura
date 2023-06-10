@@ -19,7 +19,7 @@ abacura will look in ~/.abacura by default, but a config file is not required.
 If you want to build, you will also want to `pip install requirements-dev.txt`
 
 ## Usage
-The app starts in the `#null` session.  You can use `connect <name> <host> <port>`
+The app starts in the `#null` session.  You can use `@connect <name> <host> <port>`
 to connect to a MUD.
 
 ## Contributing
@@ -34,7 +34,7 @@ Please include information about your PR.
 Will likely be [MIT](https://choosealicense.com/licenses/mit/)
 
 ## Sample configuration file (~/.abacura)
-* named sections can be used with `connect <section>` to avoid typing host
+* named sections can be used with `@connect <section>` to avoid typing host
 * `css_path` can be used to replace the default Textual CSS configuration
 * `screen_class` can be used to replace the default screen layout
 
