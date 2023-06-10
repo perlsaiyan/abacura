@@ -99,7 +99,12 @@ class Session(BaseSession):
     def send(self, msg: str) -> None:
         """Send to writer (socket)"""
         if self.writer is not None:
-            self.writer.write(bytes(msg + "\n", "UTF-8")) 
+            self.writer.write(bytes(msg + "\n", "UTF-8"))
+        else:
+            # TODO why does this not markup with output()?
+            self.tl.markup = True
+            self.write(f"[bold red]# NO-SESSION SEND: msg", markup=True)
+            self.tl.markup = False
     
     #TODO rather than continually toggling this should we have houtput, moutput and hmoutput?
     def output(self, msg, markup: bool=False, highlight: bool=False):

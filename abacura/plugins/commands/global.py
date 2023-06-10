@@ -19,7 +19,15 @@ class foo(Plugin):
         context["manager"].output(f"{app.sessions}", markup=True)
         context["manager"].output(f"MSDP HEALTH: [bold red]🛜 [bold green]🛜  {m}", markup=True)
         
-        
+class showme(Plugin)        :
+    name = "showme"
+
+    def do(self, line, context) -> None:
+        ses = context["app"].sessions[context["app"].session]
+        data = line.split(' ',1)
+        ses.output(data[1])
+
+
 class plugindata(Plugin):
     """Get information about plugins"""
     name = "plugin"
