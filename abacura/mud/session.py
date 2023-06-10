@@ -103,23 +103,25 @@ class Session(BaseSession):
         else:
             # TODO why does this not markup with output()?
             self.tl.markup = True
-            self.write(f"[bold red]# NO-SESSION SEND: msg", markup=True)
+            self.tl.write(f"[bold red]# NO-SESSION SEND: {msg}")
             self.tl.markup = False
     
     #TODO rather than continually toggling this should we have houtput, moutput and hmoutput?
-    def output(self, msg, markup: bool=False, highlight: bool=False):
+    def output(self, msg, markup: bool=False, highlight: bool=False, gag: bool=False):
         """Write to TextLog for this screen"""
-        self.tl.markup = markup
-        self.tl.highlight = highlight
-        self.tl.write(Text.from_ansi(msg))
-        self.tl.markup = False
-        self.tl.highlight =  False
-
+        
         # TODO (REMOVE after plugins fixed) temporary action so i can stream and share screen recordings
         if re.match(r'^Please enter your account password', msg) and os.environ.get("MUD_PASSWORD") is not None:
             self.send(os.environ.get("MUD_PASSWORD"))
         elif re.match(r'^Enter your account name. If you do not have an account,', msg) and self.name in self.config and "character_name" in self.config[self.name]:
             self.send(self.config[self.name]["character_name"])
+
+        if not gag:
+            self.tl.markup = markup
+            self.tl.highlight = highlight
+            self.tl.write(Text.from_ansi(msg))
+            self.tl.markup = False
+            self.tl.highlight =  False
 
     async def telnet_client(self, host: str, port: int) -> None:
         """async worker to handle input/output on socket"""
