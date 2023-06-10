@@ -79,8 +79,26 @@ class MSDP(TelnetOption):
         log(list)
         return list
         
+    def parse_exits(self, buf) -> dict:
+        if buf == b'':
+            return {}
         
+        buf = buf[2:-1]
+        log(f"parse exits {buf}")
 
+        items = buf.split(b'\x01')
+        log(f"items {items}")
+
+        exits = {}
+        for item in items:
+            pair = item.split(b'\x02')
+            log(f"Found pair {pair}")
+            try:
+                exits[pair[0].decode("UTF-8")] = int(pair[1])
+            except ValueError:
+                exits[pair[0].decode("UTF-8")] = ansi_escape.sub('',pair[1].decode("UTF-8"))
+
+        return exits
 
     def request_all_values(self) -> None:
         for x in self.values["REPORTABLE_VARIABLES"]:
@@ -115,6 +133,8 @@ class MSDP(TelnetOption):
                 self.request_all_values()
             elif var == "GROUP":
                 self.values[var] = self.parse_group(value)
+            elif var == "ROOM_EXITS":
+                self.values[var] = self.parse_exits(value)
             else:
                 self.values[var] = ansi_escape.sub('',value.decode("UTF-8"))
                 try:
