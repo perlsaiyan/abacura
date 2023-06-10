@@ -107,7 +107,7 @@ class Session(BaseSession):
     #TODO rather than continually toggling this should we have houtput, moutput and hmoutput?
     def output(self, msg, markup: bool=False, highlight: bool=False, gag: bool=False, ansi: bool = False):
         """Write to TextLog for this screen"""
-        
+
         # TODO (REMOVE after plugins fixed) temporary action so i can stream and share screen recordings
         if re.match(r'^Please enter your account password', msg) and os.environ.get("MUD_PASSWORD") is not None:
             self.send(os.environ.get("MUD_PASSWORD"))
@@ -131,7 +131,7 @@ class Session(BaseSession):
         reader, self.writer = await asyncio.open_connection(host, port)
         self.connected = True
         self.register_options()
-        while self.connected == True:
+        while self.connected is True:
 
             # We read one character at a time so we can find IAC sequences
             data = await reader.read(1)

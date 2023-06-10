@@ -1,82 +1,92 @@
-from abacura.plugins import Plugin
+"""Temporary module with 'global' commands
+
+Need until Mard's PluginManager is ready
+"""
+
+import sys
 
 from rich.markup import escape
 from rich.panel import Panel
 from rich.pretty import Pretty
 
-import sys
+from abacura.plugins import Plugin
 
-class foo(Plugin):
+
+class PluginDemo(Plugin):
     """Sample plugin to knock around"""
     name = "foo"
     plugin_enabled = True
 
     def do(self, line, context) -> None:
-        m = context["manager"].session.options[69].values["HEALTH"]
+        manager = context["manager"].session.options[69].values["HEALTH"]
         app = context["app"]
 
         context["manager"].output(f"{sys.path}")
         context["manager"].output(f"{app.sessions}", markup=True)
-        context["manager"].output(f"MSDP HEALTH: [bold red]🛜 [bold green]🛜  {m}", markup=True)
-        
-class showme(Plugin)        :
+        context["manager"].output(
+            f"MSDP HEALTH: [bold red]🛜 [bold green]🛜  {manager}", markup=True)
+
+
+class PluginShowme(Plugin):
+    """Send text to screen as if it came from the socket, triggers actions"""
     name = "showme"
 
     def do(self, line, context) -> None:
         ses = context["app"].sessions[context["app"].session]
-        data = line.split(' ',1)
-        ses.output(data[1], markup = True)
+        data = line.split(' ', 1)
+        ses.output(data[1], markup=True)
 
 
-class plugindata(Plugin):
+class PluginData(Plugin):
     """Get information about plugins"""
     name = "plugin"
 
     def do(self, line, context) -> None:
-        tl = context["manager"].tl
-        tl.markup = True
-        tl.highlight = True
+        ses = context["app"].sessions[context["app"].session]
 
-        tl.write("Current registered global plugins:")
+        ses.output("Current registered global plugins:")
 
-        for pn in context["manager"].plugins:
-            p = context["manager"].plugins[pn]
-            tl.write(f"{'[bold green]✓' if p.plugin_enabled else '[bold red]x' } [white]{p.get_name()} - {p.get_help()}")
-        
-        tl.markup = False
-        tl.highlight = False
+        for plugin_name in context["manager"].plugins:
+            plugin = context["manager"].plugins[plugin_name]
+            ses.output(
+                f"{'[bold green]✓' if plugin.plugin_enabled else '[bold red]x' } [white]{plugin.get_name()}" +
+                 f" - {plugin.get_help()}", markup=True)
 
-class connect(Plugin):
+
+# TODO clean this way up after we get injected config
+class PluginConnect(Plugin):
     """@connect <name> <host> <port> to connect a game session"""
     name = "connect"
 
     def do(self, line, context) -> None:
         manager = context["manager"]
+        ses = context["app"].sessions[context["app"].session]
         app = context["app"]
-        c = context["app"].config
-        
+        conf = context["app"].config
+
         args = line.split()
-        
-        if len(args) == 2 and args[1] in c:
+
+        if len(args) == 2 and args[1] in conf:
             if args[1] in app.sessions:
-                    manager.tl.markup = True
-                    manager.tl.write(f"[bold red]# SESSION ALREADY EXISTS")
-                    manager.tl.markup = False
-                    return
+                ses.output("[bold red]# SESSION ALREADY EXISTS", markup=True)
+                return
+
             app.create_session(args[1])
-            app.run_worker(app.sessions[args[1]].telnet_client(c[args[1]]["host"], int(c[args[1]]["port"])))
+            app.run_worker(app.sessions[args[1]].telnet_client(
+                conf[args[1]]["host"], int(conf[args[1]]["port"])))
         elif len(args) < 4:
-            manager.output(f" [bold red]#connect <session name> <host> <port>", markup=True, highlight=True)
+            manager.output(
+                " [bold red]#connect <session name> <host> <port>", markup=True, highlight=True)
         else:
             if args[1] in app.sessions:
-                manager.tl.markup = True
-                manager.output(f"[bold red]# SESSION ALREADY EXISTS")
-                manager.tl.markup = False
+                ses.output("[bold red]# SESSION ALREADY EXISTS", markup=True)
                 return
             app.create_session(args[1])
-            app.run_worker(app.sessions[args[1]].telnet_client(args[2], int(args[3])))
+            app.run_worker(app.sessions[args[1]].telnet_client(
+                args[2], int(args[3])))
 
-class session(Plugin):
+
+class PluginSession(Plugin):
     """@session <name>: Get information about sessions or swap to session <name>"""
     name = "session"
 
@@ -93,47 +103,48 @@ class session(Plugin):
                     buf += "[bold green]>[white]"
                 else:
                     buf += " [white]"
-                s = sessions[ses]
+                session = sessions[ses]
 
                 if ses == "null":
-                    buf += f"{s.name}: Main Session\n"
+                    buf += f"{session.name}: Main Session\n"
                 else:
-                    if s.connected:
-                        buf += f"{s.name}: {s.host} {s.port}\n"
+                    if session.connected:
+                        buf += f"{session.name}: {session.host} {session.port}\n"
                     else:
-                        buf += f"{s.name}: {s.host} {s.port} [red]\\[disconnected]\n"
+                        buf += f"{session.name}: {session.host} {session.port} [red]\\[disconnected]\n"
 
             manager.output(buf, markup=True, highlight=True)
-        elif len(args)  == 2:
+        elif len(args) == 2:
             if args[1] in sessions:
                 context["app"].set_session(args[1])
             else:
-                manager.output(f"[bold red]# INVALID SESSION {args[1]}", markup=True)
+                manager.output(
+                    f"[bold red]# INVALID SESSION {args[1]}", markup=True)
         else:
-            manager.output(f"[bold red]@session <name>", markup=True, highlight=True)
+            manager.output("[bold red]@session <name>",
+                           markup=True, highlight=True)
 
-class msdp(Plugin):
+
+class PluginMSDP(Plugin):
     """Dump MSDP values for debugging"""
     name = "msdp"
 
-
-
-
     def do(self, line, context) -> None:
-        m = context["app"].sessions[context["app"].session].options[69]
+        msdp = context["app"].sessions[context["app"].session].options[69]
         manager = context["manager"]
         args = line.split()
 
         if len(args) == 1:
-            p = Panel(Pretty(m.values), highlight = True)
-            manager.output(p, highlight = True)
+            panel = Panel(Pretty(msdp.values), highlight=True)
+            manager.output(panel, highlight=True)
         elif len(args) == 2:
-            p = Panel(Pretty(m.values[args[1]]), highlight = True)
-            manager.output(p, highlight = True)
+            panel = Panel(Pretty(msdp.values[args[1]]), highlight=True)
+            manager.output(panel, highlight=True)
         else:
             manager.output("[bold red]# MSDP: too much args")
 
-class config(Plugin):
+
+class PluginConfig(Plugin):
     """Show configuration information"""
     name = "config"
 
@@ -142,14 +153,26 @@ class config(Plugin):
 
         if len(args) == 1:
             if context["app"].session == "null":
-                c = escape(context["manager"].config.as_string())
+                conf = escape(context["manager"].config.as_string())
             else:
-                c = escape(context["manager"].config[context["app"].session].as_string())
+                conf = escape(
+                    context["manager"].config[context["app"].session].as_string())
         else:
-            c = escape(context["manager"].config[args[1]].as_string())
+            conf = escape(context["manager"].config[args[1]].as_string())
 
-        p = Panel(c, highlight = True)
+        panel = Panel(conf, highlight=True)
         tl = context["manager"].tl
         tl.markup = True
-        tl.write(p)
+        tl.write(panel)
         tl.markup = False
+
+
+class PluginMeta(Plugin):
+    """Hyperlink demo"""
+    name = "meta"
+
+    def do(self, line, context) -> None:
+        manager = context["manager"]
+        manager.output("Meta info blah blah")
+        manager.output(
+            "Obtained from https://kallisti.nonserviam.net/hero-calc/Pif")
