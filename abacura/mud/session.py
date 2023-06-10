@@ -101,13 +101,11 @@ class Session(BaseSession):
         if self.writer is not None:
             self.writer.write(bytes(msg + "\n", "UTF-8"))
         else:
-            # TODO why does this not markup with output()?
-            self.tl.markup = True
-            self.tl.write(f"[bold red]# NO-SESSION SEND: {msg}")
-            self.tl.markup = False
+            self.output(f"[bold red]# NO-SESSION SEND: {msg}", markup = True, highlight = True)
+
     
     #TODO rather than continually toggling this should we have houtput, moutput and hmoutput?
-    def output(self, msg, markup: bool=False, highlight: bool=False, gag: bool=False):
+    def output(self, msg, markup: bool=False, highlight: bool=False, gag: bool=False, ansi: bool = False):
         """Write to TextLog for this screen"""
         
         # TODO (REMOVE after plugins fixed) temporary action so i can stream and share screen recordings
@@ -119,7 +117,10 @@ class Session(BaseSession):
         if not gag:
             self.tl.markup = markup
             self.tl.highlight = highlight
-            self.tl.write(Text.from_ansi(msg))
+            if ansi:
+                self.tl.write(Text.from_ansi(msg))
+            else:
+                self.tl.write(msg)
             self.tl.markup = False
             self.tl.highlight =  False
 
@@ -137,12 +138,12 @@ class Session(BaseSession):
 
             # Empty string means we lost our connection
             if data == b'':
-                self.output("[bold red]# Lost connection to server.", markup = True)
+                self.output("[bold red]# Lost connection to server.")
                 self.connected = False
 
             # End of a MUD line in buffer, send for processing    
             elif data == b'\n':
-                self.output(self.outb.decode("UTF-8", errors="ignore").replace("\r"," "))
+                self.output(self.outb.decode("UTF-8", errors="ignore").replace("\r"," "), ansi = True)
                 self.outb = b''
 
             # handle IAC sequences
