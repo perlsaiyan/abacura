@@ -39,6 +39,7 @@ class Session(BaseSession):
         self.name =  name
         self.host = None
         self.port = None
+        self.options = {}
 
         with Context(_config=self._config, _session=self):
             if name in self.config and "screen_class" in self.config[name]:
@@ -46,34 +47,33 @@ class Session(BaseSession):
                 log(f"Importing a package {package}")
                 log(sys.path)
                 mod = import_module(package)
-                sc = getattr(mod, screen_class)
-                self.abacura.install_screen(sc(name), name=name)
+                user_screen = getattr(mod, screen_class)
+                self.abacura.install_screen(user_screen(name), name=name)
 
             else:
                 self.abacura.install_screen(SessionScreen(name), name=name)
-        
+
         self.abacura.push_screen(name)
         self.screen = self.abacura.query_one(f"#screen-{name}", expect_type=Screen)
 
 
-    #TODO: This should possibly be an Message from the SessionScreen    
+    #TODO: This should possibly be an Message from the SessionScreen
     def launch_screen(self):
         """Fired on screen mounting, so our Footer is updated and Session gets a TextLog handle"""
         self.screen.query_one(AbacuraFooter).session = self.name
         self.tl = self.screen.query_one(f"#output-{self.name}")
 
         with Context(config = self.config, sessions = self.abacura.sessions, tl=self.tl, app=self.abacura, session=self):
-            self.plugin_manager = PluginManager()     
-        
+            self.plugin_manager = PluginManager()
+
     @property
     def config(self):
         """Parsed user config file"""
         return self._config.config
-    
+
     #TODO: Need a better way of handling this, possibly an autoloader
     def register_options(self):
-        """Set up telnet options handler"""
-        self.options = {}
+        """Set up telnet options handlers"""
         msdp = MSDP(self.output, self.writer)
         self.options[msdp.code] = msdp
 
@@ -87,11 +87,11 @@ class Session(BaseSession):
 
         if cmd.startswith("@") and self.plugin_manager.handle_command(line):
             return
-        
+
         if self.connected:
             self.send(line + "\n")
             return
-        
+
         self.tl.markup = True
         self.tl.write("[bold red]# NO SESSION CONNECTED")
         self.tl.markup = False
@@ -103,9 +103,10 @@ class Session(BaseSession):
         else:
             self.output(f"[bold red]# NO-SESSION SEND: {msg}", markup = True, highlight = True)
 
-    
     #TODO rather than continually toggling this should we have houtput, moutput and hmoutput?
-    def output(self, msg, markup: bool=False, highlight: bool=False, gag: bool=False, ansi: bool = False):
+    def output(self, msg,
+               markup: bool=False, highlight: bool=False, ansi: bool = False,
+               gag: bool=False):
         """Write to TextLog for this screen"""
 
         # TODO (REMOVE after plugins fixed) temporary action so i can stream and share screen recordings
