@@ -48,8 +48,9 @@ class PluginData(Plugin):
 
         for plugin_name in context["manager"].plugins:
             plugin = context["manager"].plugins[plugin_name]
+            indicator = '[bold green]✓' if plugin.plugin_enabled else '[bold red]x'
             ses.output(
-                f"{'[bold green]✓' if plugin.plugin_enabled else '[bold red]x' } [white]{plugin.get_name()}" +
+                f"{indicator} [white]{plugin.get_name()}" +
                  f" - {plugin.get_help()}", markup=True)
 
 
