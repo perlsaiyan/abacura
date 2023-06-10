@@ -5,6 +5,7 @@ from importlib import import_module
 import inspect
 import os
 from pathlib import Path
+from tomlkit import TOMLDocument
 
 from rich.markup import escape
 
@@ -30,7 +31,7 @@ class PluginManager(Plugin):
     plugins = {}
     plugin_handlers = []
     
-    config: dict
+    config: TOMLDocument
     sessions: dict
     session: BaseSession
     app: App
@@ -81,18 +82,18 @@ class PluginManager(Plugin):
         handlers = {}
 
         plugin_list = []
-        for path, subdirs, files in os.walk(plugin_path):
+        for path, _, files in os.walk(plugin_path):
             for name in files:
                 if not name.startswith("_") and name.endswith(".py"):
                     plugin_list.append(Path(os.path.join(path, name)))
         
-        for pf in plugin_list:
-            package = str(pf.relative_to(plugin_path.parent)).replace(os.sep, ".")
+        for pfile in plugin_list:
+            package = str(pfile.relative_to(plugin_path.parent)).replace(os.sep, ".")
             package = package[:-3] # strip .py
             try:
                 module = import_module(package)
             except Exception as e:
-                self.output(f"[bold red]# ERROR LOADING PLUGIN {package} (from {pf}): {repr(e)}", markup=True, highlight=True)
+                self.output(f"[bold red]# ERROR LOADING PLUGIN {package} (from {pfile}): {repr(e)}", markup=True, highlight=True)
                 continue
 
 
