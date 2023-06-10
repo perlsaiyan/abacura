@@ -58,7 +58,8 @@ class SessionScreen(Screen):
         with Container(id="app-grid"):
             yield Sidebar(id="sidebar", name="sidebar")
             with Container(id="mudoutputs"):
-                yield TextLog(highlight=False, markup=False, wrap=False, name=self.tlid, classes="mudoutput", id=self.tlid)
+                # TODO: wrap should be a config file field option
+                yield TextLog(highlight=False, markup=False, wrap=True, name=self.tlid, classes="mudoutput", id=self.tlid)
             yield InputBar()
         yield AbacuraFooter()
         inspector = Inspector()
