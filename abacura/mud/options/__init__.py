@@ -6,6 +6,7 @@ WONT = b'\xfc'
 DO = b'\xfd'
 DONT = b'\xfe'
 IAC = b'\xff'
+GA = b'\xf9'
 
 class TelnetOption():
     """Base class for Telnet Option handling"""

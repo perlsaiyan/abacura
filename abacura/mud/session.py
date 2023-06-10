@@ -16,6 +16,7 @@ from textual.screen import Screen
 from abacura import SessionScreen, AbacuraFooter
 from abacura.config import Config
 from abacura.mud import BaseSession
+from abacura.mud.options import GA
 from abacura.mud.options.msdp import MSDP
 from abacura.plugins.plugin import PluginManager
 
@@ -211,7 +212,7 @@ class Session(BaseSession):
                     pass
 
                 # telnet GA sequence, likely end of prompt
-                elif data == b'\xf9':
+                elif data == GA:
                     self.output(self.outb.decode("UTF-8", errors="ignore"), ansi = True)
                     self.output("")
                     self.outb = b''
