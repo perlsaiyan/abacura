@@ -1,3 +1,4 @@
+"""Telnet Options handler module"""
 SB = b'\xfa'
 SE = b'\xf0'
 WILL = b'\xfb'
@@ -7,20 +8,21 @@ DONT = b'\xfe'
 IAC = b'\xff'
 
 class TelnetOption():
+    """Base class for Telnet Option handling"""
     def __init__(self, code: int):
         pass
 
-    def do(self):
-        pass
+    def do(self) -> None:
+        """IAC DO handler"""
 
-    def dont(self):
-        pass
+    def dont(self) -> None:
+        """IAC DONT handler"""
 
-    def will(self):
-        pass
+    def will(self) -> None:
+        """IAC WILL handler"""
 
-    def wont(self):
-        pass
+    def wont(self) -> None:
+        """IAC WONT handler"""
 
     def sb(self, sb):
-        pass
+        """IAC SB handler"""

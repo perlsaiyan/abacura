@@ -1,23 +1,22 @@
+"""MUD session handler"""
 from __future__ import annotations
-
-from abacura import SessionScreen, AbacuraFooter
-from abacura.mud import BaseSession
-from abacura.mud.options.msdp import MSDP
-from abacura.plugins.plugin import PluginManager
 
 import asyncio
 from importlib import import_module
 import os
 import re
 import sys
+from typing import TYPE_CHECKING
 
 from rich.text import Text
 from serum import inject, Context
-
 from textual import log
 from textual.screen import Screen
 
-from typing import TYPE_CHECKING
+from abacura import SessionScreen, AbacuraFooter
+from abacura.mud import BaseSession
+from abacura.mud.options.msdp import MSDP
+from abacura.plugins.plugin import PluginManager
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -25,8 +24,9 @@ if TYPE_CHECKING:
 
 @inject
 class Session(BaseSession):
+    """Main User Session Class"""
     _config: dict
-    
+
     abacura: Abacura
     all: dict
     outb = b''
@@ -174,7 +174,7 @@ class Session(BaseSession):
                 if data == b'\xfe':
                     data = await reader.read(1)
                     #self.output(f"IAC DONT {data}")
-                                   
+
                 # IAC WILL
                 elif data == b'\xfb':
                     data = await reader.read(1)
@@ -213,8 +213,9 @@ class Session(BaseSession):
                     #self.output(f"IAC NAWS")
                     pass
 
+                # telnet GA sequence, likely end of prompt
                 elif data == b'\xf9':
-                    self.output(self.outb.decode("UTF-8", errors="ignore"))
+                    self.output(self.outb.decode("UTF-8", errors="ignore"), ansi = True)
                     self.output("")
                     self.outb = b''
 
@@ -223,7 +224,7 @@ class Session(BaseSession):
                     pass
                     #self.output(f"IAC UNKNOWN {ord(data)}")
 
-            # Catch everything else in our buffer and hold it        
+            # Catch everything else in our buffer and hold it
             else:
                 self.outb = self.outb + data
 

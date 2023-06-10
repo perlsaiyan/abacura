@@ -1,7 +1,10 @@
-from abacura.mud.options import *
+"""MSDP telnet option processor"""
 import re
-from textual import log
 import time
+
+from textual import log
+
+from abacura.mud.options import IAC, SE, SB, TelnetOption
 
 VAR = b'\x01'
 VAL = b'\x02'
@@ -16,7 +19,7 @@ ansi_escape = re.compile(r'\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 class MSDP(TelnetOption):
     """Handle MSDP TelnetOptions"""
-    
+
     def __init__(self, handler, writer):
         self.code = 69
         self.hexcode = b'\x45'
@@ -24,27 +27,32 @@ class MSDP(TelnetOption):
         self.writer = writer
         self.values = {}
 
-    def msdpvar(self, buf):
+    def msdpvar(self, buf) -> tuple[bytes, bytes]:
+        """Handle MSDP VAR sequences"""
         buf = buf[1:]
-        vn, trash, remainder = buf.partition(VAL)
-        return vn, remainder
+        name, _, remainder = buf.partition(VAL)
+        return name, remainder
 
     def msdpval(self, buf) -> tuple[bytes, bytes]:
-        val, trash, remainder = buf.partition(IAC)
+        """Handle MSDP VAL sequences"""
+        val, _, remainder = buf.partition(IAC)
         return val, remainder
 
-    # TODO generic handler for MSDP needed
+    # TODO generic handler for MSDP array and tables needed
     def msdparray(self, buf):
-        pass 
-    def msdptable(self, buf):
-        pass
+        """NotImplemented: generic MSDP array parser"""
 
+    def msdptable(self, buf):
+        """NotImplemented: generic MSDP table parser"""
+
+    # TODO move this to abacura-kallisti once we have config options for MSDP parser
     def parse_reportable_variables(self, buf) -> list:
+        """Kallisti-specific parser for REPORTABLE_VARIABLES"""
         buf = buf[1:-1]
-        list = [x.decode("UTF-8") for x in buf.split(VAL) if len(x) > 1]
-        return list
+        return [x.decode("UTF-8") for x in buf.split(VAL) if len(x) > 1]
 
     def parse_group(self, buf) -> list:
+        """Kallisti-specifc parser for GROUP"""
 
         def parse_group_member(line) -> dict:
             items = line.split(b'\x01')
@@ -63,26 +71,27 @@ class MSDP(TelnetOption):
         # Empty group
         if buf == b'':
             return []
-        
+
         log(f"Start group parse with {buf}")
         buf = buf[3:-2]
         log(f"Stripped group parse to {buf}")
         elements = buf.split(b'\x04\x02\x03')
-        
+
         log(elements)
 
-        list = []
+        element_list = []
         for element in elements:
             log(f"Parsing {element}")
-            list.append(parse_group_member(element))
-        
-        log(list)
-        return list
-        
+            element_list.append(parse_group_member(element))
+
+        log(element_list)
+        return element_list
+
     def parse_exits(self, buf) -> dict:
+        """Kallisti-specific parser for ROOM_EXITS"""
         if buf == b'':
             return {}
-        
+
         buf = buf[2:-1]
         log(f"parse exits {buf}")
 
@@ -101,28 +110,29 @@ class MSDP(TelnetOption):
         return exits
 
     def request_all_values(self) -> None:
-        for x in self.values["REPORTABLE_VARIABLES"]:
-            # self.handler(f"Requesting MSDP value {x}")
-            # without this sleep, I'm not getting GROUP?
+        """Automatically request all possible MSDP values"""
+        for key in self.values["REPORTABLE_VARIABLES"]:
+            log(f"Requesting MSDP value {key}")
+            # tiny sleep to avoid overwriting socket
+            # TODO see why this is possible, in Session?
             time.sleep(0.001)
             self.writer.write(b''.join(
                 [IAC, SB, self.hexcode,
-                 VAR, bytes("REPORT", "UTF-8"), 
-                 VAL, bytes(x, "UTF-8"), 
+                 VAR, bytes("REPORT", "UTF-8"),
+                 VAL, bytes(key, "UTF-8"),
                  IAC, SE]
                 ))
-            
+
     def will(self):
         self.writer.write(b"\xff\xfd\x45")
         response = [IAC,SB,self.hexcode,VAR,b"LIST",VAL,b"REPORTABLE_VARIABLES",IAC,SE]
         self.writer.write(b''.join(response))
-    
-    # MSDP subnegotiation parser
+
     def sb(self, sb):
         log("MSDP SB parsing")
         sb = sb[1:]
-        ch = sb[0:1]
-        if ch == b'\x01':
+        first = sb[0:1]
+        if first == b'\x01':
             varname, sb = self.msdpvar(sb)
             var = varname.decode("UTF-8")
             value, sb = self.msdpval(sb)
@@ -141,6 +151,7 @@ class MSDP(TelnetOption):
                     self.values[var] = int(self.values[var])
                 except ValueError:
                     pass
-                        
+
         else:
+            # TODO this is a candidate for some kind of protocol.log
             self.handler(f"MSDP: Don't know how to handle {sb}")
