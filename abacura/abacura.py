@@ -1,20 +1,18 @@
-from abacura import AbacuraFooter
-from abacura.config import Config
-from abacura.mud.session import Session
-from abacura import Inspector
+"""Main Textual App and Entrypoint"""
+from pathlib import Path
+import sys
+from typing import TYPE_CHECKING, Dict
 
 import click
-from tomlkit import TOMLDocument
-from pathlib import Path
 from serum import Context, inject
-import sys
-
 from textual.app import App
 from textual.binding import Binding
 from textual.screen import Screen
 
-
-from typing import TYPE_CHECKING, Dict
+from abacura import AbacuraFooter
+from abacura.config import Config
+from abacura.mud.session import Session
+from abacura import Inspector
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -25,7 +23,7 @@ class Abacura(App):
     sessions = {}
     session = "null"
     screens: Dict[Session, Screen]
-    _config: Config
+    config: Config
 
     AUTO_FOCUS = "InputBar"
     CSS_PATH: str = "abacura.css"
@@ -38,16 +36,18 @@ class Abacura(App):
         Binding("f12", "toggle_inspector", ("Toggle Inspector")),
                 ]
 
-    def __init__(self,**kwargs):
+    def __init__(self):
         super().__init__()
-    
+
     def on_mount(self) -> None:
+        """When app is mounted, create first session"""
         self.create_session("null")
 
-    def create_session(self, id: str) -> None:
-        with Context(all=self.sessions, _config=self._config, abacura=self):
-            self.sessions[id] = Session(id)
-        self.session = id
+    def create_session(self, name: str) -> None:
+        """Create a session"""
+        with Context(all=self.sessions, config=self.config, abacura=self):
+            self.sessions[name] = Session(name)
+        self.session = name
 
     def set_session(self, id: str) -> None:
         self.session = id
@@ -70,33 +70,26 @@ class Abacura(App):
         if not inspector.display:
             inspector.picking = False
 
-    @property
-    def config(self) -> TOMLDocument:
-        return self._config.config
-
-
 @click.command()
 @click.option("-c","--config", 'config')
 @click.pass_context
 def main(ctx,config):
+    """Entry point for client"""
     _config = Config(config=config)
-    c = _config.config
 
-    if "global" in c and "module_paths" in c["global"]:
-            if isinstance(c["global"]["module_paths"], list):
-                for p in c["global"]["module_paths"]:
-                    sys.path.append(str(Path(p).expanduser()))
-            else:
-                sys.path.append(str(Path(c["global"]["module_paths"]).expanduser()))
+    mods_to_load = _config.get_specific_option("global","module_paths")
+    if mods_to_load:
+        if isinstance(mods_to_load, list):
+            for path in mods_to_load:
+                sys.path.append(str(Path(path).expanduser()))
+        else:
+            sys.path.append(str(Path(mods_to_load).expanduser()))
 
-    if "global" in c and "css_path" in c["global"]:
-        css_path = c["global"]["css_path"]
+    if _config.get_specific_option("global", "css_path"):
+        css_path = _config.get_specific_option("global", "css_path")
     else:
         css_path = "abacura.css"
 
-    with Context(_config=_config, CSS_PATH=css_path):
+    with Context(config=_config, CSS_PATH=css_path):
         app = Abacura()
     app.run()
-
-if __name__ == "__main__":
-    main()
