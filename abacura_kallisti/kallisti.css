@@ -1,0 +1,45 @@
+Screen {
+        layers: below above;
+}
+
+Input {
+    margin: 0 0;
+    border: none;
+}
+
+#leftsidebar {
+    dock: left;
+    width: 15;
+    height: 80%;
+    display: block;
+#    background: blue;
+}
+
+#rightsidebar {
+    dock: right;
+    width: 45;
+    display: block;
+}
+
+#commslog {
+    dock: top;
+    background: blue;
+}
+
+#mudoutputs {
+
+}
+
+SessionName {
+    display: block;
+}
+
+.masthead {
+    display: block;
+}
+
+.mudoutput {
+    height: 100%;
+    width: 100%;
+    display: block;
+}
