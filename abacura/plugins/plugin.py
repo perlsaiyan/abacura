@@ -4,13 +4,14 @@ import shlex
 from importlib import import_module
 from pathlib import Path
 from typing import List, Dict
-from tomlkit import TOMLDocument
+
 
 from rich.markup import escape
 from serum import inject
 from textual.app import App
 from textual.widgets import TextLog
 
+from abacura import Config
 from abacura.mud import BaseSession
 from abacura.plugins import Plugin
 
@@ -176,7 +177,7 @@ class PluginHandler:
 @inject
 class PluginManager(Plugin):
 
-    config: TOMLDocument
+    config: Config
     sessions: dict
     session: BaseSession
     app: App

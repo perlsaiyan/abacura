@@ -121,6 +121,7 @@ class PluginSession(Plugin):
     def do(self, line: str, context) -> None:
         manager = context["manager"]
         sessions = context["app"].sessions
+        session = context["app"].sessions[context["app"].session]
 
         args = line.split()
         if len(args) == 1:
@@ -145,8 +146,8 @@ class PluginSession(Plugin):
         elif len(args) == 2:
             if args[1] in sessions:
                 context["app"].set_session(args[1])
-            else:
-                manager.output(
+            else:        
+                session.output(
                     f"[bold red]# INVALID SESSION {args[1]}", markup=True)
         else:
             manager.output("[bold red]@session <name>",
