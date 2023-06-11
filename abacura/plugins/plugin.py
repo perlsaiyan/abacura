@@ -17,27 +17,12 @@ from abacura.mud import BaseSession
 from abacura.plugins import Plugin
 
 
-class ArgumentParser:
-    def parse_argument(self, accepted_argument, submitted_value):
-
-        parser = getattr(self, f"parse_{accepted_argument.name}", None)
-        if parser is not None:
-            return parser(submitted_value)
-
-        if accepted_argument.annotation == int:
-            return int(submitted_value)
-
-        if accepted_argument.annotation == float:
-            return float(submitted_value)
-
-        return submitted_value
-
-
 class CommandFunction:
     substitutes = {'question': '?', 'at': '@'}
 
-    def __init__(self, fn: callable):
+    def __init__(self, plugin: Plugin, fn: callable):
         self.fn = fn
+        self.plugin = plugin
 
         # if cmd_name == "" or cmd_name == "-h" or cmd_name == "--help":
         #     return self.get_help()
@@ -45,47 +30,45 @@ class CommandFunction:
         self.name = self.substitutes.get(fn.command_name, fn.command_name)
 
     def __call__(self, context, cmd_str: str):
-        submitted_args = shlex.split(cmd_str)
+        submitted_arguments = shlex.split(cmd_str)
 
-        submitted_options = [s.strip("-") for s in submitted_args if s.startswith("-")]
-        submitted_args = [s for s in submitted_args if not s.startswith("-")]
+        submitted_options = [s.strip("-") for s in submitted_arguments if s.startswith("-")]
+        submitted_arguments = [s for s in submitted_arguments if not s.startswith("-")]
 
-        d = self.eval_options(submitted_options)
+        d = self.evaluate_options(submitted_options)
         if 'help' in d:
             return self.get_help()
 
-        d.update(self.eval_args(submitted_args, cmd_str))
+        d.update(self.evaluate_arguments(submitted_arguments, cmd_str))
         d['context'] = context
 
         return self.fn(**d)
 
-    def eval_args(self, submitted_args: List[str], cmd_str: str) -> Dict:
+    def evaluate_arguments(self, submitted_arguments: List[str], cmd_str: str) -> Dict:
         """evaluate arguments to command functions"""
-        accepted_arguments = self.get_arguments()
+        command_parameters = self.get_parameters()
         evaluated_args = {}
 
-        arg_p = ArgumentParser()
+        for parameter in command_parameters:
+            if parameter.default is inspect.Parameter.empty and len(submitted_arguments) == 0:
+                raise AttributeError(f"Missing argument {parameter.name}")
 
-        for arg in accepted_arguments:
-            if arg.default is inspect.Parameter.empty and len(submitted_args) == 0:
-                raise AttributeError(f"Missing argument {arg.name}")
-
-            if len(submitted_args) > 0:
-                if arg.name.lower() == 'text':
+            if len(submitted_arguments) > 0:
+                if parameter.name.lower() == 'text':
                     value = cmd_str
-                    submitted_args = []
+                    submitted_arguments = []
                 else:
-                    value = submitted_args.pop(0)
+                    value = submitted_arguments.pop(0)
             else:
-                value = arg.default
+                value = parameter.default
 
-            evaluated_args[arg.name] = arg_p.parse_argument(arg, value)
+            evaluated_args[parameter.name] = self.plugin.evaluate_command_argument(parameter, value)
 
         return evaluated_args
 
-    def eval_options(self, submitted_options: List[str]) -> dict[str, any]:
+    def evaluate_options(self, submitted_options: List[str]) -> dict[str, any]:
         """evaluate options to command functions"""
-        command_options = self.get_options()
+        command_options = self.get_boolean_options()
 
         for co in submitted_options:
             matched_options = [k for k in command_options.keys() if k.startswith(co.lower())]
@@ -94,20 +77,20 @@ class CommandFunction:
             elif len(matched_options) == 1:
                 option_name = matched_options[0]
                 command_options[option_name] = True
-            elif not self.pass_full_cmd():
+            elif not self.pass_full_command_text():
                 # don't throw an error if the command will take in the full text.  As in @@ 2 - 1
                 msg = "Ambiguous option: " if len(matched_options) > 1 else "Invalid option: "
                 raise NameError(msg + co)
         return command_options
 
-    def pass_full_cmd(self) -> bool:
-        return any([a for a in self.get_arguments() if a.name.lower() == 'text'])
+    def pass_full_command_text(self) -> bool:
+        return any([a for a in self.get_parameters() if a.name.lower() == 'text'])
 
-    def get_arguments(self):
+    def get_parameters(self) -> List[inspect.Parameter]:
         parameters = inspect.signature(self.fn).parameters.values()
         return [p for p in parameters if p.annotation != bool and p.name != "context"]
 
-    def get_options(self):
+    def get_boolean_options(self):
         parameters = inspect.signature(self.fn).parameters.values()
         return {p.name: p.default for p in parameters if p.annotation == bool}
 
@@ -116,21 +99,21 @@ class CommandFunction:
 
         doc = getattr(self.fn, '__doc__', None)
 
-        options = self.get_options()
-        o = ['--%s' % k for k in options.keys()]
+        options = self.get_boolean_options()
+        option_help = ['--%s' % k for k in options.keys()]
 
-        args = self.get_arguments()
-        a = []
-        for arg in args:
-            if arg.default is inspect.Parameter.empty:
-                a.append(arg.name)
+        parameters = self.get_parameters()
+        parameter_help = []
+        for parameter in parameters:
+            if parameter.default is inspect.Parameter.empty:
+                parameter_help.append(parameter.name)
             else:
-                a.append("[%s]" % arg.name)
+                parameter_help.append(f"[{parameter.name}]")
 
         if doc is not None:
             help_text.append(doc + "\n")
 
-        help_text.append("Usage: %s %s" % (self.name, " ".join(o + a)))
+        help_text.append(f"Usage: {self.name} {' '.join(option_help + parameter_help)}")
 
         return "\n".join(help_text)
 
@@ -148,8 +131,8 @@ class PluginHandler:
     def do(self, line, context):
         self.plugin.do(line, context)
 
-    def get_matching_commands(self, submitted_command: str) -> List[CommandFunction]:
-        return [fn for fn in self.command_functions if fn.name.startswith(submitted_command) and self.plugin.plugin_enabled]
+    def get_matching_commands(self, command: str) -> List[CommandFunction]:
+        return [fn for fn in self.command_functions if fn.name.startswith(command) and self.plugin.plugin_enabled]
 
     def inspect_plugin(self):
         for name, member in inspect.getmembers(self.plugin):
@@ -158,7 +141,7 @@ class PluginHandler:
 
             if hasattr(member, "command_name"):
                 log(f"Appending command function '{member.command_name}'")
-                self.command_functions.append(CommandFunction(member))
+                self.command_functions.append(CommandFunction(self.plugin, member))
 
             # if hasattr(fn, 'scanner'):
             #     self.scanner_functions.append(fn)
@@ -280,7 +263,7 @@ class PluginManager(Plugin):
         plugin_path = framework_path.parent.parent
 
         plugin_files = []
-        #plugin_files = [pf for pf in plugin_path.glob('plugins/commands/*.py') if not pf.name.startswith('_')]
+        # plugin_files = [pf for pf in plugin_path.glob('plugins/commands/*.py') if not pf.name.startswith('_')]
         log.debug(f"Loading plugins from {plugin_path} from {__file__}")
         for dirpath, _, filenames in os.walk(plugin_path):
             for filename in [f for f in filenames if f.endswith(".py") and not f.startswith('_') and os.path.join(dirpath, f) != __file__]:
