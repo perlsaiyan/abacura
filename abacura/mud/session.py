@@ -14,7 +14,9 @@ from textual import log
 from textual.screen import Screen
 
 from abacura import SessionScreen, AbacuraFooter
+from abacura.config import Config
 from abacura.mud import BaseSession
+from abacura.mud.options import GA
 from abacura.mud.options.msdp import MSDP
 from abacura.plugins.plugin import PluginManager
 
@@ -25,7 +27,7 @@ if TYPE_CHECKING:
 @inject
 class Session(BaseSession):
     """Main User Session Class"""
-    _config: dict
+    config: Config
 
     abacura: Abacura
     all: dict
@@ -41,9 +43,9 @@ class Session(BaseSession):
         self.port = None
         self.options = {}
 
-        with Context(_config=self._config, _session=self):
-            if name in self.config and "screen_class" in self.config[name]:
-                (package, screen_class) = self.config[name]["screen_class"].rsplit(".",1)
+        with Context(config=self.config, _session=self):
+            if self.config.get_specific_option(name, "screen_class"):
+                (package, screen_class) = self.config.get_specific_option(name,"screen_class").rsplit(".",1)
                 log(f"Importing a package {package}")
                 log(sys.path)
                 mod = import_module(package)
@@ -65,11 +67,6 @@ class Session(BaseSession):
 
         with Context(config = self.config, sessions = self.abacura.sessions, tl=self.tl, app=self.abacura, session=self):
             self.plugin_manager = PluginManager()
-
-    @property
-    def config(self):
-        """Parsed user config file"""
-        return self._config.config
 
     #TODO: Need a better way of handling this, possibly an autoloader
     def register_options(self):
@@ -112,8 +109,8 @@ class Session(BaseSession):
         # TODO (REMOVE after plugins fixed) temporary action so i can stream and share screen recordings
         if re.match(r'^Please enter your account password', msg) and os.environ.get("MUD_PASSWORD") is not None:
             self.send(os.environ.get("MUD_PASSWORD"))
-        elif re.match(r'^Enter your account name. If you do not have an account,', msg) and self.name in self.config and "character_name" in self.config[self.name]:
-            self.send(self.config[self.name]["character_name"])
+        elif re.match(r'^Enter your account name. If you do not have an account,', msg) and self.config.get_specific_option(self.name, "account_name"):
+            self.send(self.config.get_specific_option(self.name, "account_name"))
 
         if not gag:
             self.tl.markup = markup
@@ -142,7 +139,7 @@ class Session(BaseSession):
                 self.output("[bold red]# Lost connection to server.")
                 self.connected = False
 
-            # End of a MUD line in buffer, send for processing    
+            # End of a MUD line in buffer, send for processing
             elif data == b'\n':
                 self.output(self.outb.decode("UTF-8", errors="ignore").replace("\r"," "), ansi = True)
                 self.outb = b''
@@ -184,7 +181,7 @@ class Session(BaseSession):
                     else:
                         pass
                         #self.output(f"IAC WILL {ord(data)}")
-                
+
                 # IAC WONT
                 elif data == b'\xfc':
                     data = await reader.read(1)
@@ -215,7 +212,7 @@ class Session(BaseSession):
                     pass
 
                 # telnet GA sequence, likely end of prompt
-                elif data == b'\xf9':
+                elif data == GA:
                     self.output(self.outb.decode("UTF-8", errors="ignore"), ansi = True)
                     self.output("")
                     self.outb = b''
@@ -228,4 +225,3 @@ class Session(BaseSession):
             # Catch everything else in our buffer and hold it
             else:
                 self.outb = self.outb + data
-

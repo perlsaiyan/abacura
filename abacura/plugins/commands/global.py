@@ -76,7 +76,9 @@ class PluginData(Plugin):
         for plugin_name in context["manager"].plugins:
             plugin = context["manager"].plugins[plugin_name]
             indicator = '[bold green]✓' if plugin.plugin_enabled else '[bold red]x'
-            ses.output(f"{indicator} [white]{plugin.get_name()} - {plugin.get_help()}", markup=True)
+            ses.output(
+                f"{indicator} [white]{plugin.get_name()}" +
+                 f" - {plugin.get_help()}", markup=True)
 
 
 # TODO clean this way up after we get injected config
@@ -92,14 +94,14 @@ class PluginConnect(Plugin):
 
         args = line.split()
 
-        if len(args) == 2 and args[1] in conf:
+        if len(args) == 2 and args[1] in conf.config:
             if args[1] in app.sessions:
                 ses.output("[bold red]# SESSION ALREADY EXISTS", markup=True)
                 return
 
             app.create_session(args[1])
             app.run_worker(app.sessions[args[1]].telnet_client(
-                conf[args[1]]["host"], int(conf[args[1]]["port"])))
+                conf.config[args[1]]["host"], int(conf.config[args[1]]["port"])))
         elif len(args) < 4:
             manager.output(
                 " [bold red]#connect <session name> <host> <port>", markup=True, highlight=True)
@@ -179,12 +181,12 @@ class PluginConfig(Plugin):
 
         if len(args) == 1:
             if context["app"].session == "null":
-                conf = escape(context["manager"].config.as_string())
+                conf = escape(context["manager"].config.config.as_string())
             else:
                 conf = escape(
-                    context["manager"].config[context["app"].session].as_string())
+                    context["manager"].config.config[context["app"].session].as_string())
         else:
-            conf = escape(context["manager"].config[args[1]].as_string())
+            conf = escape(context["manager"].config.config[args[1]].as_string())
 
         panel = Panel(conf, highlight=True)
         tl = context["manager"].tl

@@ -4,6 +4,7 @@ import shlex
 from importlib import import_module
 from pathlib import Path
 from typing import List, Dict
+from tomlkit import TOMLDocument
 
 from rich.markup import escape
 from serum import inject
@@ -132,6 +133,7 @@ class CommandFunction:
 
 class PluginHandler:
     def __init__(self, plugin: Plugin):
+        super().__init__()
         self.plugin = plugin
         self.command_functions: List[CommandFunction] = []
         self.inspect_plugin()
@@ -173,7 +175,8 @@ class PluginHandler:
 
 @inject
 class PluginManager(Plugin):
-    config: dict
+
+    config: TOMLDocument
     sessions: dict
     session: BaseSession
     app: App
@@ -271,21 +274,24 @@ class PluginManager(Plugin):
         framework_path = Path(os.path.realpath(__file__))
         plugin_path = framework_path.parent.parent
         
-        plugin_files = [pf for pf in plugin_path.glob('plugins/commands/*.py') if not pf.name.startswith('_')]
-
         # TODO: We may want to handle case where we are loading plugins a second time
         self.plugins = {}
         self.plugin_handlers = []
 
         # import each one of the modules corresponding to each plugin .py file
-        for pf in plugin_files:
-            package = str(pf.relative_to(plugin_path.parent)).replace(os.sep, ".")
-            package = package[:-3]  # strip .py
+        plugin_list = []
+        for path, _, files in os.walk(plugin_path):
+            for name in files:
+                if not name.startswith("_") and name.endswith(".py"):
+                    plugin_list.append(Path(os.path.join(path, name)))
+
+        for pfile in plugin_list:
+            package = str(pfile.relative_to(plugin_path.parent)).replace(os.sep, ".")
+            package = package[:-3] # strip .py
             try:
                 module = import_module(package)
             except Exception as e:
-                self.output(f"[bold red]# ERROR LOADING PLUGIN {package} (from {pf}): {repr(e)}",
-                            markup=True, highlight=True)
+                self.output(f"[bold red]# ERROR LOADING PLUGIN {package} (from {pfile}): {repr(e)}", markup=True, highlight=True)
                 continue
 
             # Look for plugins subclasses within the module we just loaded and create a PluginHandler for each
