@@ -27,11 +27,14 @@ def action(regex: str, color: bool = False):
     return add_action
 
 
-def command(name: str = ''):
-    def add_command(command_fn):
-        command_fn.command = True
-        command_fn.command_name = name or command_fn.__name__
+def command(function=None, name: str = ''):
+    def add_command(fn):
+        fn.command = True
+        fn.command_name = name or fn.__name__
 
-        return command_fn
+        return fn
+
+    if function:
+        return add_command(function)
 
     return add_command
