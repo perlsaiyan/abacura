@@ -9,7 +9,7 @@ from rich.markup import escape
 from rich.panel import Panel
 from rich.pretty import Pretty
 
-from abacura.plugins import Plugin
+from abacura.plugins import Plugin, command
 
 
 class PluginDemo(Plugin):
@@ -25,6 +25,33 @@ class PluginDemo(Plugin):
         context["manager"].output(f"{app.sessions}", markup=True)
         context["manager"].output(
             f"MSDP HEALTH: [bold red]🛜 [bold green]🛜  {manager}", markup=True)
+
+    @command(name="echo")
+    def echo(self, context, message: str, repeat: int = 1, foo: bool = False):
+        session = context["manager"].session
+        for _ in range(repeat):
+            session.output(message)
+        if foo:
+            session.output("FOO!")
+
+    @command()
+    def help(self, context):
+        help_text = ["Plugin Commands", "\nUsage: @command <arguments>", "\nAvailable Commands: "]
+
+        manager = context["manager"]
+        session = context["manager"].session
+
+        commands = []
+        for h in manager.plugin_handlers:
+            commands += [c for c in h.command_functions if c.name != 'help']
+
+        for c in sorted(commands, key=lambda c: c.name):
+            doc = getattr(c.fn, '__doc__', None)
+            doc = "" if doc is None else ": " + doc
+            help_text.append("  %10s%s" % (c.name, doc))
+
+        help_text.append("")
+        session.output("\n".join(help_text))
 
 
 class PluginShowme(Plugin):
