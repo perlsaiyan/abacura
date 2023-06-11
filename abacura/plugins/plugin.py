@@ -8,6 +8,7 @@ from typing import List, Dict
 
 from rich.markup import escape
 from serum import inject
+from textual import log
 from textual.app import App
 from textual.widgets import TextLog
 
@@ -58,7 +59,8 @@ class CommandFunction:
 
         return self.fn(**d)
 
-    def eval_args(self, submitted_args: [str], cmd_str: str):
+    def eval_args(self, submitted_args: List[str], cmd_str: str) -> Dict:
+        """evaluate arguments to command functions"""
         accepted_arguments = self.get_arguments()
         evaluated_args = {}
 
@@ -66,7 +68,7 @@ class CommandFunction:
 
         for arg in accepted_arguments:
             if arg.default is inspect.Parameter.empty and len(submitted_args) == 0:
-                raise AttributeError("Missing argument %s" % arg.name)
+                raise AttributeError(f"Missing argument {arg.name}")
 
             if len(submitted_args) > 0:
                 if arg.name.lower() == 'text':
@@ -81,7 +83,8 @@ class CommandFunction:
 
         return evaluated_args
 
-    def eval_options(self, submitted_options: [str]):
+    def eval_options(self, submitted_options: List[str]) -> dict[str, any]:
+        """evaluate options to command functions"""
         command_options = self.get_options()
 
         for co in submitted_options:
@@ -154,6 +157,7 @@ class PluginHandler:
                 continue
 
             if hasattr(member, "command_name"):
+                log(f"Appending command function '{member.command_name}'")
                 self.command_functions.append(CommandFunction(member))
 
             # if hasattr(fn, 'scanner'):
@@ -176,7 +180,7 @@ class PluginHandler:
 
 @inject
 class PluginManager(Plugin):
-
+    """Manages and loads all plugins, command functions, etc"""
     config: Config
     sessions: dict
     session: BaseSession
@@ -275,16 +279,25 @@ class PluginManager(Plugin):
         framework_path = Path(os.path.realpath(__file__))
         plugin_path = framework_path.parent.parent
 
-        plugin_files = [pf for pf in plugin_path.glob('plugins/commands/*.py') if not pf.name.startswith('_')]
+        plugin_files = []
+        #plugin_files = [pf for pf in plugin_path.glob('plugins/commands/*.py') if not pf.name.startswith('_')]
+        log.debug(f"Loading plugins from {plugin_path} from {__file__}")
+        for dirpath, _, filenames in os.walk(plugin_path):
+            for filename in [f for f in filenames if f.endswith(".py") and not f.startswith('_') and os.path.join(dirpath, f) != __file__]:
+                log(f"Found plugin {os.path.join(dirpath,filename)}")
+                plugin_files.append(Path(os.path.join(dirpath, filename)))
 
         # TODO: We may want to handle case where we are loading plugins a second time
         self.plugins = {}
         self.plugin_handlers = []
-
+        
         # import each one of the modules corresponding to each plugin .py file
         for pf in plugin_files:
-            package = str(pf.relative_to(plugin_path.parent)).replace(os.sep, ".")
+            log.debug(f"Loading file {pf}")
+            package = str(pf.relative_to(plugin_path.parent.parent)).replace(os.sep, ".")
             package = package[:-3]  # strip .py
+            package = package[8:]
+            
             try:
                 module = import_module(package)
             except Exception as e:
@@ -297,6 +310,8 @@ class PluginManager(Plugin):
                 if c.__module__ == module.__name__ and inspect.isclass(c) and issubclass(c, Plugin):
                     plugin_instance: Plugin = c()
                     plugin_name = plugin_instance.get_name()
+                    log(f"Adding plugin {name}.{plugin_name}")
+
                     self.plugins[plugin_name] = plugin_instance
 
                     handler = PluginHandler(plugin_instance)

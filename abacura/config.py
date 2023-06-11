@@ -1,18 +1,25 @@
 """Abacura configuration module"""
 
 from pathlib import Path
+from typing import Any, Optional
+
+from rich.markup import escape
+from rich.panel import Panel
+from textual import log
 from tomlkit import parse
-from typing import Any
+
+from abacura.plugins import command, Plugin
 
 DEFAULT_GLOBAL_CONFIG = {
     "module_paths": [],
     "css_path": "abacura.css",
 }
 
-class Config():
+class Config(Plugin):
     """Base configuration class"""
     _config = None
     _config_file: str
+    name = "config"
        
     def __init__(self, **kwargs):
         if "config" not in kwargs or kwargs["config"] is None:
@@ -50,3 +57,22 @@ class Config():
     @property
     def config(self):
         return self._config
+
+    @command(name="conf")
+    def configcommand(self, context, reload: bool = False, full: bool = False) -> None:
+        """@conf command"""
+
+        log(f"@conf called with full '{full}' and reload '{reload}'")
+        if full or context["app"].session =="null":
+            
+                conf = escape(context["manager"].config.config.as_string())
+        else:
+                conf = escape(
+                    context["manager"].config.config[context["app"].session].as_string())
+        
+        panel = Panel(conf, highlight=True)
+        tl = context["manager"].tl
+        tl.markup = True
+        tl.write(panel)
+        tl.markup = False
+     

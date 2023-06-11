@@ -5,7 +5,6 @@ Need until Mard's PluginManager is ready
 
 import sys
 
-from rich.markup import escape
 from rich.panel import Panel
 from rich.pretty import Pretty
 
@@ -171,30 +170,6 @@ class PluginMSDP(Plugin):
             manager.output(panel, highlight=True)
         else:
             manager.output("[bold red]# MSDP: too much args")
-
-
-class PluginConfig(Plugin):
-    """Show configuration information"""
-    name = "config"
-
-    def do(self, line, context) -> None:
-        args = line.split()
-
-        if len(args) == 1:
-            if context["app"].session == "null":
-                conf = escape(context["manager"].config.config.as_string())
-            else:
-                conf = escape(
-                    context["manager"].config.config[context["app"].session].as_string())
-        else:
-            conf = escape(context["manager"].config.config[args[1]].as_string())
-
-        panel = Panel(conf, highlight=True)
-        tl = context["manager"].tl
-        tl.markup = True
-        tl.write(panel)
-        tl.markup = False
-
 
 class PluginMeta(Plugin):
     """Hyperlink demo"""

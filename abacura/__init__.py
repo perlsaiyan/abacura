@@ -37,10 +37,10 @@ class SessionScreen(Screen):
         ("f3", "toggle_commslog", "F3")
     ]
 
-    CSS_PATH = "abacura.css"
     AUTO_FOCUS = "InputBar"
 
     def __init__(self, name: str):
+        self.CSS_PATH = self.config.get_specific_option(self._session.name, "css_path") or "abacura.css"
         super().__init__()
 
         self.id = f"screen-{name}"
