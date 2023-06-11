@@ -58,7 +58,6 @@ class Session(BaseSession):
         self.abacura.push_screen(name)
         self.screen = self.abacura.query_one(f"#screen-{name}", expect_type=Screen)
 
-
     #TODO: This should possibly be an Message from the SessionScreen
     def launch_screen(self):
         """Fired on screen mounting, so our Footer is updated and Session gets a TextLog handle"""
@@ -82,7 +81,7 @@ class Session(BaseSession):
         else:
             cmd = sl.split()[0]
 
-        if cmd.startswith("@") and self.plugin_manager.handle_command(line):
+        if cmd.startswith("@") and self.plugin_manager.execute_command(line):
             return
 
         if self.connected:
@@ -111,6 +110,8 @@ class Session(BaseSession):
             self.send(os.environ.get("MUD_PASSWORD"))
         elif re.match(r'^Enter your account name. If you do not have an account,', msg) and self.config.get_specific_option(self.name, "account_name"):
             self.send(self.config.get_specific_option(self.name, "account_name"))
+
+        self.plugin_manager.process_line_actions(msg)
 
         if not gag:
             self.tl.markup = markup

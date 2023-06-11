@@ -8,13 +8,17 @@ import sys
 from rich.panel import Panel
 from rich.pretty import Pretty
 
-from abacura.plugins import Plugin, command
+from abacura.plugins import Plugin, command, action
 
 
 class PluginDemo(Plugin):
     """Sample plugin to knock around"""
     name = "foo"
     plugin_enabled = True
+
+    def __init__(self):
+        super().__init__()
+        self.exec_locals = {}
 
     def do(self, line, context) -> None:
         manager = context["manager"].session.options[69].values["HEALTH"]
@@ -24,6 +28,16 @@ class PluginDemo(Plugin):
         context["manager"].output(f"{app.sessions}", markup=True)
         context["manager"].output(
             f"MSDP HEALTH: [bold red]🛜 [bold green]🛜  {manager}", markup=True)
+
+    @action("Ptam")
+    def ptam(self, context):
+        session = context["manager"].session
+        session.output("PTAM!!")
+
+    @action("Ptam (.*)")
+    def ptam2(self, context, s: str):
+        session = context["manager"].session
+        session.output(f"PTAM!! [{s}]")
 
     @command(name="echo")
     def echo(self, context, message: str, repeat: int = 1, foo: bool = False):
@@ -47,10 +61,35 @@ class PluginDemo(Plugin):
         for c in sorted(commands, key=lambda c: c.name):
             doc = getattr(c.fn, '__doc__', None)
             doc = "" if doc is None else ": " + doc
-            help_text.append("  %10s%s" % (c.name, doc))
+            help_text.append(f"  {c.name:10s} {doc}")
 
         help_text.append("")
         session.output("\n".join(help_text))
+
+    @command()
+    def at(self, context, text: str, reset_locals: bool = False):
+        """Execute python code and display results"""
+        session = context["manager"].session
+
+        try:
+            if self.exec_locals is None or reset_locals:
+                self.exec_locals = {}
+
+            context['mean'] = lambda x: sum(x) / len(x)
+
+            if text.strip().startswith("def "):
+                result = exec(text, context, self.exec_locals)
+            else:
+                exec("__result = " + text, context, self.exec_locals)
+                result = self.exec_locals.get('__result', None)
+
+            if result is not None:
+                # TODO: Pretty print
+                session.output(str(result))
+
+        except Exception as ex:
+            session.show_exception(f"[bold red] # ERROR: {repr(ex)}", ex)
+            return False
 
 
 class PluginShowme(Plugin):
@@ -77,7 +116,7 @@ class PluginData(Plugin):
             indicator = '[bold green]✓' if plugin.plugin_enabled else '[bold red]x'
             ses.output(
                 f"{indicator} [white]{plugin.get_name()}" +
-                 f" - {plugin.get_help()}", markup=True)
+                f" - {plugin.get_help()}", markup=True)
 
 
 # TODO clean this way up after we get injected config
@@ -170,6 +209,7 @@ class PluginMSDP(Plugin):
             manager.output(panel, highlight=True)
         else:
             manager.output("[bold red]# MSDP: too much args")
+
 
 class PluginMeta(Plugin):
     """Hyperlink demo"""
