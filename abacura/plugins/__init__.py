@@ -1,3 +1,4 @@
+import inspect
 import re
 
 
@@ -12,6 +13,16 @@ class Plugin:
     def get_help(self):
         doc = getattr(self, '__doc__', None)
         return doc
+
+    def evaluate_command_argument(self, parameter: inspect.Parameter, submitted_value: str):
+
+        if parameter.annotation == int:
+            return int(submitted_value)
+
+        if parameter.annotation == float:
+            return float(submitted_value)
+
+        return submitted_value
 
     def do(self, line, context):
         pass
