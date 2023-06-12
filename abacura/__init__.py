@@ -110,7 +110,7 @@ class InputBar(Input):
     BINDINGS = [
         ("up", "history_scrollback", None),
         ("down", "history_scrollforward", None),
-        ("tab", "cursor_right", None)
+        ("tab", "cursor_right", None),
     ]
 
     """player input line"""
@@ -124,10 +124,10 @@ class InputBar(Input):
         super().__init__()
         self.history = []
         self.history_ptr = None
-    
+
     def on_mount(self):
         self.suggester = AbacuraSuggester(self.screen._session)
-        
+
     def action_history_scrollback(self) -> None:
         if self.history_ptr is None:
             self.history_ptr = len(self.history)
@@ -156,7 +156,7 @@ class InputBar(Input):
 
     def on_input_submitted(self, message: Input.Submitted) -> None:
         """Bubble-up player input and blank the bar"""
-        self.history.append(self.value)
+
         self.suggester.add_entry(self.value)
         self.history_ptr = None
         self.post_message(self.UserCommand(self.value))
@@ -187,8 +187,8 @@ class AbacuraSuggester(Suggester):
             # empty list
             except TypeError:
                 return None
+
         return None
-    
 
 class AbacuraFooter(Footer):
     """Bottom of screen bar with current session name"""
