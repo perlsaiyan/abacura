@@ -1,21 +1,25 @@
+from __future__ import annotations
+
 import inspect
 import os
 import shlex
 from importlib import import_module
 from pathlib import Path
-from typing import List, Dict, Match
+from typing import List, Dict, Match, TYPE_CHECKING
 from datetime import datetime, timedelta
 import heapq
 
 from rich.markup import escape
-from serum import inject
+from serum import inject, Context
 from textual import log
 from textual.app import App
 from textual.widgets import TextLog
 
 from abacura import Config
-from abacura.mud import BaseSession
 from abacura.plugins import Plugin
+
+if TYPE_CHECKING:
+    from abacura.mud.session import Session
 
 
 class TickerFunction:
@@ -25,14 +29,14 @@ class TickerFunction:
         self.last_tick = datetime.utcnow()
         self.next_tick = self.last_tick + timedelta(seconds=self.interval)
 
-    def __call__(self, context, enabled: bool = True) -> datetime:
+    def __call__(self, enabled: bool = True) -> datetime:
         now = datetime.utcnow()
         if self.next_tick <= now:
             # try to keep ticks aligned , so use the last target (next_tick) as the basis for adding the interval
             self.next_tick = max(now, self.next_tick + timedelta(seconds=self.interval))
             self.last_tick = now
             if enabled:
-                self.fn(context)
+                self.fn()
 
         return self.next_tick
 
@@ -51,8 +55,7 @@ class ActionFunction:
         # print("Registering action", fn)
 
         signature = inspect.signature(fn)
-        # TODO: Remove context filter when we have the context in the plugin
-        parameters = [v for v in signature.parameters.values() if v.name != "context"]
+        parameters = [v for v in signature.parameters.values()]
 
         # Match must be the first argument if it is used
         if len(parameters) and parameters[0].annotation is Match:
@@ -70,13 +73,11 @@ class ActionFunction:
 
             self.types.append(p.annotation)
 
-    def __call__(self, context, m: Match):
+    def __call__(self, m: Match):
 
         args = [m] if self.pass_match else []
         # args += [s] if self.pass_scan else []
 
-        # TODO: Remove when context is in plugin
-        args = [context] + args
         g = m.groups()
 
         # perform type conversions
@@ -106,7 +107,7 @@ class CommandFunction:
 
         self.name = self.substitutes.get(fn.command_name, fn.command_name)
 
-    def __call__(self, context, cmd_str: str):
+    def __call__(self, cmd_str: str):
         submitted_arguments = shlex.split(cmd_str)
 
         submitted_options = [s.strip("-") for s in submitted_arguments if s.startswith("-")]
@@ -117,7 +118,6 @@ class CommandFunction:
             return self.get_help()
 
         d.update(self.evaluate_arguments(submitted_arguments, cmd_str))
-        d['context'] = context
 
         return self.fn(**d)
 
@@ -165,7 +165,7 @@ class CommandFunction:
 
     def get_parameters(self) -> List[inspect.Parameter]:
         parameters = inspect.signature(self.fn).parameters.values()
-        return [p for p in parameters if p.annotation != bool and p.name != "context"]
+        return [p for p in parameters if p.annotation != bool]
 
     def get_boolean_options(self):
         parameters = inspect.signature(self.fn).parameters.values()
@@ -211,8 +211,8 @@ class PluginHandler:
     def do(self, line, context):
         self.plugin.do(line, context)
 
-    def tick(self, context):
-        next_ticks = [fn(context, self.plugin.plugin_enabled) for fn in self.ticker_functions]
+    def tick(self):
+        next_ticks = [fn(self.plugin.plugin_enabled) for fn in self.ticker_functions]
         if len(next_ticks) == 0:
             return None
 
@@ -255,7 +255,7 @@ class PluginManager(Plugin):
     """Manages and loads all plugins, command functions, etc"""
     config: Config
     sessions: dict
-    session: BaseSession
+    session: Session
     app: App
     tl: TextLog
 
@@ -268,8 +268,7 @@ class PluginManager(Plugin):
         self.load_plugins()
 
         for handler in self.plugin_handlers:
-            context = {"app": self.app, "manager": self}
-            next_tick = handler.tick(context)
+            next_tick = handler.tick()
             if next_tick:
                 heapq.heappush(self.ticker_heap, (next_tick, handler))
 
@@ -285,14 +284,13 @@ class PluginManager(Plugin):
                 match = action_function.compiled_re.search(line)
                 if match:
                     try:
-                        context = {"app": self.app, "manager": self}
-                        action_function(context, match)
+                        action_function(match)
 
                     except AttributeError as e:
                         self.session.show_exception(f"[bold red] # ERROR: {action_function.fn.__name__}: {repr(e)}", e)
                         return False
 
-    def execute_command_new(self, line: str) -> bool:
+    def execute_command(self, line: str) -> bool:
         # remove the @ from the command name
         if not len(line):
             return False
@@ -328,12 +326,11 @@ class PluginManager(Plugin):
 
         fn: CommandFunction = fns[0]
         try:
-            context = {
-                "app": self.app,
-                "manager": self
-            }
             self.output(f"[green][italic]> {escape(line)}", markup=True, highlight=True)
-            fn(context, submitted_args)
+            message = fn(submitted_args)
+            if message:
+                self.output(message)
+
         except AttributeError as e:
             self.session.show_exception(f"[bold red] # ERROR: {fn.name}: {repr(e)}", e)
             self.output(f"[gray][italic]> {escape(fn.get_help())}", markup=True, highlight=True)
@@ -347,42 +344,11 @@ class PluginManager(Plugin):
 
     def process_tickers(self):
         dt: datetime = datetime.utcnow()
-        context = {
-            "app": self.app,
-            "manager": self
-        }
         while self.ticker_heap and self.ticker_heap[0][0] <= dt:
             next_tick, handler = heapq.heappop(self.ticker_heap)
-            next_tick = handler.tick(context)
+            next_tick = handler.tick()
             if next_tick:
                 heapq.heappush(self.ticker_heap, (next_tick, handler))
-
-    def execute_command(self, line: str) -> bool:
-        """Handles command parsing, returns True if command handled
-        so we can pass the command along to something else"""
-
-        cmd = line.split()[0]
-        cmd = cmd[1:]
-
-        context = {
-            "app": self.app,
-            "manager": self
-        }
-
-        for p in self.plugin_handlers:
-            # call do method
-            if p.plugin.get_name() == cmd and p.plugin.plugin_enabled and getattr(p, "do"):
-                try:
-                    self.output(f"[green][italic]> {escape(line)}", markup=True, highlight=True)
-                    p.do(line, context)
-
-                except Exception as e:
-                    self.session.show_exception(
-                        f"[bold red] # ERROR: {p.__class__} {p.get_plugin_name()}: {repr(e)}", e
-                        )
-                return True
-
-        return self.execute_command_new(line)
 
     def output(self, msg, markup: bool = False, highlight: bool = False) -> None:
         self.tl.markup = markup
@@ -423,7 +389,9 @@ class PluginManager(Plugin):
             # Look for plugins subclasses within the module we just loaded and create a PluginHandler for each
             for name, c in inspect.getmembers(module, inspect.isclass):
                 if c.__module__ == module.__name__ and inspect.isclass(c) and issubclass(c, Plugin):
-                    plugin_instance: Plugin = c()
+                    with Context(app=self.app, manager=self, session=self.session):
+                        plugin_instance: Plugin = c()
+
                     plugin_name = plugin_instance.get_name()
                     log(f"Adding plugin {name}.{plugin_name}")
 
