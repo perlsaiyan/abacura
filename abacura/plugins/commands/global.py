@@ -8,6 +8,8 @@ import sys
 from rich.panel import Panel
 from rich.pretty import Pretty
 
+from textual import log
+
 from abacura.plugins import Plugin, command, action, ticker
 
 
@@ -116,20 +118,26 @@ class PluginSession(Plugin):
 
         conf = self.app.config
 
-        if name in self.app.sessions:
-            self.session.output("[bold red]# SESSION ALREADY EXISTS", markup=True)
-            return
+        if not host:
+            host = conf.get_specific_option(name, "host")
+            try:
+                port = int(conf.get_specific_option(name, "port"))
+            except TypeError:
+                port = None
 
-        if name in conf.config and not host and not port:
-            self.app.create_session(name)
-            self.app.run_worker(self.app.sessions[name].telnet_client(
-                conf.config[name]["host"], int(conf.config[name]["port"])))
-        elif not host and not port:
+        log(f"connect: {name} {host}:{port}")
+
+        if name in self.app.sessions:
+            self.manager.output("[bold red]# SESSION ALREADY EXISTS", markup=True)
+        elif not name in conf.config and (not host or not port):
             self.manager.output(
                 " [bold red]#connect <session name> <host> <port>", markup=True, highlight=True)
         else:
             self.app.create_session(name)
-            self.app.run_worker(self.app.sessions[name].telnet_client(host, port))
+            if host and port:
+                self.app.run_worker(self.app.sessions[name].telnet_client(host, port))
+            else:
+                log(f"Session: {name} created in disconnected state due to no host or port")
 
     @command
     def session(self, name: str = "") -> None:
