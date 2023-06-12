@@ -17,8 +17,6 @@ Note: If you intend on using the dev tools, use `requirements-dev.txt` instead.
 Launch with `abacura`.  You can specify `--config /path/to/config.file`,
 abacura will look in ~/.abacura by default, but a config file is not required.
 
-If you want to build, you will also want to `pip install requirements-dev.txt`
-
 ## Usage
 The app starts in the `#null` session.  You can use `@connect <name> <host> <port>`
 to connect to a MUD.
