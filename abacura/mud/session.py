@@ -102,17 +102,18 @@ class Session(BaseSession):
 
     #TODO rather than continually toggling this should we have houtput, moutput and hmoutput?
     def output(self, msg,
-               markup: bool=False, highlight: bool=False, ansi: bool = False,
+               markup: bool=False, highlight: bool=False, ansi: bool = False, actionable: bool=True,
                gag: bool=False):
         """Write to TextLog for this screen"""
 
-        # TODO (REMOVE after plugins fixed) temporary action so i can stream and share screen recordings
-        if re.match(r'^Please enter your account password', msg) and os.environ.get("MUD_PASSWORD") is not None:
-            self.send(os.environ.get("MUD_PASSWORD"))
-        elif re.match(r'^Enter your account name. If you do not have an account,', msg) and self.config.get_specific_option(self.name, "account_name"):
-            self.send(self.config.get_specific_option(self.name, "account_name"))
+        if actionable:
+            # TODO (REMOVE after plugins fixed) temporary action so i can stream and share screen recordings
+            if re.match(r'^Please enter your account password', msg) and os.environ.get("MUD_PASSWORD") is not None:
+                self.send(os.environ.get("MUD_PASSWORD"))
+            elif re.match(r'^Enter your account name. If you do not have an account,', msg) and self.config.get_specific_option(self.name, "account_name"):
+                self.send(self.config.get_specific_option(self.name, "account_name"))
 
-        self.plugin_manager.process_line_actions(msg)
+            self.plugin_manager.process_line_actions(msg)
 
         if not gag:
             self.tl.markup = markup

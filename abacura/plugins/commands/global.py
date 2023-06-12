@@ -23,8 +23,8 @@ class PluginDemo(Plugin):
     def foo(self) -> None:
         self.manager.output(f"{sys.path}")
         self.manager.output(f"{self.app.sessions}", markup=True)
-        self.manager.output(
-            f"MSDP HEALTH: [bold red]🛜 [bold green]🛜  {self.manager}", markup=True)
+        self.session.output(
+            f"MSDP HEALTH: [bold red]🛜 [bold green]🛜  {self.session}", markup=True)
 
     @ticker(15)
     def test_ticker(self):
@@ -99,25 +99,22 @@ class PluginData(Plugin):
 
 class PluginSession(Plugin):
     """Session specific commands"""
-
     @command(name="echo")
     def echo(self, text: str):
-        # TODO: I think we have showme and echo backwards
         """Send text to screen without triggering actions"""
-        self.session.output(text)
+        self.session.output(text, actionable = False)
 
     @command
     def showme(self, text: str) -> None:
-        # TODO: I think we have showme and echo backwards
         """Send text to screen as if it came from the socket, triggers actions"""
-        self.manager.output(text, markup=True)
+        self.session.output(text, markup=True)
 
     @command
     def connect(self, name: str, host: str = '', port: int = 0) -> None:
         """@connect <name> <host> <port> to connect a game session"""
 
         conf = self.app.config
-
+        
         if not host:
             host = conf.get_specific_option(name, "host")
             try:
@@ -128,9 +125,9 @@ class PluginSession(Plugin):
         log(f"connect: {name} {host}:{port}")
 
         if name in self.app.sessions:
-            self.manager.output("[bold red]# SESSION ALREADY EXISTS", markup=True)
+            self.session.output("[bold red]# SESSION ALREADY EXISTS", markup=True)
         elif not name in conf.config and (not host or not port):
-            self.manager.output(
+            self.session.output(
                 " [bold red]#connect <session name> <host> <port>", markup=True, highlight=True)
         else:
             self.app.create_session(name)
@@ -140,7 +137,8 @@ class PluginSession(Plugin):
                 log(f"Session: {name} created in disconnected state due to no host or port")
 
     @command
-    def session(self, name: str = "") -> None:
+    # Do not name this function "session" or you'll overwrite self.session :)
+    def sessioncommand(self, name: str = "") -> None:
         """@session <name>: Get information about sessions or swap to session <name>"""
         if not name:
             cur = self.app.session
@@ -165,7 +163,7 @@ class PluginSession(Plugin):
             if name in self.app.sessions:
                 self.app.set_session(name)
             else:        
-                self.session.output(
+                self.manager.output(
                     f"[bold red]# INVALID SESSION {name}", markup=True)
 
     @command
