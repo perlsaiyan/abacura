@@ -4,7 +4,8 @@ import shlex
 from importlib import import_module
 from pathlib import Path
 from typing import List, Dict, Match
-
+from datetime import datetime, timedelta
+import heapq
 
 from rich.markup import escape
 from serum import inject
@@ -15,6 +16,25 @@ from textual.widgets import TextLog
 from abacura import Config
 from abacura.mud import BaseSession
 from abacura.plugins import Plugin
+
+
+class TickerFunction:
+    def __init__(self, fn: callable):
+        self.fn = fn
+        self.interval: float = getattr(fn, 'ticker_interval', 0.250)
+        self.last_tick = datetime.utcnow()
+        self.next_tick = self.last_tick + timedelta(seconds=self.interval)
+
+    def __call__(self, context, enabled: bool = True) -> datetime:
+        now = datetime.utcnow()
+        if self.next_tick <= now:
+            # try to keep ticks aligned , so use the last target (next_tick) as the basis for adding the interval
+            self.next_tick = max(now, self.next_tick + timedelta(seconds=self.interval))
+            self.last_tick = now
+            if enabled:
+                self.fn(context)
+
+        return self.next_tick
 
 
 class ActionFunction:
@@ -181,6 +201,7 @@ class PluginHandler:
         self.plugin = plugin
         self.command_functions: List[CommandFunction] = []
         self.action_functions: List[ActionFunction] = []
+        self.ticker_functions: List[TickerFunction] = []
 
         self.inspect_plugin()
 
@@ -189,6 +210,13 @@ class PluginHandler:
 
     def do(self, line, context):
         self.plugin.do(line, context)
+
+    def tick(self, context):
+        next_ticks = [fn(context, self.plugin.plugin_enabled) for fn in self.ticker_functions]
+        if len(next_ticks) == 0:
+            return None
+
+        return min(next_ticks)
 
     def get_matching_commands(self, command: str) -> List[CommandFunction]:
         return [fn for fn in self.command_functions if fn.name.startswith(command) and self.plugin.plugin_enabled]
@@ -202,11 +230,15 @@ class PluginHandler:
                 log(f"Appending command function '{member.command_name}'")
                 self.command_functions.append(CommandFunction(self.plugin, member))
 
+            if hasattr(member, 'ticker_interval'):
+                self.ticker_functions.append(TickerFunction(member))
+
+            if hasattr(member, "action_re"):
+                log(f"Appending action function '{name}'")
+                self.action_functions.append(ActionFunction(member))
+
             # if hasattr(fn, 'scanner'):
             #     self.scanner_functions.append(fn)
-            #
-            # if hasattr(fn, 'ticker_interval'):
-            #     self.ticker_functions.append(TickerFunction(fn))
             #
             # if hasattr(fn, 'listener_event'):
             #     self.listener_functions.append(fn)
@@ -216,9 +248,6 @@ class PluginHandler:
             #         listener = partial(self.dispatch, fn)
             #     self.dispatcher.add_listener(fn.listener_event, listener)
             #
-            if hasattr(member, "action_re"):
-                log(f"Appending action function '{name}'")
-                self.action_functions.append(ActionFunction(member))
 
 
 @inject
@@ -234,8 +263,15 @@ class PluginManager(Plugin):
         super().__init__()
         self.plugins: Dict[str, Plugin] = {}
         self.plugin_handlers: List[PluginHandler] = []
+        self.ticker_heap = []
 
         self.load_plugins()
+
+        for handler in self.plugin_handlers:
+            context = {"app": self.app, "manager": self}
+            next_tick = handler.tick(context)
+            if next_tick:
+                heapq.heappush(self.ticker_heap, (next_tick, handler))
 
     def process_line_actions(self, line: str):
         # Cache actions that match the string with digits replaced _dd
@@ -308,6 +344,18 @@ class PluginManager(Plugin):
             return False
 
         return True
+
+    def process_tickers(self):
+        dt: datetime = datetime.utcnow()
+        context = {
+            "app": self.app,
+            "manager": self
+        }
+        while self.ticker_heap and self.ticker_heap[0][0] <= dt:
+            next_tick, handler = heapq.heappop(self.ticker_heap)
+            next_tick = handler.tick(context)
+            if next_tick:
+                heapq.heappush(self.ticker_heap, (next_tick, handler))
 
     def execute_command(self, line: str) -> bool:
         """Handles command parsing, returns True if command handled

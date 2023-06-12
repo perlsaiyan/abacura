@@ -28,6 +28,14 @@ class Plugin:
         pass
 
 
+def ticker(seconds: float):
+    def add_ticker(ticker_fn):
+        ticker_fn.ticker_interval = seconds
+        return ticker_fn
+
+    return add_ticker
+
+
 def action(regex: str, color: bool = False):
     def add_action(action_fn):
         action_fn.action_re = regex
