@@ -136,7 +136,7 @@ class PluginSession(Plugin):
             else:
                 log(f"Session: {name} created in disconnected state due to no host or port")
 
-    @command
+    @command(name="session")
     # Do not name this function "session" or you'll overwrite self.session :)
     def sessioncommand(self, name: str = "") -> None:
         """@session <name>: Get information about sessions or swap to session <name>"""

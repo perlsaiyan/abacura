@@ -3,16 +3,19 @@ from __future__ import annotations
 
 import csv
 import io
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Coroutine, Any
 
 from rich.align import Align
 from rich.text import Text
 from serum import inject
+
+from textual import log
 from textual.app import ComposeResult
 from textual.containers import Container
 from textual.message import Message
 from textual.reactive import reactive
 from textual.screen import Screen
+from textual.suggester import Suggester
 from textual.widgets import Footer, Header, Input, TextLog
 
 from abacura.config import Config
@@ -106,7 +109,8 @@ class SessionScreen(Screen):
 class InputBar(Input):
     BINDINGS = [
         ("up", "history_scrollback", None),
-        ("down", "history_scrollforward", None)
+        ("down", "history_scrollforward", None),
+        ("tab", "cursor_right", None)
     ]
 
     """player input line"""
@@ -120,7 +124,10 @@ class InputBar(Input):
         super().__init__()
         self.history = []
         self.history_ptr = None
-
+    
+    def on_mount(self):
+        self.suggester = AbacuraSuggester(self.screen._session)
+        
     def action_history_scrollback(self) -> None:
         if self.history_ptr is None:
             self.history_ptr = len(self.history)
@@ -150,9 +157,38 @@ class InputBar(Input):
     def on_input_submitted(self, message: Input.Submitted) -> None:
         """Bubble-up player input and blank the bar"""
         self.history.append(self.value)
+        self.suggester.add_entry(self.value)
         self.history_ptr = None
         self.post_message(self.UserCommand(self.value))
         self.value = ""
+
+class AbacuraSuggester(Suggester):
+    def __init__(self, session):
+        super().__init__(use_cache=False)
+        self.session = session
+        self.history = []
+
+    def add_entry(self, value) -> None:
+        self.history.insert(0,value)
+
+    async def get_suggestion(self, value: str) -> Coroutine[Any, Any, str | None]:
+        if value.startswith("@"):
+            value = value[1:]
+            for handler in self.session.plugin_manager.plugin_handlers:
+                for com in handler.command_functions:
+                    if com.name.startswith(value):
+                        return f"@{com.name}"
+        else:
+            log.info(f"Completing with {self.history}")
+            try:
+                for cmds in self.history:
+                    if cmds.startswith(value):
+                        return cmds
+            # empty list
+            except TypeError:
+                return None
+        return None
+    
 
 class AbacuraFooter(Footer):
     """Bottom of screen bar with current session name"""
