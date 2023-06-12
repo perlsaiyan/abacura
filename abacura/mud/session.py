@@ -138,7 +138,7 @@ class Session(BaseSession):
 
             # Empty string means we lost our connection
             if data == b'':
-                self.output("[bold red]# Lost connection to server.")
+                self.output("[bold red]# Lost connection to server.", markup = True)
                 self.connected = False
 
             # End of a MUD line in buffer, send for processing
