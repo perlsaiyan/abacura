@@ -104,6 +104,14 @@ class SessionScreen(Screen):
             self.tl.auto_scroll = True
 
 class InputBar(Input):
+    history = []
+    history_ptr = None
+
+    BINDINGS = [
+        ("up", "history_scrollback", None),
+        ("down", "history_scrollforward", None)
+    ]
+
     """player input line"""
     class UserCommand(Message):
         """Message object to bubble up inputs with"""
@@ -114,8 +122,36 @@ class InputBar(Input):
     def __init__(self):
         super().__init__()
 
+    def action_history_scrollback(self) -> None:
+        if self.history_ptr is None:
+            self.history_ptr = len(self.history)
+
+        self.history_ptr -= 1
+
+        # reached the top
+        if self.history_ptr == -1:
+            self.history_ptr = 0
+            return
+
+        self.value = self.history[self.history_ptr]
+
+    def action_history_scrollforward(self) -> None:
+        if self.history_ptr is None:
+            return
+
+        self.history_ptr += 1
+
+        if self.history_ptr == len(self.history):
+            self.history_ptr = None
+            self.value = ""
+            return
+
+        self.value = self.history[self.history_ptr]
+
     def on_input_submitted(self, message: Input.Submitted) -> None:
         """Bubble-up player input and blank the bar"""
+        self.history.append(self.value)
+        self.history_ptr = None
         self.post_message(self.UserCommand(self.value))
         self.value = ""
 
