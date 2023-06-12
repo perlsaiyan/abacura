@@ -66,6 +66,7 @@ class Session(BaseSession):
 
         with Context(config = self.config, sessions = self.abacura.sessions, tl=self.tl, app=self.abacura, session=self):
             self.plugin_manager = PluginManager()
+            self.screen.set_interval(interval=0.010, callback=self.plugin_manager.process_tickers, name="tickers")
 
     #TODO: Need a better way of handling this, possibly an autoloader
     def register_options(self):

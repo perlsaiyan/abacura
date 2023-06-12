@@ -8,7 +8,7 @@ import sys
 from rich.panel import Panel
 from rich.pretty import Pretty
 
-from abacura.plugins import Plugin, command, action
+from abacura.plugins import Plugin, command, action, ticker
 
 
 class PluginDemo(Plugin):
@@ -28,6 +28,11 @@ class PluginDemo(Plugin):
         context["manager"].output(f"{app.sessions}", markup=True)
         context["manager"].output(
             f"MSDP HEALTH: [bold red]🛜 [bold green]🛜  {manager}", markup=True)
+
+    @ticker(10)
+    def test_ticker(self, context):
+        session = context["manager"].session
+        session.output("TICK!!")
 
     @action("Ptam")
     def ptam(self, context):
