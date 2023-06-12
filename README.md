@@ -12,6 +12,7 @@ virtualenv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
+Note: If you intend on using the dev tools, use `requirements-dev.txt` instead.
 
 Launch with `abacura`.  You can specify `--config /path/to/config.file`,
 abacura will look in ~/.abacura by default, but a config file is not required.
