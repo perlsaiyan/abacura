@@ -104,9 +104,6 @@ class SessionScreen(Screen):
             self.tl.auto_scroll = True
 
 class InputBar(Input):
-    history = []
-    history_ptr = None
-
     BINDINGS = [
         ("up", "history_scrollback", None),
         ("down", "history_scrollforward", None)
@@ -121,6 +118,8 @@ class InputBar(Input):
 
     def __init__(self):
         super().__init__()
+        self.history = []
+        self.history_ptr = None
 
     def action_history_scrollback(self) -> None:
         if self.history_ptr is None:
@@ -141,7 +140,7 @@ class InputBar(Input):
 
         self.history_ptr += 1
 
-        if self.history_ptr == len(self.history):
+        if self.history_ptr >= len(self.history):
             self.history_ptr = None
             self.value = ""
             return
