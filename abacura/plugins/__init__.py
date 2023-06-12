@@ -1,14 +1,29 @@
+from __future__ import annotations
 import inspect
 import re
+from serum import inject
+from typing import TYPE_CHECKING
 
 
+if TYPE_CHECKING:
+    from textual.app import App
+    from abacura.mud.session import Session
+    from abacura.plugins.plugin import PluginManager
+
+
+@inject
 class Plugin:
     """Generic Plugin Class"""
-    name = ""
-    plugin_enabled = True
+    app: App
+    session: Session
+    manager: PluginManager
+
+    def __init__(self):
+        super().__init__()
+        self.plugin_enabled = True
 
     def get_name(self):
-        return self.name        
+        return self.__class__.__name__
     
     def get_help(self):
         doc = getattr(self, '__doc__', None)
@@ -23,9 +38,6 @@ class Plugin:
             return float(submitted_value)
 
         return submitted_value
-
-    def do(self, line, context):
-        pass
 
 
 def ticker(seconds: float):

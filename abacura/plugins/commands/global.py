@@ -13,54 +13,38 @@ from abacura.plugins import Plugin, command, action, ticker
 
 class PluginDemo(Plugin):
     """Sample plugin to knock around"""
-    name = "foo"
-    plugin_enabled = True
-
     def __init__(self):
         super().__init__()
         self.exec_locals = {}
 
-    def do(self, line, context) -> None:
-        manager = context["manager"].session.options[69].values["HEALTH"]
-        app = context["app"]
+    @command
+    def foo(self) -> None:
+        self.manager.output(f"{sys.path}")
+        self.manager.output(f"{self.app.sessions}", markup=True)
+        self.manager.output(
+            f"MSDP HEALTH: [bold red]🛜 [bold green]🛜  {self.manager}", markup=True)
 
-        context["manager"].output(f"{sys.path}")
-        context["manager"].output(f"{app.sessions}", markup=True)
-        context["manager"].output(
-            f"MSDP HEALTH: [bold red]🛜 [bold green]🛜  {manager}", markup=True)
-
-    @ticker(10)
-    def test_ticker(self, context):
-        session = context["manager"].session
-        session.output("TICK!!")
+    @ticker(15)
+    def test_ticker(self):
+        self.session.output("TICK!!")
 
     @action("Ptam")
-    def ptam(self, context):
-        session = context["manager"].session
-        session.output("PTAM!!")
+    def ptam(self):
+        self.session.output("PTAM!!")
 
     @action("Ptam (.*)")
-    def ptam2(self, context, s: str):
-        session = context["manager"].session
-        session.output(f"PTAM!! [{s}]")
+    def ptam2(self, s: str):
+        self.session.output(f"PTAM!! [{s}]")
 
-    @command(name="echo")
-    def echo(self, context, message: str, repeat: int = 1, foo: bool = False):
-        session = context["manager"].session
-        for _ in range(repeat):
-            session.output(message)
-        if foo:
-            session.output("FOO!")
+class PluginCommandHelper(Plugin):
+    """Display help for a command and evaluate a string"""
 
     @command()
-    def help(self, context):
+    def help(self):
         help_text = ["Plugin Commands", "\nUsage: @command <arguments>", "\nAvailable Commands: "]
 
-        manager = context["manager"]
-        session = context["manager"].session
-
         commands = []
-        for h in manager.plugin_handlers:
+        for h in self.manager.plugin_handlers:
             commands += [c for c in h.command_functions if c.name != 'help']
 
         for c in sorted(commands, key=lambda c: c.name):
@@ -69,113 +53,96 @@ class PluginDemo(Plugin):
             help_text.append(f"  {c.name:10s} {doc}")
 
         help_text.append("")
-        session.output("\n".join(help_text))
+        self.session.output("\n".join(help_text))
 
     @command()
-    def at(self, context, text: str, reset_locals: bool = False):
+    def at(self, text: str, reset_locals: bool = False):
         """Execute python code and display results"""
-        session = context["manager"].session
 
         try:
             if self.exec_locals is None or reset_locals:
                 self.exec_locals = {}
 
-            context['mean'] = lambda x: sum(x) / len(x)
+            exec_globals = {"app": self.app, "manager": self.manager, "session": self.session,
+                            'mean': lambda x: sum(x) / len(x)}
 
             if text.strip().startswith("def "):
-                result = exec(text, context, self.exec_locals)
+                result = exec(text, exec_globals, self.exec_locals)
             else:
-                exec("__result = " + text, context, self.exec_locals)
+                exec("__result = " + text, exec_globals, self.exec_locals)
                 result = self.exec_locals.get('__result', None)
 
             if result is not None:
                 # TODO: Pretty print
-                session.output(str(result))
+                self.session.output(str(result))
 
         except Exception as ex:
-            session.show_exception(f"[bold red] # ERROR: {repr(ex)}", ex)
+            self.session.show_exception(f"[bold red] # ERROR: {repr(ex)}", ex)
             return False
 
 
-class PluginShowme(Plugin):
-    """Send text to screen as if it came from the socket, triggers actions"""
-    name = "showme"
-
-    def do(self, line, context) -> None:
-        ses = context["app"].sessions[context["app"].session]
-        data = line.split(' ', 1)
-        ses.output(data[1], markup=True)
-
-
 class PluginData(Plugin):
-    """Get information about plugins"""
-    name = "plugin"
+    @command
+    def plugin(self) -> None:
+        """Get information about plugins"""
 
-    def do(self, line, context) -> None:
-        ses = context["app"].sessions[context["app"].session]
+        self.session.output("Current registered global plugins:")
 
-        ses.output("Current registered global plugins:")
-
-        for plugin_name in context["manager"].plugins:
-            plugin = context["manager"].plugins[plugin_name]
+        for plugin_name, plugin in self.manager.plugins.items():
             indicator = '[bold green]✓' if plugin.plugin_enabled else '[bold red]x'
-            ses.output(
+            self.session.output(
                 f"{indicator} [white]{plugin.get_name()}" +
                 f" - {plugin.get_help()}", markup=True)
 
 
-# TODO clean this way up after we get injected config
-class PluginConnect(Plugin):
-    """@connect <name> <host> <port> to connect a game session"""
-    name = "connect"
+class PluginSession(Plugin):
+    """Session specific commands"""
 
-    def do(self, line, context) -> None:
-        manager = context["manager"]
-        ses = context["app"].sessions[context["app"].session]
-        app = context["app"]
-        conf = context["app"].config
+    @command(name="echo")
+    def echo(self, text: str):
+        # TODO: I think we have showme and echo backwards
+        """Send text to screen without triggering actions"""
+        self.session.output(text)
 
-        args = line.split()
+    @command
+    def showme(self, text: str) -> None:
+        # TODO: I think we have showme and echo backwards
+        """Send text to screen as if it came from the socket, triggers actions"""
+        self.manager.output(text, markup=True)
 
-        if len(args) == 2 and args[1] in conf.config:
-            if args[1] in app.sessions:
-                ses.output("[bold red]# SESSION ALREADY EXISTS", markup=True)
-                return
+    @command
+    def connect(self, name: str, host: str = '', port: int = 0) -> None:
+        """@connect <name> <host> <port> to connect a game session"""
 
-            app.create_session(args[1])
-            app.run_worker(app.sessions[args[1]].telnet_client(
-                conf.config[args[1]]["host"], int(conf.config[args[1]]["port"])))
-        elif len(args) < 4:
-            manager.output(
+        conf = self.app.config
+
+        if name in self.app.sessions:
+            self.session.output("[bold red]# SESSION ALREADY EXISTS", markup=True)
+            return
+
+        if name in conf.config and not host and not port:
+            self.app.create_session(name)
+            self.app.run_worker(self.app.sessions[name].telnet_client(
+                conf.config[name]["host"], int(conf.config[name]["port"])))
+        elif not host and not port:
+            self.manager.output(
                 " [bold red]#connect <session name> <host> <port>", markup=True, highlight=True)
         else:
-            if args[1] in app.sessions:
-                ses.output("[bold red]# SESSION ALREADY EXISTS", markup=True)
-                return
-            app.create_session(args[1])
-            app.run_worker(app.sessions[args[1]].telnet_client(
-                args[2], int(args[3])))
+            self.app.create_session(name)
+            self.app.run_worker(self.app.sessions[name].telnet_client(host, port))
 
-
-class PluginSession(Plugin):
-    """@session <name>: Get information about sessions or swap to session <name>"""
-    name = "session"
-
-    def do(self, line: str, context) -> None:
-        manager = context["manager"]
-        sessions = context["app"].sessions
-        session = context["app"].sessions[context["app"].session]
-
-        args = line.split()
-        if len(args) == 1:
-            cur = context["app"].session
+    @command
+    def session(self, name: str = "") -> None:
+        """@session <name>: Get information about sessions or swap to session <name>"""
+        if not name:
+            cur = self.app.session
             buf = "[bold red]# Current Sessions:\n"
-            for ses in sessions:
+            for ses in self.app.sessions:
                 if ses == cur:
                     buf += "[bold green]>[white]"
                 else:
                     buf += " [white]"
-                session = sessions[ses]
+                session = self.app.sessions[ses]
 
                 if ses == "null":
                     buf += f"{session.name}: Main Session\n"
@@ -185,43 +152,30 @@ class PluginSession(Plugin):
                     else:
                         buf += f"{session.name}: {session.host} {session.port} [red]\\[disconnected]\n"
 
-            manager.output(buf, markup=True, highlight=True)
-        elif len(args) == 2:
-            if args[1] in sessions:
-                context["app"].set_session(args[1])
+            self.manager.output(buf, markup=True, highlight=True)
+        else:
+            if name in self.app.sessions:
+                self.app.set_session(name)
             else:        
-                session.output(
-                    f"[bold red]# INVALID SESSION {args[1]}", markup=True)
-        else:
-            manager.output("[bold red]@session <name>",
-                           markup=True, highlight=True)
+                self.session.output(
+                    f"[bold red]# INVALID SESSION {name}", markup=True)
 
+    @command
+    def msdp(self, variable: str = '') -> None:
+        """Dump MSDP values for debugging"""
+        msdp = self.app.sessions[self.app.session].options[69]
 
-class PluginMSDP(Plugin):
-    """Dump MSDP values for debugging"""
-    name = "msdp"
-
-    def do(self, line, context) -> None:
-        msdp = context["app"].sessions[context["app"].session].options[69]
-        manager = context["manager"]
-        args = line.split()
-
-        if len(args) == 1:
+        if not variable:
             panel = Panel(Pretty(msdp.values), highlight=True)
-            manager.output(panel, highlight=True)
-        elif len(args) == 2:
-            panel = Panel(Pretty(msdp.values[args[1]]), highlight=True)
-            manager.output(panel, highlight=True)
+            self.manager.output(panel, highlight=True)
         else:
-            manager.output("[bold red]# MSDP: too much args")
+            panel = Panel(Pretty(msdp.values.get(variable, None)), highlight=True)
+            self.manager.output(panel, highlight=True)
 
 
 class PluginMeta(Plugin):
-    """Hyperlink demo"""
-    name = "meta"
-
-    def do(self, line, context) -> None:
-        manager = context["manager"]
-        manager.output("Meta info blah blah")
-        manager.output(
-            "Obtained from https://kallisti.nonserviam.net/hero-calc/Pif")
+    @command
+    def meta(self) -> None:
+        """Hyperlink demo"""
+        self.manager.output("Meta info blah blah")
+        self.manager.output("Obtained from https://kallisti.nonserviam.net/hero-calc/Pif")
