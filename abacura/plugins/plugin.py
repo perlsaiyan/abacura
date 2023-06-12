@@ -3,7 +3,7 @@ import os
 import shlex
 from importlib import import_module
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Match
 
 
 from rich.markup import escape
@@ -15,6 +15,63 @@ from textual.widgets import TextLog
 from abacura import Config
 from abacura.mud import BaseSession
 from abacura.plugins import Plugin
+
+
+class ActionFunction:
+    def __init__(self, fn: callable):
+        self.fn = fn
+        self.compiled_re = fn.action_re_compiled
+        self.re = fn.action_re
+        self.color = fn.action_color
+
+        self.pass_match = False
+        # self.pass_scan = False
+        self.types = []
+
+        # print("Registering action", fn)
+
+        signature = inspect.signature(fn)
+        # TODO: Remove context filter when we have the context in the plugin
+        parameters = [v for v in signature.parameters.values() if v.name != "context"]
+
+        # Match must be the first argument if it is used
+        if len(parameters) and parameters[0].annotation is Match:
+            self.pass_match = True
+            parameters = parameters[1:]
+
+        # if len(parameters) and parameters[0].annotation is ScanText:
+        #     self.pass_scan = True
+        #     parameters = parameters[1:]
+        #
+        # get the types of the remaining arguments
+        for p in parameters:
+            if p.annotation not in [str, int, float] and p.annotation.__name__ != "_empty":
+                raise TypeError(f"Invalid action parameter type: {fn}({p})")
+
+            self.types.append(p.annotation)
+
+    def __call__(self, context, m: Match):
+
+        args = [m] if self.pass_match else []
+        # args += [s] if self.pass_scan else []
+
+        # TODO: Remove when context is in plugin
+        args = [context] + args
+        g = m.groups()
+
+        # perform type conversions
+        if len(self.types) > 0:
+            if len(g) != len(self.types):
+                raise TypeError('Incorrect number of match groups %d, expected %d' % (len(g), len(self.types)))
+
+            for arg_type, value in zip(self.types, m.groups()):
+                if callable(arg_type) and arg_type.__name__ != '_empty':
+                    # fancy type conversion
+                    value = arg_type(value)
+                args.append(value)
+
+        # call with the list of args
+        self.fn(*args)
 
 
 class CommandFunction:
@@ -123,6 +180,8 @@ class PluginHandler:
         super().__init__()
         self.plugin = plugin
         self.command_functions: List[CommandFunction] = []
+        self.action_functions: List[ActionFunction] = []
+
         self.inspect_plugin()
 
     def get_plugin_name(self) -> str:
@@ -157,8 +216,9 @@ class PluginHandler:
             #         listener = partial(self.dispatch, fn)
             #     self.dispatcher.add_listener(fn.listener_event, listener)
             #
-            # if hasattr(fn, "action_re"):
-            #     self.action_functions.append(ActionFunction(fn))
+            if hasattr(member, "action_re"):
+                log(f"Appending action function '{name}'")
+                self.action_functions.append(ActionFunction(member))
 
 
 @inject
@@ -177,8 +237,32 @@ class PluginManager(Plugin):
 
         self.load_plugins()
 
-    def handle_command_functions(self, line: str) -> bool:
-        s = line.lstrip("@").rstrip("\n").split(" ")
+    def process_line_actions(self, line: str):
+        # Cache actions that match the string with digits replaced _dd
+        action_function: ActionFunction
+
+        for handler in self.plugin_handlers:
+            if not handler.plugin.plugin_enabled:
+                continue
+
+            for action_function in handler.action_functions:
+                match = action_function.compiled_re.search(line)
+                if match:
+                    try:
+                        context = {"app": self.app, "manager": self}
+                        action_function(context, match)
+
+                    except AttributeError as e:
+                        self.session.show_exception(f"[bold red] # ERROR: {action_function.fn.__name__}: {repr(e)}", e)
+                        return False
+
+    def execute_command_new(self, line: str) -> bool:
+        # remove the @ from the command name
+        if not len(line):
+            return False
+
+        # remove leading @
+        s = line[1:].rstrip("\n").split(" ")
         submitted_command = s[0]
         submitted_args = "" if len(s) == 1 else " ".join(s[1:])
 
@@ -225,7 +309,7 @@ class PluginManager(Plugin):
 
         return True
 
-    def handle_command(self, line: str) -> bool:
+    def execute_command(self, line: str) -> bool:
         """Handles command parsing, returns True if command handled
         so we can pass the command along to something else"""
 
@@ -250,7 +334,7 @@ class PluginManager(Plugin):
                         )
                 return True
 
-        return self.handle_command_functions(line)
+        return self.execute_command_new(line)
 
     def output(self, msg, markup: bool = False, highlight: bool = False) -> None:
         self.tl.markup = markup
