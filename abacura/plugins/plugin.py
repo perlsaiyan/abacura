@@ -399,3 +399,12 @@ class PluginManager(Plugin):
 
                     handler = PluginHandler(plugin_instance)
                     self.plugin_handlers.append(handler)
+
+                    # Look for listeners in the plugin
+                    for member_name, member in inspect.getmembers(plugin_instance):
+                        if not callable(member):
+                            continue
+
+                        if hasattr(member, 'event_name'):
+                            log(f"Appending listener function '{member_name}")
+                            self.session.event_manager.listener(member.event_trigger, member)

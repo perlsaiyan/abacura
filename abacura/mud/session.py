@@ -16,6 +16,7 @@ from textual.screen import Screen
 from abacura import SessionScreen, AbacuraFooter
 from abacura.config import Config
 from abacura.mud import BaseSession
+from abacura.mud.events import EventManager
 from abacura.mud.options import GA
 from abacura.mud.options.msdp import MSDP
 from abacura.plugins.plugin import PluginManager
@@ -42,6 +43,9 @@ class Session(BaseSession):
         self.host = None
         self.port = None
         self.options = {}
+        self.event_manager: EventManager =  EventManager()
+        self.dispatcher = self.event_manager.dispatcher
+        self.listener = self.event_manager.listener
 
         with Context(config=self.config, _session=self):
             if self.config.get_specific_option(name, "screen_class"):
