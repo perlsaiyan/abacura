@@ -16,6 +16,7 @@ from textual.screen import Screen
 from abacura import SessionScreen, AbacuraFooter
 from abacura.config import Config
 from abacura.mud import BaseSession
+from abacura.mud.aliases.manager import AliasManager
 from abacura.mud.events import EventManager
 from abacura.mud.options import GA
 from abacura.mud.options.msdp import MSDP
@@ -46,6 +47,9 @@ class Session(BaseSession):
         self.event_manager: EventManager =  EventManager()
         self.dispatcher = self.event_manager.dispatcher
         self.listener = self.event_manager.listener
+
+        with Context(session = self, config = self.config):
+            self.alias_manager: AliasManager = AliasManager()
 
         with Context(config=self.config, _session=self):
             if self.config.get_specific_option(name, "screen_class"):
@@ -88,6 +92,9 @@ class Session(BaseSession):
             cmd = sl.split()[0]
 
         if cmd.startswith("@") and self.plugin_manager.execute_command(line):
+            return
+
+        if self.alias_manager.handle(cmd, sl):
             return
 
         if self.connected:

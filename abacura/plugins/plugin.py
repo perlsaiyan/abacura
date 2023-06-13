@@ -237,6 +237,9 @@ class PluginHandler:
                 log(f"Appending action function '{name}'")
                 self.action_functions.append(ActionFunction(member))
 
+            if hasattr(member, "alias_name"):
+                log(f"Appending alias function '{member.alias_name}")
+
             # if hasattr(fn, 'scanner'):
             #     self.scanner_functions.append(fn)
             #
