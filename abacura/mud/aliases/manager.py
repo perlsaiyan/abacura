@@ -47,7 +47,7 @@ class AliasManager(Plugin):
                     parsed_alias = ' '.join(parsed)
 
                     # SEND
-                    self.session.output(f"[bold yellow] SEND: {parsed_alias}", markup = True)
+                    #self.session.output(f"[bold yellow] SEND: {parsed_alias}", markup = True)
                     self.session.player_input(parsed_alias)
 
             except StopIteration:
