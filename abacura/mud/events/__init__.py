@@ -1,14 +1,15 @@
 """Common stuff for mud.events module"""
 from queue import PriorityQueue
+from textual import log
 from typing import Dict
 
 from abacura import Config
 
 class AbacuraMessage():
     """Base message object to pass into events"""
-    def __init__(self, type, value):
-        self.type = type
-        self.value = value
+    def __init__(self, *args):
+        self.type: str = args[0]
+        self.value = args[1]
 
 class EventTask():
     """Class to support queue-able events"""
@@ -64,8 +65,8 @@ class EventManager():
             return event_list
         return event_list
 
-    def dispatcher(self, trigger: str, message: AbacuraMessage):
+    def dispatcher(self, trigger: str, message):
         """Dispatch events"""
         for task in self.get_events(trigger):
-            print(f"Run task {task.handler} at {task.priority}")
+            log(f"Run task {task.handler} at {task.priority} with {message.value}")
             task.handler(message)

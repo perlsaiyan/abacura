@@ -114,7 +114,7 @@ class PluginSession(Plugin):
         """@connect <name> <host> <port> to connect a game session"""
 
         conf = self.app.config
-        
+
         if not host:
             host = conf.get_specific_option(name, "host")
             try:

@@ -75,7 +75,8 @@ class Session(BaseSession):
     #TODO: Need a better way of handling this, possibly an autoloader
     def register_options(self):
         """Set up telnet options handlers"""
-        msdp = MSDP(self.output, self.writer)
+        # TODO swap to context?
+        msdp = MSDP(self.output, self.writer, self)
         self.options[msdp.code] = msdp
 
     def player_input(self, line) -> None:

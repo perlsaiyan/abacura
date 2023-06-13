@@ -13,12 +13,15 @@ class EventPlugin(Plugin):
 
     @command(name="events")
     def eventscommand(self):
+        """Show events"""
         for key in self.event_manager.events.keys():
             self.session.output(f"{key}: {self.event_manager.events[key].qsize()} events")
 
     @command(name="testevent")
-    def eventsfire(self):
-        self.dispatcher("sample", AbacuraMessage(type="Notice", value="TEST OF EVENT FIRING"))
+    def eventsfire(self, trigger: str = "sample"):
+        """Fires a test event to sample"""
+        self.session.output(f"Sending test event to '{trigger}' dispatcher")
+        self.dispatcher(trigger, AbacuraMessage("Notice", "TEST OF EVENT FIRING"))
 
     @event("sample", priority=5)
     def sampleevent(self, message: AbacuraMessage):

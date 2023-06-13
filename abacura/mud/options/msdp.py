@@ -5,6 +5,7 @@ import time
 from textual import log
 
 from abacura.mud.options import IAC, SE, SB, TelnetOption
+from abacura.mud.events import AbacuraMessage
 
 VAR = b'\x01'
 VAL = b'\x02'
@@ -16,15 +17,22 @@ ARRAY_CLOSE= b'\x06'
 #TODO: Move ansi_escape somewhere else, we'll need it for triggers
 ansi_escape = re.compile(r'\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
+class MSDPMessage(AbacuraMessage):
+    """MSDP event message"""
+    def __init__(self, name: str, value: any, oldvalue: any = "", subtype: str = ""):
+        super().__init__(name, value)
+        self.oldvalue = oldvalue
+        self.subtype = subtype
 
 class MSDP(TelnetOption):
     """Handle MSDP TelnetOptions"""
 
-    def __init__(self, handler, writer):
+    def __init__(self, handler, writer, session):
         self.code = 69
         self.hexcode = b'\x45'
         self.handler = handler
         self.writer = writer
+        self.session = session
         self.values = {}
 
     def msdpvar(self, buf) -> tuple[bytes, bytes]:
@@ -60,7 +68,6 @@ class MSDP(TelnetOption):
             items = items[1:]
             for item in items:
                 pair = item.split(b'\x02')
-                log(f"Found pair {pair}")
                 try:
                     member[pair[0].decode("UTF-8")] = int(pair[1])
                 except ValueError:
@@ -72,9 +79,7 @@ class MSDP(TelnetOption):
         if buf == b'':
             return []
 
-        log(f"Start group parse with {buf}")
         buf = buf[3:-2]
-        log(f"Stripped group parse to {buf}")
         elements = buf.split(b'\x04\x02\x03')
 
         log(elements)
@@ -93,15 +98,12 @@ class MSDP(TelnetOption):
             return {}
 
         buf = buf[2:-1]
-        log(f"parse exits {buf}")
 
         items = buf.split(b'\x01')
-        log(f"items {items}")
 
         exits = {}
         for item in items:
             pair = item.split(b'\x02')
-            log(f"Found pair {pair}")
             try:
                 exits[pair[0].decode("UTF-8")] = int(pair[1])
             except ValueError:
@@ -129,13 +131,17 @@ class MSDP(TelnetOption):
         self.writer.write(b''.join(response))
 
     def sb(self, sb):
-        log("MSDP SB parsing")
+        log.debug("MSDP SB parsing")
         sb = sb[1:]
         first = sb[0:1]
         if first == b'\x01':
             varname, sb = self.msdpvar(sb)
             var = varname.decode("UTF-8")
             value, sb = self.msdpval(sb)
+            try:
+                oldvalue = self.values[var]
+            except KeyError:
+                oldvalue = None
 
             if var == "REPORTABLE_VARIABLES":
                 #self.handler(f"MSDP: Requesting all variables from {var}")
@@ -151,7 +157,9 @@ class MSDP(TelnetOption):
                     self.values[var] = int(self.values[var])
                 except ValueError:
                     pass
-
+            log(f"Firing event on {var} {self.values[var]}")
+            msg = MSDPMessage(varname, self.values[var], oldvalue="", subtype = "value_change")
+            self.session.dispatcher(f"msdp_value_{var}", msg)
         else:
             # TODO this is a candidate for some kind of protocol.log
             self.handler(f"MSDP: Don't know how to handle {sb}")

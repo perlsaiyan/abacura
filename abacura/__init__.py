@@ -5,27 +5,28 @@ import csv
 import io
 from typing import TYPE_CHECKING, Coroutine, Any
 
-from rich.align import Align
-from rich.text import Text
 from serum import inject
 
 from textual import log
 from textual.app import ComposeResult
 from textual.containers import Container
 from textual.message import Message
-from textual.reactive import reactive
+
 from textual.screen import Screen
 from textual.suggester import Suggester
-from textual.widgets import Footer, Header, Input, TextLog
+from textual.widgets import Header, Input, TextLog
 
 from abacura.config import Config
 from abacura.inspector import Inspector
+
 from abacura.widgets.sidebar import Sidebar
+from abacura.widgets.footer import AbacuraFooter
 from abacura.widgets.commslog import CommsLog
 
 if TYPE_CHECKING:
     from typing_extensions import Self
-    from abacura.mud.session import Session    
+    from abacura.mud.session import Session
+
 
 @inject
 class SessionScreen(Screen):
@@ -189,11 +190,3 @@ class AbacuraSuggester(Suggester):
                 return None
 
         return None
-
-class AbacuraFooter(Footer):
-    """Bottom of screen bar with current session name"""
-
-    session: reactive[str | None] = reactive[str | None]("null")
-
-    def render(self) -> str:
-        return f"#{self.session}"

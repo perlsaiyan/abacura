@@ -406,5 +406,5 @@ class PluginManager(Plugin):
                             continue
 
                         if hasattr(member, 'event_name'):
-                            log(f"Appending listener function '{member_name}")
+                            log(f"Appending listener function '{member_name}'")
                             self.session.event_manager.listener(member.event_trigger, member)
