@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import re
 import inspect
 import os
 import shlex
 from importlib import import_module
 from pathlib import Path
-from typing import List, Dict, TYPE_CHECKING
+from typing import List, Dict, TYPE_CHECKING, Callable, Match
 from datetime import datetime, timedelta
 import heapq
 
@@ -16,10 +17,85 @@ from textual.app import App
 from textual.widgets import TextLog
 
 from abacura import Config
-from abacura.plugins import Plugin, ActionProcessor
+from abacura.plugins import Plugin
 
 if TYPE_CHECKING:
     from abacura.mud.session import Session
+
+
+class Action:
+    def __init__(self, pattern: str, callback: Callable, source: object,
+                 flags: int = 0, name: str = '', color: bool = False):
+        self.pattern = pattern
+        self.callback = callback
+        self.flags = flags
+        self.compiled_re = re.compile(pattern, flags)
+        self.name = name
+        self.color = color
+        self.source = source
+
+        self.parameters = list(inspect.signature(callback).parameters.values())
+        self.parameter_types = [p.annotation for p in self.parameters]
+        self.expected_match_groups = len([t for t in self.parameter_types if t != Match])
+
+        valid_type_annotations = [str, int, float, inspect._empty, Match]
+        invalid_types = [t for t in self.parameter_types if t not in valid_type_annotations]
+
+        if invalid_types:
+            raise TypeError(f"Invalid action parameter type: {callback}({invalid_types})")
+
+
+@inject
+class ActionRegistry:
+    session: Session
+
+    def __init__(self):
+        self.actions = []
+
+    def register_actions(self, obj: object):
+        for name, member in inspect.getmembers(obj, callable):
+            if hasattr(member, "action_pattern"):
+                act = Action(pattern=getattr(member, "action_pattern"), callback=member, source=obj,
+                             flags=getattr(member, "action_flags"), color=getattr(member, "action_color"))
+                self.add(act)
+
+    def unregister_actions(self, obj: object):
+        self.actions = [a for a in self.actions if a.source != obj]
+
+    def add(self, action: Action):
+        self.actions.append(action)
+
+    def remove(self, name: str):
+        self.actions = [a for a in self.actions if name == '' or a.name != name]
+
+    def process_line(self, line: str):
+        act: Action
+        for act in self.actions:
+            match = act.compiled_re.search(line)
+            if match:
+                self.initiate_callback(act, match)
+
+    def initiate_callback(self, action: Action, match: Match):
+        g = match.groups()
+
+        # perform type conversions
+        if len(g) < action.expected_match_groups:
+            msg = f"Incorrect # of match groups.  Expected {action.expected_match_groups}, got {g}"
+            self.session.output(f"[bold red] # ERROR: {msg} {repr(action)}")
+
+        args = []
+
+        for arg_type, value in zip(action.parameter_types, match.groups()):
+            if arg_type == Match:
+                value = match
+            elif callable(arg_type) and arg_type.__name__ != '_empty':
+                # fancy type conversion
+                value = arg_type(value)
+
+            args.append(value)
+
+        # call with the list of args
+        action.callback(*args)
 
 
 class TickerFunction:
@@ -194,6 +270,7 @@ class PluginManager(Plugin):
     config: Config
     sessions: dict
     session: Session
+    action_registry: ActionRegistry
     app: App
     tl: TextLog
 
@@ -209,25 +286,6 @@ class PluginManager(Plugin):
             next_tick = handler.tick()
             if next_tick:
                 heapq.heappush(self.ticker_heap, (next_tick, handler))
-
-    def process_line_actions(self, line: str):
-        # Cache actions that match the string with digits replaced _dd
-        action: ActionProcessor
-
-        for handler in self.plugin_handlers:
-            if not handler.plugin.plugin_enabled:
-                continue
-
-            for a in handler.plugin.actions:
-                match = a.compiled_re.search(line)
-                if match:
-                    try:
-                        a.process(match)
-
-                    except AttributeError as e:
-                        callback = f"{a.name}-{a.callback.__name__}"
-                        self.session.show_exception(f"[bold red] # ERROR: {callback} {repr(e)}", e)
-                        return False
 
     def execute_command(self, line: str) -> bool:
         # remove the @ from the command name
@@ -323,9 +381,11 @@ class PluginManager(Plugin):
             # Look for plugins subclasses within the module we just loaded and create a PluginHandler for each
             for name, c in inspect.getmembers(module, inspect.isclass):
                 if c.__module__ == module.__name__ and inspect.isclass(c) and issubclass(c, Plugin):
-                    with Context(app=self.app, manager=self, session=self.session):
+                    with Context(app=self.app, manager=self, session=self.session,
+                                 action_registry=self.action_registry):
                         plugin_instance: Plugin = c()
-                        plugin_instance.inspect_methods()
+
+                    self.action_registry.register_actions(plugin_instance)
 
                     plugin_name = plugin_instance.get_name()
                     log(f"Adding plugin {name}.{plugin_name}")
