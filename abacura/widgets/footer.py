@@ -5,9 +5,9 @@ Various footer widget bits
 from textual.reactive import reactive
 from textual.widgets import Footer
 
-from abacura.mud.events import event
 from abacura.mud.options.msdp import MSDPMessage
 from abacura.plugins import Plugin
+from abacura.plugins.events import event
 
 # TODO this should probably be a specific implementation in abacura-kallisti
 class AbacuraFooter(Footer):

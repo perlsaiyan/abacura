@@ -16,11 +16,11 @@ from textual.screen import Screen
 from abacura import SessionScreen, AbacuraFooter
 from abacura.config import Config
 from abacura.mud import BaseSession
-from abacura.mud.aliases.manager import AliasManager
-from abacura.mud.events import EventManager
 from abacura.mud.options import GA
 from abacura.mud.options.msdp import MSDP
 from abacura.plugins.plugin import PluginManager
+from abacura.plugins.aliases.manager import AliasManager
+from abacura.plugins.events import EventManager
 
 if TYPE_CHECKING:
     from typing_extensions import Self

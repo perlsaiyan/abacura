@@ -5,7 +5,7 @@ import time
 from textual import log
 
 from abacura.mud.options import IAC, SE, SB, TelnetOption
-from abacura.mud.events import AbacuraMessage
+from abacura.plugins.events import AbacuraMessage
 
 VAR = b'\x01'
 VAL = b'\x02'

@@ -1,6 +1,6 @@
 """The Event plugin"""
 from abacura.plugins import Plugin, command
-from abacura.mud.events import event, AbacuraMessage
+from abacura.plugins.events import event, AbacuraMessage
 
 class EventPlugin(Plugin):
     """Commands and things """

@@ -1,4 +1,3 @@
-"""In-game alias manager"""
 from __future__ import annotations
 
 import csv
@@ -65,4 +64,3 @@ class AliasManager(Plugin):
             buf += f"{key[0]}: {key[1]}\n"
         
         self.session.output(Panel(buf), actionable=False)
-
