@@ -21,6 +21,14 @@ abacura.plugins.plugin module
    :undoc-members:
    :show-inheritance:
 
+abacura.plugins.registry module
+-------------------------------
+
+.. automodule:: abacura.plugins.registry
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

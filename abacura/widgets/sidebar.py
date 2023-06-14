@@ -16,7 +16,8 @@ Affects go here
 """
 
 class Sidebar(Container):
+    """Generic Sidebar"""
     def compose(self) -> ComposeResult:
+        """Composes the subwidgets of a sidebar"""
         yield Static(SIDEBAR_CONTENT)
         yield ResizeHandle(self, 'right')
-        pass

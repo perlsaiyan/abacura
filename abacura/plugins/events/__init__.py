@@ -42,14 +42,16 @@ class EventManager():
     config: Config
 
     def __init__(self):
+        log("Booting EventManager")
         self.events: Dict[str, PriorityQueue] = {}
 
-    def listener(self, event_name: str, new_event):
+    def listener(self, new_event: callable):
         """Add an event listener to a queue"""
-        if event_name not in self.events:
-            self.events[event_name] = PriorityQueue()
+        log(f"Appending event '{new_event.event_name}'")
+        if new_event.event_name not in self.events:
+            self.events[new_event.event_trigger] = PriorityQueue()
 
-        self.events[event_name].put(EventTask(new_event))
+        self.events[new_event.event_trigger].put(EventTask(new_event))
 
     def get_events(self, trigger):
         """Return list of EventTasks in a queue"""

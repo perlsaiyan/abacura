@@ -58,7 +58,7 @@ class Session(BaseSession):
         with Context(session=self, config=self.config):
             self.alias_manager: AliasManager = AliasManager()
 
-        with Context(config=self.config, _session=self):
+        with Context(config=self.config, session=self):
             if self.config.get_specific_option(name, "screen_class"):
                 (package, screen_class) = self.config.get_specific_option(name, "screen_class").rsplit(".", 1)
                 log(f"Importing a package {package}")

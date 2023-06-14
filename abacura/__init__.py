@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 class SessionScreen(Screen):
     """Default Screen for sessions"""
     config: Config
-    _session: Session
+    session: Session
 
     BINDINGS = [
         ("pageup", "pageup", "PageUp"),
@@ -44,7 +44,7 @@ class SessionScreen(Screen):
     AUTO_FOCUS = "InputBar"
 
     def __init__(self, name: str):
-        self.CSS_PATH = self.config.get_specific_option(self._session.name, "css_path") or "abacura.css"
+        self.CSS_PATH = self.config.get_specific_option(self.session.name, "css_path") or "abacura.css"
         super().__init__()
 
         self.id = f"screen-{name}"
@@ -72,7 +72,7 @@ class SessionScreen(Screen):
     def on_mount(self) -> None:
         """Screen is mounted, launch it"""
         self.tl = self.query_one(f"#{self.tlid}", expect_type=TextLog)
-        self._session.launch_screen()
+        self.session.launch_screen()
 
     async def on_input_bar_user_command(self, command: InputBar.UserCommand) -> None:
         """Handle user input from InputBar"""
@@ -81,10 +81,10 @@ class SessionScreen(Screen):
         try:
             lines = list.__next__()
             for line in lines:
-                self._session.player_input(line)
+                self.session.player_input(line)
 
         except StopIteration:
-            self._session.player_input("")
+            self.session.player_input("")
 
     def action_toggle_dark(self) -> None:
         """Dark mode"""
@@ -127,7 +127,7 @@ class InputBar(Input):
         self.history_ptr = None
 
     def on_mount(self):
-        self.suggester = AbacuraSuggester(self.screen._session)
+        self.suggester = AbacuraSuggester(self.screen.session)
 
     def action_history_scrollback(self) -> None:
         if self.history_ptr is None:

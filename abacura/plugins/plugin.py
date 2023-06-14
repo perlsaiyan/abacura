@@ -41,7 +41,6 @@ class PluginLoader(Plugin):
         plugin_path = framework_path.parent.parent
 
         plugin_files = []
-        # plugin_files = [pf for pf in plugin_path.glob('plugins/commands/*.py') if not pf.name.startswith('_')]
         log.debug(f"Loading plugins from {plugin_path} from {__file__}")
         for dirpath, _, filenames in os.walk(plugin_path):
             for filename in [f for f in filenames if f.endswith(".py") and not f.startswith('_') and os.path.join(dirpath, f) != __file__]:
@@ -86,4 +85,4 @@ class PluginLoader(Plugin):
                     for member_name, member in inspect.getmembers(plugin_instance, callable):
                         if hasattr(member, 'event_name'):
                             log(f"Appending listener function '{member_name}'")
-                            self.session.event_manager.listener(member.event_trigger, member)
+                            self.session.event_manager.listener(member)
