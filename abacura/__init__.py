@@ -17,7 +17,7 @@ from textual.suggester import Suggester
 from textual.widgets import Header, Input, TextLog
 
 from abacura.config import Config
-from abacura.inspector import Inspector
+from abacura.widgets.inspector import Inspector
 
 from abacura.widgets.sidebar import Sidebar
 from abacura.widgets.footer import AbacuraFooter
