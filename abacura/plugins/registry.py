@@ -244,13 +244,13 @@ class CommandRegistry:
                 self.session.output(message)
 
         except AttributeError as e:
-            self.session.show_exception(f"[bold red] # ERROR: {command.name}: {repr(e)}", e)
+            self.session.show_exception(f"[bold red]# ERROR: {command.name}: {repr(e)}", e)
             self.session.output(f"[gray][italic]> {escape(command.get_help())}", markup=True, highlight=True)
             return False
 
         except (ValueError, NameError) as e:
-            self.session.show_exception(f"[bold red] # ERROR:  {command.name}: {repr(e)}", e)
-            return False
+            self.session.show_exception(f"[bold red]# ERROR: {command.name}: {repr(e)}", e, show_tb = False)
+            return True
 
         return True
 

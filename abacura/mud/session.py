@@ -45,6 +45,7 @@ class Session(BaseSession):
         self.name = name
         self.host = None
         self.port = None
+        self.tl: Optional[TextLog] = None
         self.options = {}
         self.event_manager: EventManager = EventManager()
         self.dispatcher = self.event_manager.dispatcher
