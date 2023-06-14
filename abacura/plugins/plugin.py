@@ -41,10 +41,10 @@ class PluginLoader(Plugin):
         plugin_path = framework_path.parent.parent
 
         plugin_files = []
-        log.debug(f"Loading plugins from {plugin_path} from {__file__}")
+        log.info(f"Loading plugins from {plugin_path} from {__file__}")
         for dirpath, _, filenames in os.walk(plugin_path):
             for filename in [f for f in filenames if f.endswith(".py") and not f.startswith('_') and os.path.join(dirpath, f) != __file__]:
-                log(f"Found plugin {os.path.join(dirpath,filename)}")
+                log.info(f"Found plugin {os.path.join(dirpath,filename)}")
                 plugin_files.append(Path(os.path.join(dirpath, filename)))
 
         # TODO: We may want to handle case where we are loading plugins a second time
@@ -52,11 +52,11 @@ class PluginLoader(Plugin):
 
         # import each one of the modules corresponding to each plugin .py file
         for pf in plugin_files:
-            log.debug(f"Loading file {pf}")
-            package = str(pf.relative_to(plugin_path.parent.parent)).replace(os.sep, ".")
+            log.debug(f"Loading file {pf} will strip by {str(pf.relative_to(plugin_path.parent))}")
+            package = str(pf.relative_to(plugin_path.parent)).replace(os.sep, ".")
+
             package = package[:-3]  # strip .py
-            package = package[8:]
-            
+
             try:
                 module = import_module(package)
             except Exception as e:

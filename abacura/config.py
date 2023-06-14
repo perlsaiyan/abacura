@@ -66,9 +66,9 @@ class Config(Plugin):
 
         log(f"@conf called with full '{full}' and reload '{reload}'")
         if full or self.app.session == "null":
-            conf = escape(self.config.config.as_string())
+            conf = escape(self.config.as_string())
         else:
-            conf = escape(self.config.config[self.app.session].as_string())
+            conf = escape(self.config[self.app.session].as_string())
         
         panel = Panel(conf, highlight=True)
         tl = self.session.tl
