@@ -18,7 +18,8 @@ from abacura.config import Config
 from abacura.mud import BaseSession
 from abacura.mud.options import GA
 from abacura.mud.options.msdp import MSDP
-from abacura.plugins.plugin import PluginManager, ActionRegistry, CommandRegistry
+from abacura.plugins.registry import ActionRegistry, CommandRegistry, TickerRegistry
+from abacura.plugins.plugin import PluginLoader
 from abacura.plugins.aliases.manager import AliasManager
 from abacura.plugins.events import EventManager
 
@@ -45,12 +46,13 @@ class Session(BaseSession):
         self.host = None
         self.port = None
         self.options = {}
-        self.event_manager: EventManager =  EventManager()
+        self.event_manager: EventManager = EventManager()
         self.dispatcher = self.event_manager.dispatcher
         self.listener = self.event_manager.listener
         self.action_registry: Optional[ActionRegistry] = None
         self.command_registry: Optional[CommandRegistry] = None
-        self.plugin_manager: Optional[PluginManager] = None
+        self.ticker_registry: Optional[TickerRegistry] = None
+        self.plugin_loader: Optional[PluginLoader] = None
 
         with Context(session=self, config=self.config):
             self.alias_manager: AliasManager = AliasManager()
@@ -70,7 +72,7 @@ class Session(BaseSession):
         self.abacura.push_screen(name)
         self.screen = self.abacura.query_one(f"#screen-{name}", expect_type=Screen)
 
-    #TODO: This should possibly be an Message from the SessionScreen
+    # TODO: This should possibly be an Message from the SessionScreen
     def launch_screen(self):
         """Fired on screen mounting, so our Footer is updated and Session gets a TextLog handle"""
         self.screen.query_one(AbacuraFooter).session = self.name
@@ -79,14 +81,18 @@ class Session(BaseSession):
         with Context(session=self):
             self.action_registry = ActionRegistry()
             self.command_registry = CommandRegistry()
+            self.ticker_registry = TickerRegistry()
 
-        with Context(config = self.config, sessions = self.abacura.sessions, tl=self.tl,
+        with Context(config=self.config, sessions=self.abacura.sessions, tl=self.tl,
                      app=self.abacura, session=self,
-                     action_registry=self.action_registry, command_registry=self.command_registry):
-            self.plugin_manager = PluginManager()
-            self.screen.set_interval(interval=0.010, callback=self.plugin_manager.process_tickers, name="tickers")
+                     action_registry=self.action_registry, command_registry=self.command_registry,
+                     ticker_registry=self.ticker_registry):
+            self.plugin_loader = PluginLoader()
+            self.screen.set_interval(interval=0.010, callback=self.ticker_registry.process_tick, name="tickers")
 
-    #TODO: Need a better way of handling this, possibly an autoloader
+        self.plugin_loader.load_plugins()
+
+    # TODO: Need a better way of handling this, possibly an autoloader
     def register_options(self):
         """Set up telnet options handlers"""
         # TODO swap to context?
@@ -120,9 +126,9 @@ class Session(BaseSession):
         if self.writer is not None:
             self.writer.write(bytes(msg + "\n", "UTF-8"))
         else:
-            self.output(f"[bold red]# NO-SESSION SEND: {msg}", markup = True, highlight = True)
+            self.output(f"[bold red]# NO-SESSION SEND: {msg}", markup=True, highlight=True)
 
-    #TODO rather than continually toggling this should we have houtput, moutput and hmoutput?
+    # TODO rather than continually toggling this should we have houtput, moutput and hmoutput?
     def output(self, msg,
                markup: bool=False, highlight: bool=False, ansi: bool = False, actionable: bool=True,
                gag: bool=False):

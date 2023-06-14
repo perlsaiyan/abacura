@@ -11,6 +11,7 @@ from rich.pretty import Pretty
 from textual import log
 
 from abacura.plugins import Plugin, command, action
+from functools import partial
 
 
 class PluginDemo(Plugin):
@@ -25,9 +26,13 @@ class PluginDemo(Plugin):
         self.session.output(
             f"MSDP HEALTH: [bold red]🛜 [bold green]🛜  {self.session}", markup=True)
 
-    # @ticker(15)
-    def test_ticker(self):
-        self.session.output("TICK!!")
+    @command
+    def ticker(self, seconds: int, message: str, repeats: int = -1, name: str = '', delete: bool = False):
+        if delete:
+            self.remove_ticker(name)
+            return
+
+        self.add_ticker(seconds, callback_fn=partial(self.session.output, msg=message), repeats=repeats, name=name)
 
     @action("Ptam")
     def ptam(self):
@@ -92,7 +97,7 @@ class PluginData(Plugin):
 
         self.session.output("Current registered global plugins:")
 
-        for plugin_name, plugin in self.manager.plugins.items():
+        for plugin_name, plugin in self.loader.plugins.items():
             indicator = '[bold green]✓' if plugin.plugin_enabled else '[bold red]x'
             self.session.output(
                 f"{indicator} [white]{plugin.get_name()}" +
