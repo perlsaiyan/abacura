@@ -10,23 +10,22 @@ from rich.pretty import Pretty
 
 from textual import log
 
-from abacura.plugins import Plugin, command, action, ticker
+from abacura.plugins import Plugin, command, action
 
 
 class PluginDemo(Plugin):
     """Sample plugin to knock around"""
     def __init__(self):
         super().__init__()
-        self.exec_locals = {}
 
     @command
     def foo(self) -> None:
-        self.manager.output(f"{sys.path}")
-        self.manager.output(f"{self.app.sessions}", markup=True)
+        self.session.output(f"{sys.path}")
+        self.session.output(f"{self.app.sessions}", markup=True)
         self.session.output(
             f"MSDP HEALTH: [bold red]🛜 [bold green]🛜  {self.session}", markup=True)
 
-    @ticker(15)
+    # @ticker(15)
     def test_ticker(self):
         self.session.output("TICK!!")
 
@@ -38,8 +37,13 @@ class PluginDemo(Plugin):
     def ptam2(self, s: str):
         self.session.output(f"PTAM!! [{s}]")
 
+
 class PluginCommandHelper(Plugin):
     """Display help for a command and evaluate a string"""
+
+    def __init__(self):
+        super().__init__()
+        self.exec_locals = {}
 
     @command()
     def help(self):
@@ -102,7 +106,7 @@ class PluginSession(Plugin):
     @command(name="echo")
     def echo(self, text: str):
         """Send text to screen without triggering actions"""
-        self.session.output(text, actionable = False)
+        self.session.output(text, actionable=False)
 
     @command
     def showme(self, text: str) -> None:
@@ -126,7 +130,7 @@ class PluginSession(Plugin):
 
         if name in self.app.sessions:
             self.session.output("[bold red]# SESSION ALREADY EXISTS", markup=True)
-        elif not name in conf.config and (not host or not port):
+        elif name not in conf.config and (not host or not port):
             self.session.output(
                 " [bold red]#connect <session name> <host> <port>", markup=True, highlight=True)
         else:
@@ -138,7 +142,7 @@ class PluginSession(Plugin):
 
     @command(name="session")
     # Do not name this function "session" or you'll overwrite self.session :)
-    def sessioncommand(self, name: str = "") -> None:
+    def session_command(self, name: str = "") -> None:
         """@session <name>: Get information about sessions or swap to session <name>"""
         if not name:
             cur = self.app.session

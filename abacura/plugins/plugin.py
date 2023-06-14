@@ -5,7 +5,7 @@ import os
 import shlex
 from importlib import import_module
 from pathlib import Path
-from typing import List, Dict, Match, TYPE_CHECKING
+from typing import List, Dict, TYPE_CHECKING
 from datetime import datetime, timedelta
 import heapq
 
@@ -16,7 +16,7 @@ from textual.app import App
 from textual.widgets import TextLog
 
 from abacura import Config
-from abacura.plugins import Plugin
+from abacura.plugins import Plugin, ActionProcessor
 
 if TYPE_CHECKING:
     from abacura.mud.session import Session
@@ -41,71 +41,11 @@ class TickerFunction:
         return self.next_tick
 
 
-class ActionFunction:
-    def __init__(self, fn: callable):
-        self.fn = fn
-        self.compiled_re = fn.action_re_compiled
-        self.re = fn.action_re
-        self.color = fn.action_color
-
-        self.pass_match = False
-        # self.pass_scan = False
-        self.types = []
-
-        # print("Registering action", fn)
-
-        signature = inspect.signature(fn)
-        parameters = [v for v in signature.parameters.values()]
-
-        # Match must be the first argument if it is used
-        if len(parameters) and parameters[0].annotation is Match:
-            self.pass_match = True
-            parameters = parameters[1:]
-
-        # if len(parameters) and parameters[0].annotation is ScanText:
-        #     self.pass_scan = True
-        #     parameters = parameters[1:]
-        #
-        # get the types of the remaining arguments
-        for p in parameters:
-            if p.annotation not in [str, int, float] and p.annotation.__name__ != "_empty":
-                raise TypeError(f"Invalid action parameter type: {fn}({p})")
-
-            self.types.append(p.annotation)
-
-    def __call__(self, m: Match):
-
-        args = [m] if self.pass_match else []
-        # args += [s] if self.pass_scan else []
-
-        g = m.groups()
-
-        # perform type conversions
-        if len(self.types) > 0:
-            if len(g) != len(self.types):
-                raise TypeError('Incorrect number of match groups %d, expected %d' % (len(g), len(self.types)))
-
-            for arg_type, value in zip(self.types, m.groups()):
-                if callable(arg_type) and arg_type.__name__ != '_empty':
-                    # fancy type conversion
-                    value = arg_type(value)
-                args.append(value)
-
-        # call with the list of args
-        self.fn(*args)
-
-
 class CommandFunction:
-    substitutes = {'question': '?', 'at': '@'}
-
     def __init__(self, plugin: Plugin, fn: callable):
         self.fn = fn
         self.plugin = plugin
-
-        # if cmd_name == "" or cmd_name == "-h" or cmd_name == "--help":
-        #     return self.get_help()
-
-        self.name = self.substitutes.get(fn.command_name, fn.command_name)
+        self.name = self.fn.command_name
 
     def __call__(self, cmd_str: str):
         submitted_arguments = shlex.split(cmd_str)
@@ -200,7 +140,6 @@ class PluginHandler:
         super().__init__()
         self.plugin = plugin
         self.command_functions: List[CommandFunction] = []
-        self.action_functions: List[ActionFunction] = []
         self.ticker_functions: List[TickerFunction] = []
 
         self.inspect_plugin()
@@ -230,12 +169,8 @@ class PluginHandler:
                 log(f"Appending command function '{member.command_name}'")
                 self.command_functions.append(CommandFunction(self.plugin, member))
 
-            if hasattr(member, 'ticker_interval'):
-                self.ticker_functions.append(TickerFunction(member))
-
-            if hasattr(member, "action_re"):
-                log(f"Appending action function '{name}'")
-                self.action_functions.append(ActionFunction(member))
+            # if hasattr(member, 'ticker_interval'):
+            #     self.ticker_functions.append(TickerFunction(member))
 
             if hasattr(member, "alias_name"):
                 log(f"Appending alias function '{member.alias_name}")
@@ -277,20 +212,21 @@ class PluginManager(Plugin):
 
     def process_line_actions(self, line: str):
         # Cache actions that match the string with digits replaced _dd
-        action_function: ActionFunction
+        action: ActionProcessor
 
         for handler in self.plugin_handlers:
             if not handler.plugin.plugin_enabled:
                 continue
 
-            for action_function in handler.action_functions:
-                match = action_function.compiled_re.search(line)
+            for a in handler.plugin.actions:
+                match = a.compiled_re.search(line)
                 if match:
                     try:
-                        action_function(match)
+                        a.process(match)
 
                     except AttributeError as e:
-                        self.session.show_exception(f"[bold red] # ERROR: {action_function.fn.__name__}: {repr(e)}", e)
+                        callback = f"{a.name}-{a.callback.__name__}"
+                        self.session.show_exception(f"[bold red] # ERROR: {callback} {repr(e)}", e)
                         return False
 
     def execute_command(self, line: str) -> bool:
@@ -394,6 +330,7 @@ class PluginManager(Plugin):
                 if c.__module__ == module.__name__ and inspect.isclass(c) and issubclass(c, Plugin):
                     with Context(app=self.app, manager=self, session=self.session):
                         plugin_instance: Plugin = c()
+                        plugin_instance.inspect_methods()
 
                     plugin_name = plugin_instance.get_name()
                     log(f"Adding plugin {name}.{plugin_name}")
