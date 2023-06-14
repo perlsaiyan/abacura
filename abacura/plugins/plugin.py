@@ -306,7 +306,7 @@ class PluginManager(Plugin):
 
         if len(fns) == 0:
             error_msg = f"Unknown Command {submitted_command}"
-            self.output(f"[orange][italic]> {escape(error_msg)}", markup=True, highlight=True)
+            self.session.output(f"[orange][italic]> {escape(error_msg)}", markup=True, highlight=True)
             return False
 
         if len(fns) > 1:

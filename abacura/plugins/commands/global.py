@@ -173,8 +173,12 @@ class PluginSession(Plugin):
     @command
     def msdp(self, variable: str = '') -> None:
         """Dump MSDP values for debugging"""
-        msdp = self.app.sessions[self.app.session].options[69]
-
+        try:
+            msdp = self.app.sessions[self.app.session].options[69]
+        except KeyError:
+            self.session.output("[bold red]# MSDPERROR: MSDP NOT LOADED?", markup=True)
+            return 
+        
         if not variable:
             panel = Panel(Pretty(msdp.values), highlight=True)
             self.session.output(panel, highlight=True)
