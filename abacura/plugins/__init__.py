@@ -1,12 +1,12 @@
 from __future__ import annotations
 from serum import inject
 from typing import TYPE_CHECKING, Callable
-
+from abacura.plugins.registry import Action, Ticker, ActionRegistry, CommandRegistry, TickerRegistry
 
 if TYPE_CHECKING:
     from textual.app import App
     from abacura.mud.session import Session
-    from abacura.plugins.plugin import PluginManager, ActionRegistry, Action, CommandRegistry
+    from abacura.plugins.plugin import PluginLoader
 
 
 @inject
@@ -14,9 +14,10 @@ class Plugin:
     """Generic Plugin Class"""
     app: App
     session: Session
-    manager: PluginManager
+    loader: PluginLoader
     action_registry: ActionRegistry
     command_registry: CommandRegistry
+    ticker_registry: TickerRegistry
 
     def __init__(self):
         super().__init__()
@@ -32,17 +33,18 @@ class Plugin:
         return doc
 
     def add_action(self, pattern: str, callback_fn: Callable, flags: int = 0, name: str = '', color: bool = False):
-        act = Action(pattern=pattern, callback=callback_fn, flags=flags, name=name, color=color, source=self)
+        act = Action(source=self, pattern=pattern, callback=callback_fn, flags=flags, name=name, color=color)
         self.action_registry.add(act)
 
     def remove_action(self, name: str):
         self.action_registry.remove(name)
 
-    def add_ticker(self, seconds: int, callback_fn: Callable, repeat: int = 0, name: str = ''):
-        pass
+    def add_ticker(self, seconds: int, callback_fn: Callable, repeats: int = 0, name: str = ''):
+        ticker = Ticker(source=self, seconds=seconds, callback=callback_fn, repeats=repeats, name=name)
+        self.ticker_registry.add(ticker)
 
     def remove_ticker(self, name: str):
-        pass
+        self.ticker_registry.remove(name)
 
     def add_substitute(self, pattern: str, repl: str, name: str = ''):
         pass
