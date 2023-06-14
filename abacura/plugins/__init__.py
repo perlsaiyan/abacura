@@ -1,5 +1,4 @@
 from __future__ import annotations
-import inspect
 from serum import inject
 from typing import TYPE_CHECKING, Callable
 
@@ -7,7 +6,7 @@ from typing import TYPE_CHECKING, Callable
 if TYPE_CHECKING:
     from textual.app import App
     from abacura.mud.session import Session
-    from abacura.plugins.plugin import PluginManager, ActionRegistry, Action
+    from abacura.plugins.plugin import PluginManager, ActionRegistry, Action, CommandRegistry
 
 
 @inject
@@ -17,6 +16,7 @@ class Plugin:
     session: Session
     manager: PluginManager
     action_registry: ActionRegistry
+    command_registry: CommandRegistry
 
     def __init__(self):
         super().__init__()
@@ -32,7 +32,7 @@ class Plugin:
         return doc
 
     def add_action(self, pattern: str, callback_fn: Callable, flags: int = 0, name: str = '', color: bool = False):
-        act = Action(pattern=pattern, callback=callback_fn, flags=flags, name=name, color=color)
+        act = Action(pattern=pattern, callback=callback_fn, flags=flags, name=name, color=color, source=self)
         self.action_registry.add(act)
 
     def remove_action(self, name: str):
@@ -50,21 +50,13 @@ class Plugin:
     def remove_substitute(self, name: str):
         pass
 
-    def evaluate_command_argument(self, parameter: inspect.Parameter, submitted_value: str):
-        if parameter.annotation == int:
-            return int(submitted_value)
 
-        if parameter.annotation == float:
-            return float(submitted_value)
-
-        return submitted_value
-
-
-def action(pattern: str, flags: int = 0, color: bool = False):
+def action(pattern: str, flags: int = 0, color: bool = False, priority: int = 0):
     def add_action(action_fn):
         action_fn.action_pattern = pattern
         action_fn.action_color = color
         action_fn.action_flags = flags
+        action_fn.action_priority = priority
         return action_fn
     
     return add_action
@@ -73,7 +65,6 @@ def action(pattern: str, flags: int = 0, color: bool = False):
 def command(function=None, name: str = ''):
     def add_command(fn):
         fn.command_name = name or fn.__name__
-
         return fn
 
     if function:
