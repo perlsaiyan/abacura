@@ -162,12 +162,12 @@ class PluginSession(Plugin):
                     else:
                         buf += f"{session.name}: {session.host} {session.port} [red]\\[disconnected]\n"
 
-            self.manager.output(buf, markup=True, highlight=True)
+            self.session.output(buf, markup=True, highlight=True)
         else:
             if name in self.app.sessions:
                 self.app.set_session(name)
             else:        
-                self.manager.output(
+                self.session.output(
                     f"[bold red]# INVALID SESSION {name}", markup=True)
 
     @command
@@ -177,15 +177,15 @@ class PluginSession(Plugin):
 
         if not variable:
             panel = Panel(Pretty(msdp.values), highlight=True)
-            self.manager.output(panel, highlight=True)
+            self.session.output(panel, highlight=True)
         else:
             panel = Panel(Pretty(msdp.values.get(variable, None)), highlight=True)
-            self.manager.output(panel, highlight=True)
+            self.session.output(panel, highlight=True)
 
 
 class PluginMeta(Plugin):
     @command
     def meta(self) -> None:
         """Hyperlink demo"""
-        self.manager.output("Meta info blah blah")
-        self.manager.output("Obtained from https://kallisti.nonserviam.net/hero-calc/Pif")
+        self.session.output("Meta info blah blah")
+        self.session.output("Obtained from https://kallisti.nonserviam.net/hero-calc/Pif")

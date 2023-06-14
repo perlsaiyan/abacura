@@ -260,19 +260,19 @@ class PluginManager(Plugin):
             elif len(starts_fns) > 1:
                 matches = ", ".join([fn.name for fn in starts_fns])
                 error_msg = f"Ambiguous command '{submitted_command}' [{matches}]"
-                self.output(f"[orange][italic]> {escape(error_msg)}", markup=True, highlight=True)
+                self.session.output(f"[orange][italic]> {escape(error_msg)}", markup=True, highlight=True)
                 return False
 
         fn: CommandFunction = fns[0]
         try:
-            self.output(f"[green][italic]> {escape(line)}", markup=True, highlight=True)
+            self.session.output(f"[green][italic]> {escape(line)}", markup=True, highlight=True)
             message = fn(submitted_args)
             if message:
-                self.output(message)
+                self.session.output(message)
 
         except AttributeError as e:
             self.session.show_exception(f"[bold red] # ERROR: {fn.name}: {repr(e)}", e)
-            self.output(f"[gray][italic]> {escape(fn.get_help())}", markup=True, highlight=True)
+            self.session.output(f"[gray][italic]> {escape(fn.get_help())}", markup=True, highlight=True)
             return False
 
         except (ValueError, NameError) as e:
@@ -288,11 +288,6 @@ class PluginManager(Plugin):
             next_tick = handler.tick()
             if next_tick:
                 heapq.heappush(self.ticker_heap, (next_tick, handler))
-
-    def output(self, msg, markup: bool = False, highlight: bool = False) -> None:
-        self.tl.markup = markup
-        self.tl.markup = highlight
-        self.tl.write(msg)
 
     def load_plugins(self) -> None:
         """Load plugins"""
@@ -321,8 +316,8 @@ class PluginManager(Plugin):
             try:
                 module = import_module(package)
             except Exception as e:
-                self.output(f"[bold red]# ERROR LOADING PLUGIN {package} (from {pf}): {repr(e)}",
-                            markup=True, highlight=True)
+                self.session.output(f"[bold red]# ERROR LOADING PLUGIN {package} (from {pf}): {repr(e)}",
+                                    markup=True, highlight=True)
                 continue
 
             # Look for plugins subclasses within the module we just loaded and create a PluginHandler for each
