@@ -7,8 +7,6 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   abacura.mud.aliases
-   abacura.mud.events
    abacura.mud.options
 
 Submodules

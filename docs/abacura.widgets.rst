@@ -20,6 +20,14 @@ abacura.widgets.footer module
    :undoc-members:
    :show-inheritance:
 
+abacura.widgets.inspector module
+--------------------------------
+
+.. automodule:: abacura.widgets.inspector
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 abacura.widgets.resizehandle module
 -----------------------------------
 

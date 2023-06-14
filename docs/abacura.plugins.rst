@@ -1,6 +1,15 @@
 abacura.plugins package
 =======================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   abacura.plugins.aliases
+   abacura.plugins.events
+
 Submodules
 ----------
 
