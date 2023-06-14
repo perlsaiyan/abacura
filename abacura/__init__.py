@@ -179,7 +179,6 @@ class AbacuraSuggester(Suggester):
                 if command.name.startswith(value):
                     return f"@{command.name}"
         else:
-            log.info(f"Completing with {self.history}")
             try:
                 for cmds in self.history:
                     if cmds.startswith(value):
