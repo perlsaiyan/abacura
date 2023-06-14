@@ -1,11 +1,15 @@
-from abacura.mud.events import event, AbacuraMessage
-from abacura.plugins import Plugin, command
-from textual import log
-from rich.pretty import Pretty
+"""
+Various footer widget bits
+"""
+
 from textual.reactive import reactive
 from textual.widgets import Footer
-from abacura.mud.options.msdp import MSDPMessage
 
+from abacura.mud.events import event
+from abacura.mud.options.msdp import MSDPMessage
+from abacura.plugins import Plugin
+
+# TODO this should probably be a specific implementation in abacura-kallisti
 class AbacuraFooter(Footer):
     """Bottom of screen bar with current session name"""
 
@@ -17,13 +21,10 @@ class AbacuraFooter(Footer):
 
 class ScreenPlugin(Plugin):
 
+    # TODO this needs to move to abacura-kallisti as it is mud specific
     @event("msdp_value_LEVEL", priority=5)
-    def update_level(self, message: AbacuraMessage):
-        """REACTIVE UPDATES"""
+    def update_level(self, message: MSDPMessage):
+        """Update reactive values for level"""
         
         footer = self.session.screen.query_one(AbacuraFooter)
         footer.level = f"Level: {message.value}"
-
-    @command(name="poo")
-    def poo(self):
-        pass
