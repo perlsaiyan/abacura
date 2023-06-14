@@ -175,10 +175,9 @@ class AbacuraSuggester(Suggester):
     async def get_suggestion(self, value: str) -> Coroutine[Any, Any, str | None]:
         if value.startswith("@"):
             value = value[1:]
-            for handler in self.session.plugin_manager.plugin_handlers:
-                for com in handler.command_functions:
-                    if com.name.startswith(value):
-                        return f"@{com.name}"
+            for command in self.session.command_registry.commands:
+                if command.name.startswith(value):
+                    return f"@{command.name}"
         else:
             log.info(f"Completing with {self.history}")
             try:

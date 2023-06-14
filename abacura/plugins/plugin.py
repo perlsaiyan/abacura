@@ -23,9 +23,111 @@ if TYPE_CHECKING:
     from abacura.mud.session import Session
 
 
+class Command:
+    def __init__(self, callback: callable, name: str):
+        self.callback = callback
+        self.name = name
+
+    def execute(self, command_arguments: str):
+        submitted_arguments = shlex.split(command_arguments)
+
+        submitted_options = [s.strip("-") for s in submitted_arguments if s.startswith("-")]
+        submitted_arguments = [s for s in submitted_arguments if not s.startswith("-")]
+
+        d = self.evaluate_options(submitted_options)
+        if 'help' in d:
+            return self.get_help()
+
+        d.update(self.evaluate_arguments(submitted_arguments, command_arguments))
+
+        return self.callback(**d)
+
+    def evaluate_argument(self, parameter: inspect.Parameter, submitted_value: str):
+        if parameter.annotation == int:
+            return int(submitted_value)
+
+        if parameter.annotation == float:
+            return float(submitted_value)
+
+        return submitted_value
+
+    def evaluate_arguments(self, submitted_arguments: List[str], cmd_str: str) -> Dict:
+        """evaluate arguments to command functions"""
+        command_parameters = self.get_parameters()
+        evaluated_args = {}
+
+        for parameter in command_parameters:
+            if parameter.default is inspect.Parameter.empty and len(submitted_arguments) == 0:
+                raise AttributeError(f"Missing argument {parameter.name}")
+
+            if len(submitted_arguments) > 0:
+                if parameter.name.lower() == 'text':
+                    value = cmd_str
+                    submitted_arguments = []
+                else:
+                    value = submitted_arguments.pop(0)
+            else:
+                value = parameter.default
+
+            evaluated_args[parameter.name] = self.evaluate_argument(parameter, value)
+
+        return evaluated_args
+
+    def evaluate_options(self, submitted_options: List[str]) -> dict[str, any]:
+        """evaluate options to command functions"""
+        command_options = self.get_boolean_options()
+
+        for co in submitted_options:
+            matched_options = [k for k in command_options.keys() if k.startswith(co.lower())]
+            if co.lower() in ['h', 'help', '?']:
+                command_options['help'] = True
+            elif len(matched_options) == 1:
+                option_name = matched_options[0]
+                command_options[option_name] = True
+            elif not self.pass_full_command_text():
+                # don't throw an error if the command will take in the full text.  As in @@ 2 - 1
+                msg = "Ambiguous option: " if len(matched_options) > 1 else "Invalid option: "
+                raise NameError(msg + co)
+        return command_options
+
+    def pass_full_command_text(self) -> bool:
+        return any([a for a in self.get_parameters() if a.name.lower() == 'text'])
+
+    def get_parameters(self) -> List[inspect.Parameter]:
+        parameters = inspect.signature(self.callback).parameters.values()
+        return [p for p in parameters if p.annotation != bool]
+
+    def get_boolean_options(self):
+        parameters = inspect.signature(self.callback).parameters.values()
+        return {p.name: p.default for p in parameters if p.annotation == bool}
+
+    def get_help(self):
+        help_text = []
+
+        doc = getattr(self.callback, '__doc__', None)
+
+        options = self.get_boolean_options()
+        option_help = ['--%s' % k for k in options.keys()]
+
+        parameters = self.get_parameters()
+        parameter_help = []
+        for parameter in parameters:
+            if parameter.default is inspect.Parameter.empty:
+                parameter_help.append(parameter.name)
+            else:
+                parameter_help.append(f"[{parameter.name}]")
+
+        if doc is not None:
+            help_text.append(doc + "\n")
+
+        help_text.append(f"Usage: {self.name} {' '.join(option_help + parameter_help)}")
+
+        return "\n".join(help_text)
+
+
 class Action:
     def __init__(self, pattern: str, callback: Callable, source: object,
-                 flags: int = 0, name: str = '', color: bool = False):
+                 flags: int = 0, name: str = '', color: bool = False, priority: int = 0):
         self.pattern = pattern
         self.callback = callback
         self.flags = flags
@@ -33,6 +135,7 @@ class Action:
         self.name = name
         self.color = color
         self.source = source
+        self.priority = priority
 
         self.parameters = list(inspect.signature(callback).parameters.values())
         self.parameter_types = [p.annotation for p in self.parameters]
@@ -46,20 +149,83 @@ class Action:
 
 
 @inject
+class CommandRegistry:
+    session: Session
+
+    def __init__(self):
+        self.commands = []
+
+    def register_object(self, obj: object):
+        for name, member in inspect.getmembers(obj, callable):
+            if hasattr(member, "command_name"):
+                log(f"Appending command function '{member.command_name}'")
+                self.commands.append(Command(member, member.command_name))
+
+    def execute_command(self, command_line: str) -> bool:
+        if not len(command_line):
+            return False
+
+        # remove leading @
+        s = command_line[1:].rstrip("\n").split(" ")
+        submitted_command = s[0]
+        submitted_args = "" if len(s) == 1 else " ".join(s[1:])
+
+        if submitted_command == '':
+            submitted_command = 'help'
+
+        # look for partial matches and exact matches
+        starts = [cmd for cmd in self.commands if cmd.name.lower().startswith(submitted_command.lower())]
+        exact_matches = [cmd for cmd in self.commands if cmd.name.lower() == submitted_command.lower()]
+
+        if len(exact_matches) == 1:
+            # use the exact match if we have 1
+            command = exact_matches[0]
+        elif len(starts) == 1:
+            # use the partial match if there is only 1
+            command = starts[0]
+        elif len(starts) == 0:
+            error_msg = f"Unknown Command {submitted_command}"
+            self.session.output(f"[orange][italic]> {escape(error_msg)}", markup=True, highlight=True)
+            return False
+        else:
+            matches = ", ".join([cmd.name for cmd in starts])
+            error_msg = f"Ambiguous command '{submitted_command}' [{matches}]"
+            self.session.output(f"[orange][italic]> {escape(error_msg)}", markup=True, highlight=True)
+            return False
+
+        try:
+            self.session.output(f"[green][italic]> {escape(command_line)}", markup=True, highlight=True)
+            message = command.execute(submitted_args)
+            if message:
+                self.session.output(message)
+
+        except AttributeError as e:
+            self.session.show_exception(f"[bold red] # ERROR: {command.name}: {repr(e)}", e)
+            self.session.output(f"[gray][italic]> {escape(command.get_help())}", markup=True, highlight=True)
+            return False
+
+        except (ValueError, NameError) as e:
+            self.session.show_exception(f"[bold red] # ERROR:  {command.name}: {repr(e)}", e)
+            return False
+
+        return True
+
+
+@inject
 class ActionRegistry:
     session: Session
 
     def __init__(self):
         self.actions = []
 
-    def register_actions(self, obj: object):
+    def register_object(self, obj: object):
         for name, member in inspect.getmembers(obj, callable):
             if hasattr(member, "action_pattern"):
                 act = Action(pattern=getattr(member, "action_pattern"), callback=member, source=obj,
                              flags=getattr(member, "action_flags"), color=getattr(member, "action_color"))
                 self.add(act)
 
-    def unregister_actions(self, obj: object):
+    def unregister_object(self, obj: object):
         self.actions = [a for a in self.actions if a.source != obj]
 
     def add(self, action: Action):
@@ -70,7 +236,7 @@ class ActionRegistry:
 
     def process_line(self, line: str):
         act: Action
-        for act in self.actions:
+        for act in sorted(self.actions, key=lambda x: x.priority, reverse=True):
             match = act.compiled_re.search(line)
             if match:
                 self.initiate_callback(act, match)
@@ -117,105 +283,10 @@ class TickerFunction:
         return self.next_tick
 
 
-class CommandFunction:
-    def __init__(self, plugin: Plugin, fn: callable):
-        self.fn = fn
-        self.plugin = plugin
-        self.name = self.fn.command_name
-
-    def __call__(self, cmd_str: str):
-        submitted_arguments = shlex.split(cmd_str)
-
-        submitted_options = [s.strip("-") for s in submitted_arguments if s.startswith("-")]
-        submitted_arguments = [s for s in submitted_arguments if not s.startswith("-")]
-
-        d = self.evaluate_options(submitted_options)
-        if 'help' in d:
-            return self.get_help()
-
-        d.update(self.evaluate_arguments(submitted_arguments, cmd_str))
-
-        return self.fn(**d)
-
-    def evaluate_arguments(self, submitted_arguments: List[str], cmd_str: str) -> Dict:
-        """evaluate arguments to command functions"""
-        command_parameters = self.get_parameters()
-        evaluated_args = {}
-
-        for parameter in command_parameters:
-            if parameter.default is inspect.Parameter.empty and len(submitted_arguments) == 0:
-                raise AttributeError(f"Missing argument {parameter.name}")
-
-            if len(submitted_arguments) > 0:
-                if parameter.name.lower() == 'text':
-                    value = cmd_str
-                    submitted_arguments = []
-                else:
-                    value = submitted_arguments.pop(0)
-            else:
-                value = parameter.default
-
-            evaluated_args[parameter.name] = self.plugin.evaluate_command_argument(parameter, value)
-
-        return evaluated_args
-
-    def evaluate_options(self, submitted_options: List[str]) -> dict[str, any]:
-        """evaluate options to command functions"""
-        command_options = self.get_boolean_options()
-
-        for co in submitted_options:
-            matched_options = [k for k in command_options.keys() if k.startswith(co.lower())]
-            if co.lower() in ['h', 'help', '?']:
-                command_options['help'] = True
-            elif len(matched_options) == 1:
-                option_name = matched_options[0]
-                command_options[option_name] = True
-            elif not self.pass_full_command_text():
-                # don't throw an error if the command will take in the full text.  As in @@ 2 - 1
-                msg = "Ambiguous option: " if len(matched_options) > 1 else "Invalid option: "
-                raise NameError(msg + co)
-        return command_options
-
-    def pass_full_command_text(self) -> bool:
-        return any([a for a in self.get_parameters() if a.name.lower() == 'text'])
-
-    def get_parameters(self) -> List[inspect.Parameter]:
-        parameters = inspect.signature(self.fn).parameters.values()
-        return [p for p in parameters if p.annotation != bool]
-
-    def get_boolean_options(self):
-        parameters = inspect.signature(self.fn).parameters.values()
-        return {p.name: p.default for p in parameters if p.annotation == bool}
-
-    def get_help(self):
-        help_text = []
-
-        doc = getattr(self.fn, '__doc__', None)
-
-        options = self.get_boolean_options()
-        option_help = ['--%s' % k for k in options.keys()]
-
-        parameters = self.get_parameters()
-        parameter_help = []
-        for parameter in parameters:
-            if parameter.default is inspect.Parameter.empty:
-                parameter_help.append(parameter.name)
-            else:
-                parameter_help.append(f"[{parameter.name}]")
-
-        if doc is not None:
-            help_text.append(doc + "\n")
-
-        help_text.append(f"Usage: {self.name} {' '.join(option_help + parameter_help)}")
-
-        return "\n".join(help_text)
-
-
 class PluginHandler:
     def __init__(self, plugin: Plugin):
         super().__init__()
         self.plugin = plugin
-        self.command_functions: List[CommandFunction] = []
         self.ticker_functions: List[TickerFunction] = []
 
         self.inspect_plugin()
@@ -233,17 +304,10 @@ class PluginHandler:
 
         return min(next_ticks)
 
-    def get_matching_commands(self, command: str) -> List[CommandFunction]:
-        return [fn for fn in self.command_functions if fn.name.startswith(command) and self.plugin.plugin_enabled]
-
     def inspect_plugin(self):
         for name, member in inspect.getmembers(self.plugin):
             if not callable(member):
                 continue
-
-            if hasattr(member, "command_name"):
-                log(f"Appending command function '{member.command_name}'")
-                self.command_functions.append(CommandFunction(self.plugin, member))
 
             # if hasattr(member, 'ticker_interval'):
             #     self.ticker_functions.append(TickerFunction(member))
@@ -271,6 +335,7 @@ class PluginManager(Plugin):
     sessions: dict
     session: Session
     action_registry: ActionRegistry
+    command_registry: CommandRegistry
     app: App
     tl: TextLog
 
@@ -286,58 +351,6 @@ class PluginManager(Plugin):
             next_tick = handler.tick()
             if next_tick:
                 heapq.heappush(self.ticker_heap, (next_tick, handler))
-
-    def execute_command(self, line: str) -> bool:
-        # remove the @ from the command name
-        if not len(line):
-            return False
-
-        # remove leading @
-        s = line[1:].rstrip("\n").split(" ")
-        submitted_command = s[0]
-        submitted_args = "" if len(s) == 1 else " ".join(s[1:])
-
-        if submitted_command == '':
-            submitted_command = 'help'
-
-        fns: List[callable] = []
-        for handler in self.plugin_handlers:
-            fns += handler.get_matching_commands(submitted_command)
-
-        if len(fns) == 0:
-            error_msg = f"Unknown Command {submitted_command}"
-            self.session.output(f"[orange][italic]> {escape(error_msg)}", markup=True, highlight=True)
-            return False
-
-        if len(fns) > 1:
-            # look for partial matches
-            starts_fns = [fn for fn in fns if fn.name.lower().startswith(submitted_command.lower())]
-            exact_matches = [fn for fn in fns if fn.name.lower() == submitted_command.lower()]
-            if len(exact_matches) == 1:
-                fns = exact_matches
-            elif len(starts_fns) > 1:
-                matches = ", ".join([fn.name for fn in starts_fns])
-                error_msg = f"Ambiguous command '{submitted_command}' [{matches}]"
-                self.session.output(f"[orange][italic]> {escape(error_msg)}", markup=True, highlight=True)
-                return False
-
-        fn: CommandFunction = fns[0]
-        try:
-            self.session.output(f"[green][italic]> {escape(line)}", markup=True, highlight=True)
-            message = fn(submitted_args)
-            if message:
-                self.session.output(message)
-
-        except AttributeError as e:
-            self.session.show_exception(f"[bold red] # ERROR: {fn.name}: {repr(e)}", e)
-            self.session.output(f"[gray][italic]> {escape(fn.get_help())}", markup=True, highlight=True)
-            return False
-
-        except (ValueError, NameError) as e:
-            self.session.show_exception(f"[bold red] # ERROR:  {fn.name}: {repr(e)}", e)
-            return False
-
-        return True
 
     def process_tickers(self):
         dt: datetime = datetime.utcnow()
@@ -382,10 +395,11 @@ class PluginManager(Plugin):
             for name, c in inspect.getmembers(module, inspect.isclass):
                 if c.__module__ == module.__name__ and inspect.isclass(c) and issubclass(c, Plugin):
                     with Context(app=self.app, manager=self, session=self.session,
-                                 action_registry=self.action_registry):
+                                 action_registry=self.action_registry, command_registry=self.command_registry):
                         plugin_instance: Plugin = c()
 
-                    self.action_registry.register_actions(plugin_instance)
+                    self.action_registry.register_object(plugin_instance)
+                    self.command_registry.register_object(plugin_instance)
 
                     plugin_name = plugin_instance.get_name()
                     log(f"Adding plugin {name}.{plugin_name}")

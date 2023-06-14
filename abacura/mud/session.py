@@ -18,7 +18,7 @@ from abacura.config import Config
 from abacura.mud import BaseSession
 from abacura.mud.options import GA
 from abacura.mud.options.msdp import MSDP
-from abacura.plugins.plugin import PluginManager, ActionRegistry
+from abacura.plugins.plugin import PluginManager, ActionRegistry, CommandRegistry
 from abacura.plugins.aliases.manager import AliasManager
 from abacura.plugins.events import EventManager
 
@@ -49,6 +49,7 @@ class Session(BaseSession):
         self.dispatcher = self.event_manager.dispatcher
         self.listener = self.event_manager.listener
         self.action_registry: Optional[ActionRegistry] = None
+        self.command_registry: Optional[CommandRegistry] = None
         self.plugin_manager: Optional[PluginManager] = None
 
         with Context(session=self, config=self.config):
@@ -77,9 +78,11 @@ class Session(BaseSession):
 
         with Context(session=self):
             self.action_registry = ActionRegistry()
+            self.command_registry = CommandRegistry()
 
         with Context(config = self.config, sessions = self.abacura.sessions, tl=self.tl,
-                     app=self.abacura, session=self, action_registry=self.action_registry):
+                     app=self.abacura, session=self,
+                     action_registry=self.action_registry, command_registry=self.command_registry):
             self.plugin_manager = PluginManager()
             self.screen.set_interval(interval=0.010, callback=self.plugin_manager.process_tickers, name="tickers")
 
@@ -98,7 +101,7 @@ class Session(BaseSession):
         else:
             cmd = sl.split()[0]
 
-        if cmd.startswith("@") and self.plugin_manager.execute_command(line):
+        if cmd.startswith("@") and self.command_registry.execute_command(line):
             return
 
         if self.alias_manager.handle(cmd, sl):

@@ -49,12 +49,10 @@ class PluginCommandHelper(Plugin):
     def help(self):
         help_text = ["Plugin Commands", "\nUsage: @command <arguments>", "\nAvailable Commands: "]
 
-        commands = []
-        for h in self.manager.plugin_handlers:
-            commands += [c for c in h.command_functions if c.name != 'help']
+        commands = [c for c in self.command_registry.commands if c.name != 'help']
 
         for c in sorted(commands, key=lambda c: c.name):
-            doc = getattr(c.fn, '__doc__', None)
+            doc = getattr(c.callback, '__doc__', None)
             doc = "" if doc is None else ": " + doc
             help_text.append(f"  {c.name:10s} {doc}")
 
