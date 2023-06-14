@@ -30,14 +30,6 @@ abacura.config module
    :undoc-members:
    :show-inheritance:
 
-abacura.inspector module
-------------------------
-
-.. automodule:: abacura.inspector
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 
