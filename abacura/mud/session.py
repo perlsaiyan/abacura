@@ -6,7 +6,7 @@ from importlib import import_module
 import os
 import re
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from rich.text import Text
 from serum import inject, Context
@@ -18,13 +18,14 @@ from abacura.config import Config
 from abacura.mud import BaseSession
 from abacura.mud.options import GA
 from abacura.mud.options.msdp import MSDP
-from abacura.plugins.plugin import PluginManager
+from abacura.plugins.plugin import PluginManager, ActionRegistry
 from abacura.plugins.aliases.manager import AliasManager
 from abacura.plugins.events import EventManager
 
 if TYPE_CHECKING:
     from typing_extensions import Self
     from abacura.abacura import Abacura
+
 
 @inject
 class Session(BaseSession):
@@ -40,20 +41,22 @@ class Session(BaseSession):
 
     def __init__(self, name: str):
 
-        self.name =  name
+        self.name = name
         self.host = None
         self.port = None
         self.options = {}
         self.event_manager: EventManager =  EventManager()
         self.dispatcher = self.event_manager.dispatcher
         self.listener = self.event_manager.listener
+        self.action_registry: Optional[ActionRegistry] = None
+        self.plugin_manager: Optional[PluginManager] = None
 
-        with Context(session = self, config = self.config):
+        with Context(session=self, config=self.config):
             self.alias_manager: AliasManager = AliasManager()
 
         with Context(config=self.config, _session=self):
             if self.config.get_specific_option(name, "screen_class"):
-                (package, screen_class) = self.config.get_specific_option(name,"screen_class").rsplit(".",1)
+                (package, screen_class) = self.config.get_specific_option(name, "screen_class").rsplit(".", 1)
                 log(f"Importing a package {package}")
                 log(sys.path)
                 mod = import_module(package)
@@ -72,7 +75,11 @@ class Session(BaseSession):
         self.screen.query_one(AbacuraFooter).session = self.name
         self.tl = self.screen.query_one(f"#output-{self.name}")
 
-        with Context(config = self.config, sessions = self.abacura.sessions, tl=self.tl, app=self.abacura, session=self):
+        with Context(session=self):
+            self.action_registry = ActionRegistry()
+
+        with Context(config = self.config, sessions = self.abacura.sessions, tl=self.tl,
+                     app=self.abacura, session=self, action_registry=self.action_registry):
             self.plugin_manager = PluginManager()
             self.screen.set_interval(interval=0.010, callback=self.plugin_manager.process_tickers, name="tickers")
 
@@ -125,7 +132,8 @@ class Session(BaseSession):
             elif re.match(r'^Enter your account name. If you do not have an account,', msg) and self.config.get_specific_option(self.name, "account_name"):
                 self.send(self.config.get_specific_option(self.name, "account_name"))
 
-            self.plugin_manager.process_line_actions(msg)
+            if self.action_registry:
+                self.action_registry.process_line(msg)
 
         if not gag:
             self.tl.markup = markup
