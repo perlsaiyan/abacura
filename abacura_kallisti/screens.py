@@ -50,11 +50,12 @@ class XCL(Widget):
 
     @action("\x1B\[1;35m<Gossip: (.*)> \'(.*)\'")
     def test_gos(self, *args, **kwargs):
-        #act = Action(source=self, pattern=pattern, callback=callback_fn, flags=flags, name=name, color=color)
         self.tl.write(f"{args[0]}: {args[1]}")
 
 class BetterSidebar(Sidebar):
+    """Resizable, with containers"""
     side: str
+
     def __init__(self, side: str, **kwargs):
         super().__init__(**kwargs)
         self.side = side
@@ -166,5 +167,11 @@ class KallistiScreen(Screen):
             self.tl.auto_scroll = True
 
 class BetterKallistiScreen(KallistiScreen):
+    """
+    Subclassing the screen to test using class inheritence to get per-screen styles
+
+    After the next release of Textual this will not be necessary as screens can have
+    their own stylesheet and CSS_PATH
+    """
     DEFAULT_CLASSES = "BKS"
     pass
