@@ -184,10 +184,9 @@ class PluginSession(Plugin):
         
         if not variable:
             panel = Panel(Pretty(msdp.values), highlight=True)
-            self.session.output(panel, highlight=True)
         else:
             panel = Panel(Pretty(msdp.values.get(variable, None)), highlight=True)
-            self.session.output(panel, highlight=True)
+        self.session.output(panel, highlight=True, actionable=False)
 
 
 class PluginMeta(Plugin):
