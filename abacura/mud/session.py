@@ -172,7 +172,12 @@ class Session(BaseSession):
         while self.connected is True:
 
             # We read one character at a time so we can find IAC sequences
-            data = await reader.read(1)
+            try:
+                data = await reader.read(1)
+            except BrokenPipeError:
+                self.output("[bold red]# Lost connection to server.", markup = True)
+                self.connected = False
+                continue
 
             # Empty string means we lost our connection
             if data == b'':
