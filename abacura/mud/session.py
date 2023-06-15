@@ -20,6 +20,7 @@ from abacura.mud.options import GA
 from abacura.mud.options.msdp import MSDP
 from abacura.plugins.registry import ActionRegistry, CommandRegistry, TickerRegistry
 from abacura.plugins.plugin import PluginLoader
+from abacura.plugins import command
 from abacura.plugins.aliases.manager import AliasManager
 from abacura.plugins.events import EventManager
 
@@ -46,6 +47,7 @@ class Session(BaseSession):
         self.host = None
         self.port = None
         self.tl: Optional[TextLog] = None
+        self.msdp: MSDP = MSDP(self.output, self.send, self)
         self.options = {}
         self.event_manager: EventManager = EventManager()
         self.dispatcher = self.event_manager.dispatcher
@@ -84,8 +86,10 @@ class Session(BaseSession):
             self.command_registry = CommandRegistry()
             self.ticker_registry = TickerRegistry()
 
+        self.command_registry.register_object(self)
+
         with Context(config=self.config, sessions=self.abacura.sessions, tl=self.tl,
-                     app=self.abacura, session=self,
+                     app=self.abacura, session=self, msdp=self.msdp,
                      action_registry=self.action_registry, command_registry=self.command_registry,
                      ticker_registry=self.ticker_registry):
             self.plugin_loader = PluginLoader()
@@ -97,8 +101,7 @@ class Session(BaseSession):
     def register_options(self):
         """Set up telnet options handlers"""
         # TODO swap to context?
-        msdp = MSDP(self.output, self.send, self)
-        self.options[msdp.code] = msdp
+        self.options[self.msdp.code] = self.msdp
 
     def player_input(self, line) -> None:
         """This is entry point of the inputbar on the screen"""        
@@ -270,3 +273,55 @@ class Session(BaseSession):
             # Catch everything else in our buffer and hold it
             else:
                 self.outb = self.outb + data
+
+    @command
+    def connect(self, name: str, host: str = '', port: int = 0) -> None:
+        """@connect <name> <host> <port> to connect a game session"""
+
+        if not host:
+            host = self.config.get_specific_option(name, "host")
+            try:
+                port = int(self.config.get_specific_option(name, "port"))
+            except TypeError:
+                port = None
+
+        log(f"connect: {name} {host}:{port}")
+
+        if name in self.abacura.sessions:
+            self.session.output("[bold red]# SESSION ALREADY EXISTS", markup=True)
+        elif name not in self.config.config and (not host or not port):
+            self.session.output(
+                " [bold red]#connect <session name> <host> <port>", markup=True, highlight=True)
+        else:
+            self.abacura.create_session(name)
+            if host and port:
+                self.abacura.run_worker(self.abacura.sessions[name].telnet_client(host, port))
+            else:
+                log(f"Session: {name} created in disconnected state due to no host or port")
+
+    @command(name="session")
+    # Do not name this function "session" or you'll overwrite self.session :)
+    def session_command(self, name: str = "") -> None:
+        """@session <name>: Get information about sessions or swap to session <name>"""
+        if not name:
+            buf = "[bold red]# Current Sessions:\n"
+            for session_name, session in self.abacura.sessions.items():
+                if session_name == self.abacura.session:
+                    buf += "[bold green]>[white]"
+                else:
+                    buf += " [white]"
+
+                if session_name == "null":
+                    buf += f"{session.name}: Main Session\n"
+                else:
+                    if session.connected:
+                        buf += f"{session.name}: {session.host} {session.port}\n"
+                    else:
+                        buf += f"{session.name}: {session.host} {session.port} [red]\\[disconnected]\n"
+
+            self.output(buf, markup=True, highlight=True)
+        else:
+            if name in self.abacura.sessions:
+                self.abacura.set_session(name)
+            else:
+                self.output(f"[bold red]# INVALID SESSION {name}", markup=True)

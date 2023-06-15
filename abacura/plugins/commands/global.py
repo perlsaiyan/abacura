@@ -72,7 +72,7 @@ class PluginCommandHelper(Plugin):
             if self.exec_locals is None or reset_locals:
                 self.exec_locals = {}
 
-            exec_globals = {"app": self.app, "manager": self.manager, "session": self.session,
+            exec_globals = {"session": self.session,
                             'mean': lambda x: sum(x) / len(x)}
 
             if text.strip().startswith("def "):
@@ -117,75 +117,15 @@ class PluginSession(Plugin):
         self.session.output(text, markup=True)
 
     @command
-    def connect(self, name: str, host: str = '', port: int = 0) -> None:
-        """@connect <name> <host> <port> to connect a game session"""
-
-        conf = self.app.config
-
-        if not host:
-            host = conf.get_specific_option(name, "host")
-            try:
-                port = int(conf.get_specific_option(name, "port"))
-            except TypeError:
-                port = None
-
-        log(f"connect: {name} {host}:{port}")
-
-        if name in self.app.sessions:
-            self.session.output("[bold red]# SESSION ALREADY EXISTS", markup=True)
-        elif name not in conf.config and (not host or not port):
-            self.session.output(
-                " [bold red]#connect <session name> <host> <port>", markup=True, highlight=True)
-        else:
-            self.app.create_session(name)
-            if host and port:
-                self.app.run_worker(self.app.sessions[name].telnet_client(host, port))
-            else:
-                log(f"Session: {name} created in disconnected state due to no host or port")
-
-    @command(name="session")
-    # Do not name this function "session" or you'll overwrite self.session :)
-    def session_command(self, name: str = "") -> None:
-        """@session <name>: Get information about sessions or swap to session <name>"""
-        if not name:
-            cur = self.app.session
-            buf = "[bold red]# Current Sessions:\n"
-            for ses in self.app.sessions:
-                if ses == cur:
-                    buf += "[bold green]>[white]"
-                else:
-                    buf += " [white]"
-                session = self.app.sessions[ses]
-
-                if ses == "null":
-                    buf += f"{session.name}: Main Session\n"
-                else:
-                    if session.connected:
-                        buf += f"{session.name}: {session.host} {session.port}\n"
-                    else:
-                        buf += f"{session.name}: {session.host} {session.port} [red]\\[disconnected]\n"
-
-            self.session.output(buf, markup=True, highlight=True)
-        else:
-            if name in self.app.sessions:
-                self.app.set_session(name)
-            else:        
-                self.session.output(
-                    f"[bold red]# INVALID SESSION {name}", markup=True)
-
-    @command
-    def msdp(self, variable: str = '') -> None:
+    def msdp_command(self, variable: str = '') -> None:
         """Dump MSDP values for debugging"""
-        try:
-            msdp = self.app.sessions[self.app.session].options[69]
-        except KeyError:
+        if "REPORTABLE_VARIABLES" not in self.msdp.values:
             self.session.output("[bold red]# MSDPERROR: MSDP NOT LOADED?", markup=True)
-            return 
-        
+
         if not variable:
-            panel = Panel(Pretty(msdp.values), highlight=True)
+            panel = Panel(Pretty(self.msdp.values), highlight=True)
         else:
-            panel = Panel(Pretty(msdp.values.get(variable, None)), highlight=True)
+            panel = Panel(Pretty(self.msdp.values.get(variable, None)), highlight=True)
         self.session.output(panel, highlight=True, actionable=False)
 
 

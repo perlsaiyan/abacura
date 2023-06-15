@@ -8,10 +8,10 @@ from typing import Dict, TYPE_CHECKING
 
 from serum import inject, Context
 from textual import log
-from textual.app import App
 from textual.widgets import TextLog
 
 from abacura import Config
+from abacura.mud.options.msdp import MSDP
 from abacura.plugins import Plugin
 from abacura.plugins.registry import TickerRegistry, CommandRegistry, ActionRegistry
 
@@ -25,10 +25,10 @@ class PluginLoader(Plugin):
     config: Config
     sessions: dict
     session: Session
+    msdp: MSDP
     action_registry: ActionRegistry
     command_registry: CommandRegistry
     ticker_registry: TickerRegistry
-    app: App
     tl: TextLog
 
     def __init__(self):
@@ -67,7 +67,7 @@ class PluginLoader(Plugin):
             # Look for plugins subclasses within the module we just loaded and create a PluginHandler for each
             for name, c in inspect.getmembers(module, inspect.isclass):
                 if c.__module__ == module.__name__ and inspect.isclass(c) and issubclass(c, Plugin):
-                    with Context(app=self.app, loader=self, session=self.session,
+                    with Context(session=self.session, msdp=self.msdp,
                                  action_registry=self.action_registry, command_registry=self.command_registry,
                                  ticker_registry=self.ticker_registry):
                         plugin_instance: Plugin = c()
