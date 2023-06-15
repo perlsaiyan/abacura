@@ -24,6 +24,7 @@ class MSDPMessage(AbacuraMessage):
         self.oldvalue = oldvalue
         self.subtype = subtype
 
+# TODO all these need to use the regular socket to trap send instead of calling writer directly
 class MSDP(TelnetOption):
     """Handle MSDP TelnetOptions"""
 
@@ -118,17 +119,17 @@ class MSDP(TelnetOption):
             # tiny sleep to avoid overwriting socket
             # TODO see why this is possible, in Session?
             time.sleep(0.001)
-            self.writer.write(b''.join(
+            self.writer(b''.join(
                 [IAC, SB, self.hexcode,
                  VAR, bytes("REPORT", "UTF-8"),
                  VAL, bytes(key, "UTF-8"),
                  IAC, SE]
-                ))
+                ), raw=True)
 
     def will(self):
-        self.writer.write(b"\xff\xfd\x45")
+        self.writer(b"\xff\xfd\x45", raw=True)
         response = [IAC,SB,self.hexcode,VAR,b"LIST",VAL,b"REPORTABLE_VARIABLES",IAC,SE]
-        self.writer.write(b''.join(response))
+        self.writer(b''.join(response), raw=True)
 
     def sb(self, sb):
         log.debug("MSDP SB parsing")

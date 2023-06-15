@@ -159,6 +159,7 @@ class InputBar(Input):
         """Bubble-up player input and blank the bar"""
 
         self.suggester.add_entry(self.value)
+        self.history.append(self.value)
         self.history_ptr = None
         self.post_message(self.UserCommand(self.value))
         self.value = ""

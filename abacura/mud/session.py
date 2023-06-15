@@ -97,7 +97,7 @@ class Session(BaseSession):
     def register_options(self):
         """Set up telnet options handlers"""
         # TODO swap to context?
-        msdp = MSDP(self.output, self.writer, self)
+        msdp = MSDP(self.output, self.send, self)
         self.options[msdp.code] = msdp
 
     def player_input(self, line) -> None:
@@ -122,10 +122,17 @@ class Session(BaseSession):
         self.tl.write("[bold red]# NO SESSION CONNECTED")
         self.tl.markup = False
 
-    def send(self, msg: str) -> None:
-        """Send to writer (socket)"""
+    def send(self, msg: str, raw: bool = False) -> None:
+        """Send to writer (socket), raw will send the message without byte translation"""
         if self.writer is not None:
-            self.writer.write(bytes(msg + "\n", "UTF-8"))
+            try:
+                if raw:
+                    self.writer.write(msg)
+                else:
+                    self.writer.write(bytes(msg + "\n", "UTF-8"))
+            except BrokenPipeError:
+                self.connected = False
+                self.output(f"[bold red]# Lost connection to server.", markup=True)
         else:
             self.output(f"[bold red]# NO-SESSION SEND: {msg}", markup=True, highlight=True)
 

@@ -1,4 +1,5 @@
 """Main Textual App and Entrypoint"""
+import os
 from pathlib import Path
 import sys
 from typing import TYPE_CHECKING, Dict
@@ -26,7 +27,7 @@ class Abacura(App):
     config: Config
 
     AUTO_FOCUS = "InputBar"
-    CSS_PATH: str = "abacura.css"
+    CSS_PATH = ["abacura.css"]
     SCREENS = {}
 
     BINDINGS = [
@@ -85,11 +86,14 @@ def main(ctx,config):
         else:
             sys.path.append(str(Path(mods_to_load).expanduser()))
 
-    if _config.get_specific_option("global", "css_path"):
-        css_path = _config.get_specific_option("global", "css_path")
-    else:
-        css_path = "abacura.css"
+    usercss = _config.get_specific_option("global", "css_path")
 
-    with Context(config=_config, CSS_PATH=css_path):
+    if usercss:
+        if isinstance(usercss, str):
+            usercss = [usercss]
+        usercss.extend(Abacura.CSS_PATH)
+        Abacura.CSS_PATH = usercss
+
+    with Context(config=_config):
         app = Abacura()
     app.run()
