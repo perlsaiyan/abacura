@@ -21,14 +21,14 @@ from abacura.config import Config
 from abacura.widgets.inspector import Inspector
 
 
-from abacura.widgets.sidebar import Sidebar
 from abacura.widgets.footer import AbacuraFooter
 from abacura.widgets.resizehandle import ResizeHandle
 
-from abacura.plugins import action, Action
-from abacura.plugins.events import event
+from abacura.plugins import action
+
 
 from abacura_kallisti.widgets import KallistiCharacter
+from abacura_kallisti.widgets.sidebars import LOKLeft, LOKRight
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -52,23 +52,7 @@ class XCL(Widget):
     def test_gos(self, *args, **kwargs):
         self.tl.write(f"{args[0]}: {args[1]}")
 
-class BetterSidebar(Sidebar):
-    """Resizable, with containers"""
-    side: str
-
-    def __init__(self, side: str, **kwargs):
-        super().__init__(**kwargs)
-        self.side = side
-        
-
-    def compose(self) -> ComposeResult:
-        if self.side == "left":
-            yield ResizeHandle(self, "right")
-        elif self.side == "right":
-            yield ResizeHandle(self, "left")
-
-        yield Container(id=f"{self.side}sidecontainer", classes="SidebarContainer")
-            
+      
 
 
 
@@ -84,7 +68,6 @@ class KallistiScreen(Screen):
         ("f2", "toggle_left_sidebar", "F2"),
         ("f3", "toggle_right_sidebar", "F3"),
         ("f4", "toggle_commslog", "F4"),
-        ("f5", "mount_stuff", "f5")
     ]
 
     AUTO_FOCUS = "InputBar"
@@ -101,8 +84,8 @@ class KallistiScreen(Screen):
         commslog.display = False
 
         yield Header(show_clock=True, name="Abacura", id="masthead", classes="masthead")
-        yield BetterSidebar(side="left", id="leftsidebar", name="leftsidebar")
-        yield BetterSidebar(side="right",id="rightsidebar", name="rightsidebar")
+        yield LOKLeft(id="leftsidebar", name="leftsidebar")
+        yield LOKRight(id="rightsidebar", name="rightsidebar")
 
         with Container(id="app-grid"):
             yield commslog
@@ -135,10 +118,6 @@ class KallistiScreen(Screen):
 
         except StopIteration:
             self.session.player_input("")
-
-    def action_mount_stuff(self) -> None:
-        lsb = self.query_one("#leftsidecontainer")
-        lsb.mount(KallistiCharacter(id="kallisticharacter"))
 
     def action_toggle_dark(self) -> None:
         """Dark mode"""

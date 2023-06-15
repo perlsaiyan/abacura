@@ -13,6 +13,8 @@ if TYPE_CHECKING:
     from textual.screen import Screen
     from typing import Self
 
+
+
 class KallistiCharacter(Static):
     """Tintin-helper style character information block"""
 
@@ -54,7 +56,7 @@ class LOKCharacterStatic(Static):
     def msdp_seed_and_subscribe(self, local_val: str, msdp_val: str, func: callable):
         """Grab an initial value and subscribe to an @event"""
         log(f"Test subscribe to {msdp_val}")
-        if msdp_val in self.screen.session.options[69].values:
+        if 69 in self.screen.session.options and msdp_val in self.screen.session.options[69].values:
             setattr(self, local_val, self.screen.session.options[69].values[msdp_val])
         else:
             local_val = None
