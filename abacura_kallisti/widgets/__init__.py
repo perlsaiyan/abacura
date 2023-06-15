@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import TYPE_CHECKING
 from textual import log
 from textual.app import ComposeResult
@@ -10,6 +11,7 @@ from abacura.plugins.events import event
 if TYPE_CHECKING:
     from abacura import Session
     from textual.screen import Screen
+    from typing import Self
 
 class KallistiCharacter(Static):
     """Tintin-helper style character information block"""
@@ -60,7 +62,7 @@ class LOKCharacterStatic(Static):
 
     def render(self) -> str:
         return f"{self.character_name} {self.character_class} " + \
-            "[{self.character_level}]\n{self.mud_uptime}"
+            f"[{self.character_level}]\n{self.mud_uptime}"
 
     @event("msdp_value_CHARACTER_NAME")
     def update_char_name(self, message: MSDPMessage):
