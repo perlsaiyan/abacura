@@ -46,6 +46,7 @@ class XCL(Widget):
 
     def compose(self):
         yield self.tl
+        yield ResizeHandle(self, "bottom")
 
     @action("\x1B\[1;35m<Gossip: (.*)> \'(.*)\'")
     def test_gos(self, *args, **kwargs):
