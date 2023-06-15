@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import sys
 from typing import TYPE_CHECKING, Dict
+from collections import OrderedDict
 
 import click
 from serum import Context, inject
@@ -21,8 +22,6 @@ if TYPE_CHECKING:
 @inject
 class Abacura(App):
     """A Textual mudclient"""
-    sessions = {}
-    session = "null"
     screens: Dict[Session, Screen]
     config: Config
 
@@ -39,6 +38,8 @@ class Abacura(App):
 
     def __init__(self):
         super().__init__()
+        self.sessions: OrderedDict[str, Session] = OrderedDict()
+        self.session = "null"
 
     def on_mount(self) -> None:
         """When app is mounted, create first session"""
