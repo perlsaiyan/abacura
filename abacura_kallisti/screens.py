@@ -1,126 +1,169 @@
 """Legends of Kallisti Test Screen"""
+from __future__ import annotations
 
-from abacura import Header, SessionScreen, InputBar, AbacuraFooter
-from abacura.inspector import Inspector
-from abacura.widgets.sidebar import Sidebar
-from abacura.widgets.commslog import CommsLog
+import csv
+import io
+import os
+from typing import TYPE_CHECKING
+
+from serum import inject
 
 from textual import log
 from textual.app import ComposeResult
-from textual.containers import Container, Center, Middle
-from textual.message import Message
-from textual.timer import Timer
-from textual.widgets import Static, TextLog, ProgressBar
+from textual.containers import Container
 
-from rich.progress import Progress, BarColumn
+from textual.screen import Screen
+from textual.widgets import Header, TextLog
+from textual.widget import Widget
 
-class UpsideDownScreen(SessionScreen):
-    """Screen with input bar at top"""
-    BINDINGS = [("ctrl+p", "craft", "Craft"),
-                ("f2", "toggle_sidebar", "Toggle Sidebar"),
-            ]
+from abacura import InputBar
+from abacura.config import Config
+from abacura.widgets.inspector import Inspector
+
+
+from abacura.widgets.sidebar import Sidebar
+from abacura.widgets.footer import AbacuraFooter
+from abacura.widgets.resizehandle import ResizeHandle
+
+from abacura.plugins import action, Action
+from abacura.plugins.events import event
+
+from abacura_kallisti.widgets import KallistiCharacter
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
+    from abacura.mud.session import Session
+
+
+class XCL(Widget):
+    """Experimental CommsLog"""
+    def __init__(self, id: str, name: str = ""):
+        super().__init__(id=id, name=name)
+        self.tl = TextLog(id="commsTL")
+        
+    def on_mount(self):
+        pass
+
+    def compose(self):
+        yield self.tl
+
+    @action("\x1B\[1;35m<Gossip: (.*)> \'(.*)\'")
+    def test_gos(self, *args, **kwargs):
+        #act = Action(source=self, pattern=pattern, callback=callback_fn, flags=flags, name=name, color=color)
+        self.tl.write(f"{args[0]}: {args[1]}")
+
+class BetterSidebar(Sidebar):
+    side: str
+    def __init__(self, side: str, **kwargs):
+        super().__init__(**kwargs)
+        self.side = side
+        
+
+    def compose(self) -> ComposeResult:
+        if self.side == "left":
+            yield ResizeHandle(self, "right")
+        elif self.side == "right":
+            yield ResizeHandle(self, "left")
+
+        yield Container(id=f"{self.side}sidecontainer", classes="SidebarContainer")
+            
+
+
+
+@inject
+class KallistiScreen(Screen):
+    """Default Screen for sessions"""
+    config: Config
+    session: Session
+
+    BINDINGS = [
+        ("pageup", "pageup", "PageUp"),
+        ("pagedown", "pagedown", "PageDown"),
+        ("f2", "toggle_left_sidebar", "F2"),
+        ("f3", "toggle_right_sidebar", "F3"),
+        ("f4", "toggle_commslog", "F4"),
+        ("f5", "mount_stuff", "f5")
+    ]
+
+    AUTO_FOCUS = "InputBar"
+
+    def __init__(self, name: str):
+
+        super().__init__()
+        self.id = f"screen-{name}"
+        self.tlid = f"output-{name}"
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the session"""
+        commslog = XCL(id="commslog")
+        commslog.display = False
+
         yield Header(show_clock=True, name="Abacura", id="masthead", classes="masthead")
-        yield Sidebar(id="leftsidebar")
+        yield BetterSidebar(side="left", id="leftsidebar", name="leftsidebar")
+        yield BetterSidebar(side="right",id="rightsidebar", name="rightsidebar")
+
         with Container(id="app-grid"):
-            yield CommsLog(id="commslog", name="commslog")
+            yield commslog
+            
             with Container(id="mudoutputs"):
-                
-                yield TextLog(
-                    highlight=False, markup=False, wrap=False, name=self.tlid, classes="mudoutput", id=self.tlid
-                    )
+                # TODO: wrap should be a config file field option
+                yield TextLog(highlight=False, markup=False, wrap=True,
+                              name=self.tlid, classes="mudoutput", id=self.tlid)
             yield InputBar()
+        yield AbacuraFooter()
         inspector = Inspector()
         inspector.display = False
         yield inspector
 
-        yield AbacuraFooter()
+    def on_mount(self) -> None:
+        """Screen is mounted, launch it"""
+        self.tl = self.query_one(f"#{self.tlid}", expect_type=TextLog)
+        self.session.launch_screen()
+        cl = self.query_one("#commslog")
+        self.session.action_registry.register_object(cl)
 
-    def action_craft(self) -> None:
-        sidebar = self.query_one("#leftsidebar", expect_type=Sidebar)
-        sidebar.mount(CraftingWidget(id="craftingwidget"))
-        cw = sidebar.query_one(CraftingWidget)
-        cw.display = "block"
-    
-    def action_toggle_sidebar(self) -> None:
-        sidebar = self.query_one("#leftsidebar", expect_type=Sidebar)
+    async def on_input_bar_user_command(self, command: InputBar.UserCommand) -> None:
+        """Handle user input from InputBar"""
+        list = csv.reader(io.StringIO(command.command), delimiter=';', escapechar='\\')
+
+        try:
+            lines = list.__next__()
+            for line in lines:
+                self.session.player_input(line)
+
+        except StopIteration:
+            self.session.player_input("")
+
+    def action_mount_stuff(self) -> None:
+        lsb = self.query_one("#leftsidecontainer")
+        lsb.mount(KallistiCharacter(id="kallisticharacter"))
+
+    def action_toggle_dark(self) -> None:
+        """Dark mode"""
+        self.dark = not self.dark
+
+    def action_toggle_left_sidebar(self) -> None:
+        sidebar = self.query_one("#leftsidebar")
         sidebar.display = not sidebar.display
 
-class IndeterminateProgress(Static):
-    def __init__(self):
-        super().__init__("")
-        self._bar = Progress(BarColumn())  
-        self._bar.add_task("", total=None)  
+    def action_toggle_right_sidebar(self) -> None:
+        BetterKallistiScreen.CSS_PATH = os.getenv("HOME") + "/a.css",
+        sidebar = self.query_one("#rightsidebar")
+        sidebar.display = not sidebar.display
 
-    def on_mount(self) -> None:
-        # When the widget is mounted start updating the display regularly.
-        self.update_render = self.set_interval(
-            1 / 60, self.update_progress_bar
-        )  
+    def action_toggle_commslog(self) -> None:
+        commslog = self.query_one("#commslog")
+        commslog.display = not commslog.display
 
-    def update_progress_bar(self) -> None:
-        self.update(self._bar)  
+    def action_pageup(self) -> None:
+        self.tl.auto_scroll = False
+        self.tl.action_page_up()
 
-class CraftingWidget(Static):
-    def compose(self) -> ComposeResult:
-        yield Static(f"Leatherworking 1/100", id="CWLabel")
-        yield IndeterminateProgressBar()
-        self.display = "block"
-        self.styles.width = self.parent.styles.width
+    def action_pagedown(self) -> None:
+        self.tl.action_page_down()
+        if self.tl.scroll_offset.x == 0:
+            self.tl.auto_scroll = True
 
-    def on_mount(self) -> None:
-        self.query_one(IndeterminateProgressBar).action_start()
-
-    def on_indeterminate_progress_bar_finished(self, finished: bool) -> None:
-        self.remove()
-    
-    def on_indeterminate_progress_bar_updated(self, message) -> None:
-        static = self.query_one("#CWLabel")
-        static.update(f"Leatherworking {int(message.current)}/{message.total} {self.parent.styles.width}")
-
-class IndeterminateProgressBar(Static):
-    BINDINGS = [("ctrl+s", "start", "Start")]
-
-    progress_timer: Timer
-    """Timer to simulate progress happening."""
-
-    class Finished(Message):
-
-        def __init__(self, finished: bool) -> None:
-            self.finished = finished
-            super().__init__()
-
-    class Updated(Message):
-
-        def __init__(self, current: float, total: int) -> None:
-            self.current = current
-            self.total = total
-            super().__init__()
-
-    def compose(self) -> ComposeResult:
-        pb = ProgressBar(total=100, show_eta=True, show_percentage=False)
-        with Center():
-            with Middle():
-                yield pb
-
-    def on_mount(self) -> None:
-        """Set up a timer to simulate progess happening."""
-        self.progress_timer = self.set_interval(1 / 10, self.make_progress, pause=True)
-
-    def make_progress(self) -> None:
-        """Called automatically to advance the progress bar."""
-        pb = self.query_one(ProgressBar)
-        pb.advance(1)
-        self.post_message(self.Updated(current = pb.progress, total= pb.total))
-        log(f"WIDTH IS {self.parent.parent.styles.width}")
-        if pb.progress == pb.total:
-            self.post_message(self.Finished(True))
-
-    def action_start(self) -> None:
-        """Start the progress tracking."""
-
-        self.query_one(ProgressBar).update(progress = 0)
-        self.progress_timer.reset()
-        
+class BetterKallistiScreen(KallistiScreen):
+    DEFAULT_CLASSES = "BKS"
+    pass

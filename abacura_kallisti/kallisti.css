@@ -1,5 +1,8 @@
+App {
+
+}
+
 Screen {
-        layers: below above;
 }
 
 Input {
@@ -7,23 +10,16 @@ Input {
     border: none;
 }
 
-#leftsidebar {
+#sidebar {
     dock: left;
     width: 15;
-    height: 80%;
-    display: block;
-#    background: blue;
-}
-
-#rightsidebar {
-    dock: right;
-    width: 45;
-    display: block;
+    display: none;
 }
 
 #commslog {
-    dock: top;
-    background: blue;
+    width: 100%;
+    display: block;
+    height: 20;
 }
 
 #mudoutputs {
@@ -31,7 +27,7 @@ Input {
 }
 
 SessionName {
-    display: block;
+    display: block
 }
 
 .masthead {
@@ -42,4 +38,10 @@ SessionName {
     height: 100%;
     width: 100%;
     display: block;
+}
+
+#motd {
+    height: 100%;
+    display: block;
+    layer: lower;
 }
