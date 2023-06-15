@@ -3,21 +3,20 @@ from serum import inject
 from typing import TYPE_CHECKING, Callable
 from abacura.plugins.registry import Action, Ticker, ActionRegistry, CommandRegistry, TickerRegistry
 
+
 if TYPE_CHECKING:
-    from textual.app import App
+    from abacura.mud.options.msdp import MSDP
     from abacura.mud.session import Session
-    from abacura.plugins.plugin import PluginLoader
 
 
 @inject
 class Plugin:
     """Generic Plugin Class"""
-    app: App
     session: Session
-    loader: PluginLoader
     action_registry: ActionRegistry
     command_registry: CommandRegistry
     ticker_registry: TickerRegistry
+    msdp: MSDP
 
     def __init__(self):
         super().__init__()
