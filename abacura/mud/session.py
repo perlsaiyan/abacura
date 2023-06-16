@@ -16,7 +16,7 @@ from textual.screen import Screen
 
 from abacura import SessionScreen, AbacuraFooter
 from abacura.config import Config
-from abacura.mud import BaseSession
+from abacura.mud import BaseSession, OutputLine
 from abacura.mud.options import GA
 from abacura.mud.options.msdp import MSDP
 from abacura.plugins.registry import ActionRegistry, CommandRegistry, TickerRegistry
@@ -149,7 +149,10 @@ class Session(BaseSession):
             log.warning(f"Attempt to write to nonexistent TextLog: {msg}")
             return
 
+        line = OutputLine(msg, gag)
+
         if actionable:
+
             # TODO (REMOVE after plugins fixed) temporary action so i can stream and share screen recordings
             if re.match(r'^Please enter your account password', msg) and os.environ.get("MUD_PASSWORD") is not None:
                 self.send(os.environ.get("MUD_PASSWORD"))
@@ -157,15 +160,15 @@ class Session(BaseSession):
                 self.send(self.config.get_specific_option(self.name, "account_name"))
 
             if self.action_registry:
-                self.action_registry.process_line(msg)
+                self.action_registry.process_line(line)
 
-        if not gag:
+        if not line.gag:
             self.tl.markup = markup
             self.tl.highlight = highlight
             if ansi:
-                self.tl.write(Text.from_ansi(msg))
+                self.tl.write(Text.from_ansi(line.line))
             else:
-                self.tl.write(msg)
+                self.tl.write(line.line)
             self.tl.markup = False
             self.tl.highlight =  False
 

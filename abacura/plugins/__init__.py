@@ -38,7 +38,7 @@ class Plugin:
     def remove_action(self, name: str):
         self.action_registry.remove(name)
 
-    def add_ticker(self, seconds: int, callback_fn: Callable, repeats: int = 0, name: str = ''):
+    def add_ticker(self, seconds: float, callback_fn: Callable, repeats: int = 0, name: str = ''):
         ticker = Ticker(source=self, seconds=seconds, callback=callback_fn, repeats=repeats, name=name)
         self.ticker_registry.add(ticker)
 

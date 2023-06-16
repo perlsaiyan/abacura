@@ -9,18 +9,19 @@ from typing import List, Dict, TYPE_CHECKING, Callable, Match
 from rich.markup import escape
 from serum import inject
 from textual import log
+from abacura.mud import OutputLine
 
 if TYPE_CHECKING:
     from abacura.mud.session import Session
 
 
 class Ticker:
-    def __init__(self, source: object, callback: Callable, seconds: int, repeats: int = -1, name: str = ''):
-        self.source = source
-        self.callback = callback
-        self.seconds = seconds
-        self.repeats = repeats
-        self.name = name
+    def __init__(self, source: object, callback: Callable, seconds: float, repeats: int = -1, name: str = ''):
+        self.source: object = source
+        self.callback: Callable = callback
+        self.seconds: float = seconds
+        self.repeats: int = repeats
+        self.name: str = name
         self.last_tick = datetime.utcnow()
         self.next_tick = self.last_tick + timedelta(seconds=self.seconds)
 
@@ -249,7 +250,7 @@ class CommandRegistry:
             return False
 
         except (ValueError, NameError) as e:
-            self.session.show_exception(f"[bold red]# ERROR: {command.name}: {repr(e)}", e, show_tb = False)
+            self.session.show_exception(f"[bold red]# ERROR: {command.name}: {repr(e)}", e, show_tb=False)
             return True
 
         return True
@@ -278,10 +279,12 @@ class ActionRegistry:
     def remove(self, name: str):
         self.actions = [a for a in self.actions if name == '' or a.name != name]
 
-    def process_line(self, line: str):
+    def process_line(self, line: OutputLine):
         act: Action
         for act in sorted(self.actions, key=lambda x: x.priority, reverse=True):
-            match = act.compiled_re.search(line)
+            s = line.line if act.color else line.stripped
+            match = act.compiled_re.search(s)
+
             if match:
                 self.initiate_callback(act, match)
 
