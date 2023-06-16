@@ -8,6 +8,7 @@ class PycharmDebug(Plugin):
 
     @command
     def pycharm_debug(self, host: str = "localhost", port=12345):
+        """Connect to remote pycharm debugger"""
         try:
             module = importlib.import_module("pydevd_pycharm")
         except Exception as ex:

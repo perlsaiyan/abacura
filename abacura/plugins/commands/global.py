@@ -2,7 +2,7 @@
 
 Need until Mard's PluginManager is ready
 """
-
+import re
 import sys
 
 from rich.panel import Panel
@@ -26,17 +26,9 @@ class PluginDemo(Plugin):
         self.session.output(
             f"MSDP HEALTH: [bold red]🛜 [bold green]🛜  {self.session}", markup=True)
 
-    @command
-    def ticker(self, seconds: int, message: str, repeats: int = -1, name: str = '', delete: bool = False):
-        if delete:
-            self.remove_ticker(name)
-            return
-
-        self.add_ticker(seconds, callback_fn=partial(self.session.output, msg=message), repeats=repeats, name=name)
-
-    @action("Ptam")
+    @action("Ptam", flags=re.IGNORECASE)
     def ptam(self):
-        self.session.output("PTAM!!")
+        self.session.output("PTAM!!", actionable=False)
 
     @action("Ptam (.*)")
     def ptam2(self, s: str):
@@ -64,8 +56,13 @@ class PluginCommandHelper(Plugin):
         help_text.append("")
         self.session.output("\n".join(help_text))
 
-    @command()
-    def at(self, text: str, reset_locals: bool = False):
+    @command(name="?")
+    def help_question(self):
+        """Display list of commands"""
+        self.help()
+
+    @command(name="@")
+    def exec_python(self, text: str, reset_locals: bool = False):
         """Execute python code and display results"""
 
         try:
@@ -89,8 +86,6 @@ class PluginCommandHelper(Plugin):
             self.session.show_exception(f"[bold red] # ERROR: {repr(ex)}", ex)
             return False
 
-
-class PluginData(Plugin):
     @command
     def plugin(self) -> None:
         """Get information about plugins"""
@@ -102,6 +97,23 @@ class PluginData(Plugin):
             self.session.output(
                 f"{indicator} [white]{plugin.get_name()}" +
                 f" - {plugin.get_help()}", markup=True)
+
+    @command
+    def ticker(self, name: str, message: str = '', seconds: float = 0, repeats: int = -1, delete: bool = False):
+        """Create/delete a ticker"""
+        if not message:
+            raise ValueError("Must specify a message")
+
+        if seconds <= 0:
+            raise ValueError("Seconds must be more than 0")
+
+        # always remove an existing ticker with this name
+        self.remove_ticker(name)
+        if delete:
+            return
+
+        self.add_ticker(seconds=seconds, callback_fn=partial(self.session.output, msg=message),
+                        repeats=repeats, name=name)
 
 
 class PluginSession(Plugin):
