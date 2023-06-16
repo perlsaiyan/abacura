@@ -139,11 +139,14 @@ class Session(BaseSession):
         else:
             self.output(f"[bold red]# NO-SESSION SEND: {msg}", markup=True, highlight=True)
 
-    # TODO rather than continually toggling this should we have houtput, moutput and hmoutput?
     def output(self, msg,
                markup: bool=False, highlight: bool=False, ansi: bool = False, actionable: bool=True,
                gag: bool=False):
+
         """Write to TextLog for this screen"""
+        if self.tl is None:
+            log.warning(f"Attempt to write to nonexistent TextLog: {msg}")
+            return
 
         if actionable:
             # TODO (REMOVE after plugins fixed) temporary action so i can stream and share screen recordings

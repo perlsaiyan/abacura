@@ -44,11 +44,15 @@ class SessionScreen(Screen):
     AUTO_FOCUS = "InputBar"
 
     def __init__(self, name: str):
+        # TODO The next release of textual should let us clean up per-session screens
         self.CSS_PATH = self.config.get_specific_option(self.session.name, "css_path") or "abacura.css"
         super().__init__()
 
         self.id = f"screen-{name}"
         self.tlid = f"output-{name}"
+        # TODO: wrap should be a config file field option
+        self.tl = TextLog(highlight=False, markup=False, wrap=True,
+                              name=self.tlid, classes="mudoutput", id=self.tlid)
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the session"""
@@ -60,9 +64,7 @@ class SessionScreen(Screen):
         with Container(id="app-grid"):
             yield Sidebar(id="sidebar", name="sidebar")
             with Container(id="mudoutputs"):
-                # TODO: wrap should be a config file field option
-                yield TextLog(highlight=False, markup=False, wrap=True,
-                              name=self.tlid, classes="mudoutput", id=self.tlid)
+                yield self.tl
             yield InputBar()
         yield AbacuraFooter()
         inspector = Inspector()
@@ -71,7 +73,6 @@ class SessionScreen(Screen):
 
     def on_mount(self) -> None:
         """Screen is mounted, launch it"""
-        self.tl = self.query_one(f"#{self.tlid}", expect_type=TextLog)
         self.session.launch_screen()
 
     async def on_input_bar_user_command(self, command: InputBar.UserCommand) -> None:
