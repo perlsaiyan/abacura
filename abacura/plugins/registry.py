@@ -152,8 +152,10 @@ class Action:
         self.color = color
         self.source = source
         self.priority = priority
+        self.parameters = []
 
         self.parameters = list(inspect.signature(callback).parameters.values())
+
         self.parameter_types = [p.annotation for p in self.parameters]
         non_match_types = [Match, OutputMessage]
         self.expected_match_groups = len([t for t in self.parameter_types if t not in non_match_types])
@@ -285,7 +287,6 @@ class ActionRegistry:
             return
 
         act: Action
-
         for act in sorted(self.actions, key=lambda x: x.priority, reverse=True):
             s = message.message if act.color else message.stripped
             match = act.compiled_re.search(s)
@@ -311,6 +312,8 @@ class ActionRegistry:
             elif callable(arg_type) and arg_type.__name__ != '_empty':
                 # fancy type conversion
                 value = arg_type(g.pop(0))
+            else:
+                value = g.pop(0)
 
             args.append(value)
 

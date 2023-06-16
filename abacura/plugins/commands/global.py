@@ -43,7 +43,6 @@ class PluginCommandHelper(Plugin):
 
     def __init__(self):
         super().__init__()
-        self.exec_locals = {}
 
     @command()
     def help(self):
@@ -63,31 +62,6 @@ class PluginCommandHelper(Plugin):
     def help_question(self):
         """Display list of commands"""
         self.help()
-
-    @command(name="@")
-    def exec_python(self, text: str, reset_locals: bool = False):
-        """Execute python code and display results"""
-
-        try:
-            if self.exec_locals is None or reset_locals:
-                self.exec_locals = {}
-
-            exec_globals = {"session": self.session,
-                            'mean': lambda x: sum(x) / len(x)}
-
-            if text.strip().startswith("def "):
-                result = exec(text, exec_globals, self.exec_locals)
-            else:
-                exec("__result = " + text, exec_globals, self.exec_locals)
-                result = self.exec_locals.get('__result', None)
-
-            if result is not None:
-                # TODO: Pretty print
-                self.session.output(str(result))
-
-        except Exception as ex:
-            self.session.show_exception(f"[bold red] # ERROR: {repr(ex)}", ex)
-            return False
 
     @command
     def plugin(self) -> None:
