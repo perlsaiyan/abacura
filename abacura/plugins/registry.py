@@ -9,7 +9,7 @@ from typing import List, Dict, TYPE_CHECKING, Callable, Match
 from rich.markup import escape
 from serum import inject
 from textual import log
-from abacura.mud import OutputLine
+from abacura.mud import OutputMessage
 
 if TYPE_CHECKING:
     from abacura.mud.session import Session
@@ -155,9 +155,10 @@ class Action:
 
         self.parameters = list(inspect.signature(callback).parameters.values())
         self.parameter_types = [p.annotation for p in self.parameters]
-        self.expected_match_groups = len([t for t in self.parameter_types if t != Match])
+        non_match_types = [Match, OutputMessage]
+        self.expected_match_groups = len([t for t in self.parameter_types if t not in non_match_types])
 
-        valid_type_annotations = [str, int, float, inspect._empty, Match]
+        valid_type_annotations = [str, int, float, inspect._empty, Match, OutputMessage]
         invalid_types = [t for t in self.parameter_types if t not in valid_type_annotations]
 
         if invalid_types:
@@ -279,17 +280,21 @@ class ActionRegistry:
     def remove(self, name: str):
         self.actions = [a for a in self.actions if name == '' or a.name != name]
 
-    def process_line(self, line: OutputLine):
+    def process_output(self, message: OutputMessage):
+        if type(message.message) is not str:
+            return
+
         act: Action
+
         for act in sorted(self.actions, key=lambda x: x.priority, reverse=True):
-            s = line.line if act.color else line.stripped
+            s = message.message if act.color else message.stripped
             match = act.compiled_re.search(s)
 
             if match:
-                self.initiate_callback(act, match)
+                self.initiate_callback(act, message, match)
 
-    def initiate_callback(self, action: Action, match: Match):
-        g = match.groups()
+    def initiate_callback(self, action: Action, message: OutputMessage, match: Match):
+        g = list(match.groups())
 
         # perform type conversions
         if len(g) < action.expected_match_groups:
@@ -298,12 +303,14 @@ class ActionRegistry:
 
         args = []
 
-        for arg_type, value in zip(action.parameter_types, match.groups()):
+        for arg_type in action.parameter_types:
             if arg_type == Match:
                 value = match
+            elif arg_type == OutputMessage:
+                value = message
             elif callable(arg_type) and arg_type.__name__ != '_empty':
                 # fancy type conversion
-                value = arg_type(value)
+                value = arg_type(g.pop(0))
 
             args.append(value)
 

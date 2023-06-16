@@ -11,6 +11,7 @@ from rich.pretty import Pretty
 from textual import log
 
 from abacura.plugins import Plugin, command, action
+from abacura.mud import OutputMessage
 from functools import partial
 
 
@@ -29,6 +30,10 @@ class PluginDemo(Plugin):
     @action("Ptam", flags=re.IGNORECASE)
     def ptam(self):
         self.session.output("PTAM!!", actionable=False)
+
+    @action("spoon", flags=re.IGNORECASE)
+    def spoon(self, msg:OutputMessage):
+        msg.gag = True
 
     @action("Ptam (.*)")
     def ptam2(self, s: str):

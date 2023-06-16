@@ -16,7 +16,7 @@ from textual.screen import Screen
 
 from abacura import SessionScreen, AbacuraFooter
 from abacura.config import Config
-from abacura.mud import BaseSession, OutputLine
+from abacura.mud import BaseSession, OutputMessage
 from abacura.mud.options import GA
 from abacura.mud.options.msdp import MSDP
 from abacura.plugins.registry import ActionRegistry, CommandRegistry, TickerRegistry
@@ -149,7 +149,7 @@ class Session(BaseSession):
             log.warning(f"Attempt to write to nonexistent TextLog: {msg}")
             return
 
-        line = OutputLine(msg, gag)
+        message = OutputMessage(msg, gag)
 
         if actionable:
 
@@ -160,15 +160,15 @@ class Session(BaseSession):
                 self.send(self.config.get_specific_option(self.name, "account_name"))
 
             if self.action_registry:
-                self.action_registry.process_line(line)
+                self.action_registry.process_output(message)
 
-        if not line.gag:
+        if not message.gag:
             self.tl.markup = markup
             self.tl.highlight = highlight
             if ansi:
-                self.tl.write(Text.from_ansi(line.line))
+                self.tl.write(Text.from_ansi(message.message))
             else:
-                self.tl.write(line.line)
+                self.tl.write(message.message)
             self.tl.markup = False
             self.tl.highlight =  False
 
