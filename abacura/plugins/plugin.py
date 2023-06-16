@@ -4,7 +4,6 @@ import inspect
 import os
 from importlib import import_module
 from importlib.util import find_spec
-from pathlib import Path
 from typing import Dict, TYPE_CHECKING
 
 from serum import inject, Context
@@ -14,6 +13,7 @@ from textual.widgets import TextLog
 from abacura import Config
 from abacura.mud.options.msdp import MSDP
 from abacura.plugins import Plugin
+from abacura.plugins.aliases.manager import AliasManager
 from abacura.plugins.registry import TickerRegistry, CommandRegistry, ActionRegistry
 
 if TYPE_CHECKING:
@@ -30,6 +30,7 @@ class PluginLoader(Plugin):
     action_registry: ActionRegistry
     command_registry: CommandRegistry
     ticker_registry: TickerRegistry
+    alias_manager: AliasManager
     tl: TextLog
 
     def __init__(self):
@@ -52,7 +53,7 @@ class PluginLoader(Plugin):
             for pathspec in spec.submodule_search_locations:
                 for dirpath, _, filenames in os.walk(pathspec):
                     for filename in [f for f in filenames if f.endswith(".py") and not f.startswith('_') and os.path.join(dirpath, f) != __file__]:
-                        shortpath = dirpath.replace(pathspec,"") or "/"
+                        shortpath = dirpath.replace(pathspec, "") or "/"
                         plugin_modules.append(mod + os.path.join(shortpath, filename))
 
         # TODO: We may want to handle case where we are loading plugins a second time
@@ -72,9 +73,9 @@ class PluginLoader(Plugin):
             # Look for plugins subclasses within the module we just loaded and create a PluginHandler for each
             for name, c in inspect.getmembers(module, inspect.isclass):
                 if c.__module__ == module.__name__ and inspect.isclass(c) and issubclass(c, Plugin):
-                    with Context(session=self.session, msdp=self.msdp,
-                                 action_registry=self.action_registry, command_registry=self.command_registry,
-                                 ticker_registry=self.ticker_registry):
+                    with Context(session=self.session, msdp=self.msdp, config=self.config,
+                                 alias_manager=self.alias_manager, action_registry=self.action_registry,
+                                 command_registry=self.command_registry, ticker_registry=self.ticker_registry):
                         plugin_instance: Plugin = c()
 
                     plugin_name = plugin_instance.get_name()

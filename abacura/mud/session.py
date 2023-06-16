@@ -83,7 +83,7 @@ class Session(BaseSession):
             self.ticker_registry = TickerRegistry()
 
         self.command_registry.register_object(self)
-        self.command_registry.register_object(self.config)
+        # self.command_registry.register_object(self.alias_manager)
 
     # TODO: This should possibly be an Message from the SessionScreen
     def launch_screen(self):
@@ -94,7 +94,7 @@ class Session(BaseSession):
         # self.command_registry.register_object(self)
 
         with Context(config=self.config, sessions=self.abacura.sessions, tl=self.tl,
-                     app=self.abacura, session=self, msdp=self.msdp,
+                     app=self.abacura, session=self, msdp=self.msdp, alias_manager=self.alias_manager,
                      action_registry=self.action_registry, command_registry=self.command_registry,
                      ticker_registry=self.ticker_registry):
             self.plugin_loader = PluginLoader()
