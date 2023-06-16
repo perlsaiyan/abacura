@@ -12,6 +12,7 @@ class XCL(Widget):
         
     def on_mount(self):
         pass
+        #self.screen.session.event_manager.listener(self.test_gos)
 
     def compose(self):
         yield self.tl

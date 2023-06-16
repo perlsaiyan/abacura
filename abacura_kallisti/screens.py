@@ -19,6 +19,7 @@ from abacura import InputBar
 from abacura.config import Config
 from abacura.widgets.inspector import Inspector
 from abacura.widgets.footer import AbacuraFooter
+from abacura.widgets.debug import DebugDock
 
 from abacura_kallisti.widgets.comms import XCL
 from abacura_kallisti.widgets.sidebars import LOKLeft, LOKRight
@@ -39,6 +40,7 @@ class KallistiScreen(Screen):
         ("f2", "toggle_left_sidebar", "F2"),
         ("f3", "toggle_right_sidebar", "F3"),
         ("f4", "toggle_commslog", "F4"),
+        ("f5", "toggle_debug", "F5")
     ]
 
     AUTO_FOCUS = "InputBar"
@@ -70,10 +72,14 @@ class KallistiScreen(Screen):
         inspector = Inspector()
         inspector.display = False
         yield inspector
+        debugger = DebugDock(id="debugger")
+        debugger.display = False
+        yield debugger
 
     def on_mount(self) -> None:
         """Screen is mounted, launch it"""
         self.tl = self.query_one(f"#{self.tlid}", expect_type=TextLog)
+        self.session.tl = self.tl
         self.session.launch_screen()
         cl = self.query_one("#commslog")
         self.session.action_registry.register_object(cl)
@@ -106,6 +112,10 @@ class KallistiScreen(Screen):
     def action_toggle_commslog(self) -> None:
         commslog = self.query_one("#commslog")
         commslog.display = not commslog.display
+
+    def action_toggle_debug(self) -> None:
+        debugger = self.query_one("#debugger")
+        debugger.display = not debugger.display
 
     def action_pageup(self) -> None:
         self.tl.auto_scroll = False
