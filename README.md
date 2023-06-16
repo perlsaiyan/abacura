@@ -86,3 +86,4 @@ todo:
 * SSL support
 * GCMP and other telnet sub protocols
 * Features comparable to my other project [tintin-helper](https://github.com/perlsaiyan/tintin-helper)
+* Custom script support

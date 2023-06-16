@@ -2,32 +2,32 @@
 from __future__ import annotations
 
 import asyncio
+from importlib import import_module
 import os
 import re
 import sys
-from importlib import import_module
+import time
+
 from typing import TYPE_CHECKING, Optional
 
-from rich.markup import escape
-from rich.panel import Panel
 from rich.text import Text
 from serum import inject, Context
 from textual import log
 from textual.screen import Screen
-from textual.widgets import TextLog
 
 from abacura import SessionScreen, AbacuraFooter
 from abacura.config import Config
 from abacura.mud import BaseSession, OutputMessage
 from abacura.mud.options import GA
 from abacura.mud.options.msdp import MSDP
+from abacura.plugins.registry import ActionRegistry, CommandRegistry, TickerRegistry
+from abacura.plugins.plugin import PluginLoader
 from abacura.plugins import command
 from abacura.plugins.aliases.manager import AliasManager
 from abacura.plugins.events import EventManager
-from abacura.plugins.plugin import PluginLoader
-from abacura.plugins.registry import ActionRegistry, CommandRegistry, TickerRegistry
 
 if TYPE_CHECKING:
+    from typing_extensions import Self
     from abacura.abacura import Abacura
 
 
@@ -77,24 +77,24 @@ class Session(BaseSession):
         self.abacura.push_screen(name)
         self.screen = self.abacura.query_one(f"#screen-{name}", expect_type=Screen)
 
+    # TODO: This should possibly be an Message from the SessionScreen
+    def launch_screen(self):
+        """Fired on screen mounting, so our Footer is updated and Session gets a TextLog handle"""
+        self.screen.query_one(AbacuraFooter).session = self.name
+
+        while self.tl is None:
+            self.tl = self.screen.query_one(f"#output-{self.name}")
+            time.sleep(1)
+
         with Context(session=self):
             self.action_registry = ActionRegistry()
             self.command_registry = CommandRegistry()
             self.ticker_registry = TickerRegistry()
 
         self.command_registry.register_object(self)
-        # self.command_registry.register_object(self.alias_manager)
-
-    # TODO: This should possibly be an Message from the SessionScreen
-    def launch_screen(self):
-        """Fired on screen mounting, so our Footer is updated and Session gets a TextLog handle"""
-        self.screen.query_one(AbacuraFooter).session = self.name
-        self.tl = self.screen.query_one(f"#output-{self.name}")
-
-        # self.command_registry.register_object(self)
 
         with Context(config=self.config, sessions=self.abacura.sessions, tl=self.tl,
-                     app=self.abacura, session=self, msdp=self.msdp, alias_manager=self.alias_manager,
+                     app=self.abacura, session=self, msdp=self.msdp,
                      action_registry=self.action_registry, command_registry=self.command_registry,
                      ticker_registry=self.ticker_registry):
             self.plugin_loader = PluginLoader()
@@ -144,8 +144,9 @@ class Session(BaseSession):
         else:
             self.output(f"[bold red]# NO-SESSION SEND: {msg}", markup=True, highlight=True)
 
-    def output(self, msg, markup: bool = False, highlight: bool = False,
-               ansi: bool = False, actionable: bool = True, gag: bool = False):
+    def output(self, msg,
+               markup: bool=False, highlight: bool=False, ansi: bool = False, actionable: bool=True,
+               gag: bool=False):
 
         """Write to TextLog for this screen"""
         if self.tl is None:
@@ -159,8 +160,7 @@ class Session(BaseSession):
             # TODO (REMOVE after plugins fixed) temporary action so i can stream and share screen recordings
             if re.match(r'^Please enter your account password', msg) and os.environ.get("MUD_PASSWORD") is not None:
                 self.send(os.environ.get("MUD_PASSWORD"))
-            elif (re.match(r'^Enter your account name. If you do not have an account,', msg) and
-                  self.config.get_specific_option(self.name, "account_name")):
+            elif re.match(r'^Enter your account name. If you do not have an account,', msg) and self.config.get_specific_option(self.name, "account_name"):
                 self.send(self.config.get_specific_option(self.name, "account_name"))
 
             if self.action_registry:
@@ -174,7 +174,7 @@ class Session(BaseSession):
             else:
                 self.tl.write(message.message)
             self.tl.markup = False
-            self.tl.highlight = False
+            self.tl.highlight =  False
 
     async def telnet_client(self, host: str, port: int) -> None:
         """async worker to handle input/output on socket"""
@@ -195,18 +195,18 @@ class Session(BaseSession):
             try:
                 data = await reader.read(1)
             except BrokenPipeError:
-                self.output("[bold red]# Lost connection to server.", markup=True)
+                self.output("[bold red]# Lost connection to server.", markup = True)
                 self.connected = False
                 continue
 
             # Empty string means we lost our connection
             if data == b'':
-                self.output("[bold red]# Lost connection to server.", markup=True)
+                self.output("[bold red]# Lost connection to server.", markup = True)
                 self.connected = False
 
             # End of a MUD line in buffer, send for processing
             elif data == b'\n':
-                self.output(self.outb.decode("UTF-8", errors="ignore").replace("\r", " "), ansi=True)
+                self.output(self.outb.decode("UTF-8", errors="ignore").replace("\r"," "), ansi = True)
                 self.outb = b''
 
             # handle IAC sequences
@@ -224,19 +224,19 @@ class Session(BaseSession):
                             # TTYPE
 
                             self.writer.write(b'\xff\xfb\x18')
-                            # self.output("IAC WILL TTYPE")
+                            #self.output("IAC WILL TTYPE")
                         elif data == b'\x1f':
                             # IAC WON'T NAWS
                             self.writer.write(b'\xff\xfc\x1f')
-                            # self.output("IAC WON'T NAWS")
+                            #self.output("IAC WON'T NAWS")
                         else:
                             pass
-                            # self.output(f"IAC DO {ord(data)}")
+                            #self.output(f"IAC DO {ord(data)}")
 
                 # IAC DONT
                 if data == b'\xfe':
                     data = await reader.read(1)
-                    # self.output(f"IAC DONT {data}")
+                    #self.output(f"IAC DONT {data}")
 
                 # IAC WILL
                 elif data == b'\xfb':
@@ -245,12 +245,12 @@ class Session(BaseSession):
                         self.options[ord(data)].will()
                     else:
                         pass
-                        # self.output(f"IAC WILL {ord(data)}")
+                        #self.output(f"IAC WILL {ord(data)}")
 
                 # IAC WONT
                 elif data == b'\xfc':
                     data = await reader.read(1)
-                    # self.output(f"IAC WONT {data}")
+                    #self.output(f"IAC WONT {data}")
 
                 # SB
                 elif data == b'\xfa':
@@ -264,28 +264,28 @@ class Session(BaseSession):
                         self.options[ord(data)].sb(buf)
                     else:
                         pass
-                        # self.output(f"IAC SB {buf}")
+                        #self.output(f"IAC SB {buf}")
 
                 # TTYPE
                 elif data == b'\x18':
                     pass
-                    # self.output(f"IAC TTYPE")
+                    #self.output(f"IAC TTYPE")
 
                 # NAWS
                 elif data == b'\x1f':
-                    # self.output(f"IAC NAWS")
+                    #self.output(f"IAC NAWS")
                     pass
 
                 # telnet GA sequence, likely end of prompt
                 elif data == GA:
-                    self.output(self.outb.decode("UTF-8", errors="ignore"), ansi=True)
+                    self.output(self.outb.decode("UTF-8", errors="ignore"), ansi = True)
                     self.output("")
                     self.outb = b''
 
                 # IAC UNKNOWN
                 else:
                     pass
-                    # self.output(f"IAC UNKNOWN {ord(data)}")
+                    #self.output(f"IAC UNKNOWN {ord(data)}")
 
             # Catch everything else in our buffer and hold it
             else:
@@ -342,22 +342,3 @@ class Session(BaseSession):
                 self.abacura.set_session(name)
             else:
                 self.output(f"[bold red]# INVALID SESSION {name}", markup=True)
-
-    @command(name="conf")
-    def configcommand(self, reload: bool = False, full: bool = False) -> None:
-        """@conf command"""
-
-        log(f"@conf called with full '{full}' and reload '{reload}'")
-        if reload:
-            self.config.reload()
-
-        if full or self.name == "null" or self.name not in self.config.config:
-            conf = escape(self.config.config.as_string())
-        else:
-            conf = escape(self.config.config[self.name].as_string())
-
-        panel = Panel(conf, highlight=True)
-        tl = self.tl
-        tl.markup = True
-        tl.write(panel)
-        tl.markup = False
