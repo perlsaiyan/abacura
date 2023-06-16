@@ -3,9 +3,6 @@
 from pathlib import Path
 from typing import Any
 
-from rich.markup import escape
-from rich.panel import Panel
-from textual import log
 from tomlkit import parse
 
 from abacura.plugins import command, Plugin
@@ -16,7 +13,7 @@ DEFAULT_GLOBAL_CONFIG = {
 }
 
 
-class Config(Plugin):
+class Config:
     """Base configuration class"""
     _config = None
     _config_file: str
@@ -59,20 +56,3 @@ class Config(Plugin):
     @property
     def config(self):
         return self._config
-
-    @command(name="conf")
-    def configcommand(self, reload: bool = False, full: bool = False) -> None:
-        """@conf command"""
-
-        log(f"@conf called with full '{full}' and reload '{reload}'")
-        if full or self.app.session == "null":
-            conf = escape(self.config.as_string())
-        else:
-            conf = escape(self.config[self.app.session].as_string())
-        
-        panel = Panel(conf, highlight=True)
-        tl = self.session.tl
-        tl.markup = True
-        tl.write(panel)
-        tl.markup = False
-     

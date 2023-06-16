@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from abacura import Session
     from abacura.config import Config
 
-class AliasManager(Plugin):
+class AliasManager:
     """Alias manager"""
 
     session: Session

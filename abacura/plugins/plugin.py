@@ -77,10 +77,6 @@ class PluginLoader(Plugin):
                                  ticker_registry=self.ticker_registry):
                         plugin_instance: Plugin = c()
 
-                    self.action_registry.register_object(plugin_instance)
-                    self.command_registry.register_object(plugin_instance)
-                    self.ticker_registry.register_object(plugin_instance)
-
                     plugin_name = plugin_instance.get_name()
                     log(f"Adding plugin {name}.{plugin_name}")
 

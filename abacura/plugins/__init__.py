@@ -19,10 +19,13 @@ class Plugin:
     msdp: MSDP
 
     def __init__(self):
-        super().__init__()
+        # super().__init__()
         self.plugin_enabled = True
         self.tickers = []
         self.substitutions = []
+        self.command_registry.register_object(self)
+        self.action_registry.register_object(self)
+        self.ticker_registry.register_object(self)
 
     def get_name(self):
         return self.__class__.__name__
