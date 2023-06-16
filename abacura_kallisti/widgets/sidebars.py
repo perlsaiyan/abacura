@@ -58,7 +58,6 @@ class IndeterminateProgressBar(Widget):
 
     def make_progress(self) -> None:
         """Called automatically to advance the progress bar."""
-        log("Making progress")
         pb = self.query_one(ProgressBar)
         pb.progress = random.randint(1,99)
         if pb.percentage == 100:
