@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from textual import log
 from textual.app import ComposeResult
 from textual.reactive import reactive
-from textual.widgets import Static, TextLog, ProgressBar
+from textual.widgets import Static
 
 from abacura.mud.options.msdp import MSDPMessage
 from abacura.plugins.events import event
@@ -21,12 +21,6 @@ class KallistiCharacter(Static):
     def compose(self) -> ComposeResult:
         yield Static("Character", classes="WidgetTitle")
         yield LOKCharacterStatic()
-
-        yield Static("Affects", classes="WidgetTitle")
-
-        yield Static("Mount", classes="WidgetTitle")
-
-        yield Static("RemortInfo", classes="WidgetTitle")
 
 class LOKCharacterStatic(Static):
     """Subwidget to display current Character details"""
@@ -64,7 +58,10 @@ class LOKCharacterStatic(Static):
 
     def render(self) -> str:
         return f"{self.character_name} {self.character_class} " + \
-            f"[{self.character_level}]\n{self.mud_uptime}"
+            f"[{self.character_level}]\n{self.mud_uptime}\n" + \
+            "\nStr: ONE MILLION int: wis: blah\n" + \
+            "[green]Gold: [white]All [green]Bank: [white]All\n" + \
+            "[green]Estimated Meta Sessions: [white]69"
 
     @event("msdp_value_CHARACTER_NAME")
     def update_char_name(self, message: MSDPMessage):
