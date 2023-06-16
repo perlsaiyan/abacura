@@ -12,15 +12,12 @@ class DebugDock(Widget):
     def __init__(self, id: str, name: str = ""):
         super().__init__(id=id, name=name)
         self.tl = TextLog(id="debug")
-        
-    def on_mount(self):
-        pass
 
     def compose(self):
         yield ResizeHandle(self, "top")
         yield self.tl
 
-    #@command("debug")
+    @command(name="debug")
     def debug(self, facility: str = "info", msg: str = ""):
         """Send output to debug window"""
         date_time = datetime.now.strftime("%m/%d/%Y, %H:%M:%S")
