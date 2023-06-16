@@ -6,6 +6,7 @@ from importlib import import_module
 import os
 import re
 import sys
+
 from typing import TYPE_CHECKING, Optional
 
 from rich.text import Text
@@ -172,6 +173,12 @@ class Session(BaseSession):
         """async worker to handle input/output on socket"""
         self.host = host
         self.port = port
+
+        while self.tl is None:
+            log.warning("TL not available, sleeping 1 second before connection")
+            await asyncio.sleep(1)
+
+        log.info(f"Session {self.name} connecting to {host} {port}")
         reader, self.writer = await asyncio.open_connection(host, port)
         self.connected = True
         self.register_options()
