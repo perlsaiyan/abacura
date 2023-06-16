@@ -6,6 +6,7 @@ from importlib import import_module
 import os
 import re
 import sys
+import time
 
 from typing import TYPE_CHECKING, Optional
 
@@ -80,7 +81,10 @@ class Session(BaseSession):
     def launch_screen(self):
         """Fired on screen mounting, so our Footer is updated and Session gets a TextLog handle"""
         self.screen.query_one(AbacuraFooter).session = self.name
-        self.tl = self.screen.query_one(f"#output-{self.name}")
+
+        while self.tl is None:
+            self.tl = self.screen.query_one(f"#output-{self.name}")
+            time.sleep(1)
 
         with Context(session=self):
             self.action_registry = ActionRegistry()
