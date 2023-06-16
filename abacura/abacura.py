@@ -1,5 +1,4 @@
 """Main Textual App and Entrypoint"""
-import os
 from pathlib import Path
 import sys
 from typing import TYPE_CHECKING, Dict
@@ -54,7 +53,7 @@ class Abacura(App):
     def set_session(self, id: str) -> None:
         self.session = id
         self.push_screen(id)
-        self.query_one(AbacuraFooter).session = id 
+        self.query_one(AbacuraFooter).session = id
 
     def action_reload_config(self) -> None:
         tl = self.sessions[self.session].tl
@@ -62,9 +61,6 @@ class Abacura(App):
         tl.markup = True
         tl.write(f"[bold red]# CONFIG: Reloaded configuration file")
         tl.markup = False
-
-    def action_quit(self) -> None:
-        exit()
 
     def action_toggle_inspector(self) -> None:
         inspector = self.query_one(Inspector)

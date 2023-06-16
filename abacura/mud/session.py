@@ -6,6 +6,7 @@ from importlib import import_module
 import os
 import re
 import sys
+
 from typing import TYPE_CHECKING, Optional
 
 from rich.text import Text
@@ -139,11 +140,14 @@ class Session(BaseSession):
         else:
             self.output(f"[bold red]# NO-SESSION SEND: {msg}", markup=True, highlight=True)
 
-    # TODO rather than continually toggling this should we have houtput, moutput and hmoutput?
     def output(self, msg,
                markup: bool=False, highlight: bool=False, ansi: bool = False, actionable: bool=True,
                gag: bool=False):
+
         """Write to TextLog for this screen"""
+        if self.tl is None:
+            log.warning(f"Attempt to write to nonexistent TextLog: {msg}")
+            return
 
         line = OutputLine(msg, gag)
 
@@ -172,6 +176,12 @@ class Session(BaseSession):
         """async worker to handle input/output on socket"""
         self.host = host
         self.port = port
+
+        while self.tl is None:
+            log.warning("TL not available, sleeping 1 second before connection")
+            await asyncio.sleep(1)
+
+        log.info(f"Session {self.name} connecting to {host} {port}")
         reader, self.writer = await asyncio.open_connection(host, port)
         self.connected = True
         self.register_options()

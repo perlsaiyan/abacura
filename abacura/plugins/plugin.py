@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import os
 from importlib import import_module
+from importlib.util import find_spec
 from pathlib import Path
 from typing import Dict, TYPE_CHECKING
 
@@ -37,30 +38,34 @@ class PluginLoader(Plugin):
 
     def load_plugins(self) -> None:
         """Load plugins"""
-        framework_path = Path(os.path.realpath(__file__))
-        plugin_path = framework_path.parent.parent
 
-        plugin_files = []
-        log.info(f"Loading plugins from {plugin_path} from {__file__}")
-        for dirpath, _, filenames in os.walk(plugin_path):
-            for filename in [f for f in filenames if f.endswith(".py") and not f.startswith('_') and os.path.join(dirpath, f) != __file__]:
-                log.info(f"Found plugin {os.path.join(dirpath,filename)}")
-                plugin_files.append(Path(os.path.join(dirpath, filename)))
+        ab_modules = self.config.get_specific_option(self.session.name, "modules")
+        if isinstance(ab_modules, list):
+            ab_modules.insert(0, "abacura")
+        else:
+            ab_modules = ["abacura"]
+
+        plugin_modules = []
+        for mod in ab_modules:
+            log.info(f"Loading plugins from {mod}")
+            spec = find_spec(mod)
+            for pathspec in spec.submodule_search_locations:
+                for dirpath, _, filenames in os.walk(pathspec):
+                    for filename in [f for f in filenames if f.endswith(".py") and not f.startswith('_') and os.path.join(dirpath, f) != __file__]:
+                        shortpath = dirpath.replace(pathspec,"") or "/"
+                        plugin_modules.append(mod + os.path.join(shortpath, filename))
 
         # TODO: We may want to handle case where we are loading plugins a second time
         self.plugins = {}
 
         # import each one of the modules corresponding to each plugin .py file
-        for pf in plugin_files:
-            log.debug(f"Loading file {pf} will strip by {str(pf.relative_to(plugin_path.parent))}")
-            package = str(pf.relative_to(plugin_path.parent)).replace(os.sep, ".")
-
-            package = package[:-3]  # strip .py
+        for pf in plugin_modules:
+            package = pf.replace(os.sep, ".")[:-3]  # strip .py
 
             try:
                 module = import_module(package)
-            except Exception as e:
-                self.session.output(f"[bold red]# ERROR LOADING PLUGIN {package} (from {pf}): {repr(e)}",
+            except Exception as exc:
+                self.session.output(f"[bold red]# ERROR LOADING PLUGIN {package} (from {pf}): {repr(exc)}",
                                     markup=True, highlight=True)
                 continue
 
