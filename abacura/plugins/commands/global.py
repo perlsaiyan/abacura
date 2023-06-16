@@ -4,15 +4,13 @@ Need until Mard's PluginManager is ready
 """
 import re
 import sys
+from functools import partial
 
 from rich.panel import Panel
 from rich.pretty import Pretty
 
-from textual import log
-
-from abacura.plugins import Plugin, command, action
 from abacura.mud import OutputMessage
-from functools import partial
+from abacura.plugins import Plugin, command, action
 
 
 class PluginDemo(Plugin):
@@ -32,7 +30,7 @@ class PluginDemo(Plugin):
         self.session.output("PTAM!!", actionable=False)
 
     @action("spoon", flags=re.IGNORECASE)
-    def spoon(self, msg:OutputMessage):
+    def spoon(self, msg: OutputMessage):
         msg.gag = True
 
     @action("Ptam (.*)")
@@ -119,6 +117,16 @@ class PluginCommandHelper(Plugin):
 
         self.add_ticker(seconds=seconds, callback_fn=partial(self.session.output, msg=message),
                         repeats=repeats, name=name)
+
+    @command(name="alias")
+    def alias(self):
+        """list, remove add aliases"""
+        buf = "[bold white]Aliases:\n"
+        for key in self.alias_manager.aliases.items():
+            self.session.output(Pretty(key), actionable=False)
+            buf += f"{key[0]}: {key[1]}\n"
+
+        self.session.output(Panel(buf), actionable=False)
 
 
 class PluginSession(Plugin):

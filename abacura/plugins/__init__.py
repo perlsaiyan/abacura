@@ -2,6 +2,7 @@ from __future__ import annotations
 from serum import inject
 from typing import TYPE_CHECKING, Callable
 from abacura.plugins.registry import Action, Ticker, ActionRegistry, CommandRegistry, TickerRegistry
+from abacura.plugins.aliases.manager import AliasManager
 
 
 if TYPE_CHECKING:
@@ -16,13 +17,17 @@ class Plugin:
     action_registry: ActionRegistry
     command_registry: CommandRegistry
     ticker_registry: TickerRegistry
+    alias_manager: AliasManager
     msdp: MSDP
 
     def __init__(self):
-        super().__init__()
+        # super().__init__()
         self.plugin_enabled = True
         self.tickers = []
         self.substitutions = []
+        self.command_registry.register_object(self)
+        self.action_registry.register_object(self)
+        self.ticker_registry.register_object(self)
 
     def get_name(self):
         return self.__class__.__name__
