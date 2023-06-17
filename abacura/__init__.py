@@ -177,7 +177,7 @@ class AbacuraSuggester(Suggester):
     async def get_suggestion(self, value: str) -> Coroutine[Any, Any, str | None]:
         if value.startswith("@"):
             value = value[1:]
-            for command in self.session.command_registry.commands:
+            for command in self.session.director.command_manager.commands:
                 if command.name.startswith(value):
                     return f"@{command.name}"
         else:

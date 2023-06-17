@@ -48,7 +48,7 @@ class PluginCommandHelper(Plugin):
     def help(self):
         help_text = ["Plugin Commands", "\nUsage: @command <arguments>", "\nAvailable Commands: "]
 
-        commands = [c for c in self.command_registry.commands if c.name != 'help']
+        commands = [c for c in self.director.command_manager.commands if c.name != 'help']
 
         for c in sorted(commands, key=lambda c: c.name):
             doc = getattr(c.callback, '__doc__', None)
@@ -96,7 +96,7 @@ class PluginCommandHelper(Plugin):
     def alias(self):
         """list, remove add aliases"""
         buf = "[bold white]Aliases:\n"
-        for key in self.alias_manager.aliases.items():
+        for key in self.director.alias_manager.aliases.items():
             self.session.output(Pretty(key), actionable=False)
             buf += f"{key[0]}: {key[1]}\n"
 
