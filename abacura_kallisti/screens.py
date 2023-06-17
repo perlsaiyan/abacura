@@ -17,11 +17,10 @@ from textual.widgets import Header, TextLog
 
 from abacura import InputBar
 from abacura.config import Config
-from abacura.widgets.inspector import Inspector
+from abacura.widgets import Inspector, CommsLog
 from abacura.widgets.footer import AbacuraFooter
 from abacura.widgets.debug import DebugDock
 
-from abacura_kallisti.widgets.comms import XCL
 from abacura_kallisti.widgets.sidebars import LOKLeft, LOKRight
 
 if TYPE_CHECKING:
@@ -54,7 +53,7 @@ class KallistiScreen(Screen):
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the session"""
-        commslog = XCL(id="commslog")
+        commslog = CommsLog(id="commslog")
         commslog.display = False
 
         yield Header(show_clock=True, name="Abacura", id="masthead", classes="masthead")
