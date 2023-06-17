@@ -83,17 +83,17 @@ class LOKQueueRunner(Plugin):
         for queue_name, queue in self._QUEUES.items():
             self.session.output(f"Queue '{queue_name}' has depth {queue.qsize()}.", markup=True, highlight=True)
 
-    @command(name="queueadd")
-    def add_to_queue(self, qn: str, command: str, priority: int = _DEFAULT_PRIORITY, dur: float = _DEFAULT_DURATION):
+    @command(name="addqueue")
+    def add_to_queue(self, task: str ,queue_name: Optional[str] = "Any", priority: int = _DEFAULT_PRIORITY, dur: float = _DEFAULT_DURATION):
         """Adds an individual task with an optional priority to a queue"""
-        if qn in self._QUEUE_NAMES:
-        
-            self._QUEUES[qn].put((priority, QueueTask(cmd=command, dur=dur)))
+
+        if queue_name and queue_name in self._QUEUE_NAMES:
+            self._QUEUES[queue_name].put((priority, QueueTask(cmd=task, dur=dur)))
             return
-        
+
         self.session.output("[bold red]# ERROR: Invalid queue name")
 
-    @command(name="queueflush")
+    @command(name="flushqueue")
     def flush_the_queues(self, qn: Optional[str] = None):
         """Flush the action queues, optional qn for a specific queue"""
         try:

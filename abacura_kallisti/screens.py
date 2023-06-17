@@ -27,7 +27,8 @@ from abacura_kallisti.widgets.sidebars import LOKLeft, LOKRight
 if TYPE_CHECKING:
     from typing_extensions import Self
     from abacura.mud.session import Session
-
+    from abacura.plugins.director import Director
+    
 @inject
 class KallistiScreen(Screen):
     """Default Screen for sessions"""
@@ -82,7 +83,7 @@ class KallistiScreen(Screen):
         self.session.tl = self.tl
         self.session.launch_screen()
         cl = self.query_one("#commslog")
-        self.session.action_registry.register_object(cl)
+        self.session.director.register_object(cl)
 
     async def on_input_bar_user_command(self, command: InputBar.UserCommand) -> None:
         """Handle user input from InputBar"""
