@@ -1,16 +1,19 @@
 """A resizeable log window for communications"""
 from textual.app import ComposeResult
 from textual.containers import Container
-from textual.widgets import Static
+from textual.widgets import TextLog
 
 from abacura.widgets.resizehandle import ResizeHandle
 
 class CommsLog(Container):
     """
-    Textual container for what will be a scrolling, resizable widget.
-    We'll probably dock it at the top of the screen but layout choices is the user's call.
+    Textual container for scrolling, resizable widget.
     """
+    def __init__(self, id: str, name: str = ""):
+        super().__init__(id=id, name=name)
+        self.tl = TextLog(id="commsTL")
+        
+
     def compose(self) -> ComposeResult:
-        """Composes the comms log subwidgets"""
-        yield Static("comms log here")
-        yield ResizeHandle(self, 'bottom')
+        yield self.tl
+        yield ResizeHandle(self, "bottom")    
