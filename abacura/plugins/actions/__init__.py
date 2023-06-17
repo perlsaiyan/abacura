@@ -28,10 +28,10 @@ class Action:
         self.parameters = list(inspect.signature(callback).parameters.values())
 
         self.parameter_types = [p.annotation for p in self.parameters]
-        non_match_types = [Match, OutputMessage]
+        non_match_types = [Match, 'Match', OutputMessage, 'OutputMessage']
         self.expected_match_groups = len([t for t in self.parameter_types if t not in non_match_types])
 
-        valid_type_annotations = [str, int, float, inspect._empty, Match, OutputMessage]
+        valid_type_annotations = [str, 'str', int, float, inspect._empty, Match, 'Match', OutputMessage, 'OutputMessage']
         invalid_types = [t for t in self.parameter_types if t not in valid_type_annotations]
 
         if invalid_types:
@@ -80,14 +80,14 @@ class ActionManager:
         # perform type conversions
         if len(g) < action.expected_match_groups:
             msg = f"Incorrect # of match groups.  Expected {action.expected_match_groups}, got {g}"
-            self.session.output(f"[bold red] # ERROR: {msg} {repr(action)}")
+            self.session.output(f"[bold red] # ERROR: {msg} {repr(action)}", markup=True)
 
         args = []
 
         for arg_type in action.parameter_types:
             if arg_type == Match:
                 value = match
-            elif arg_type == OutputMessage:
+            elif arg_type == OutputMessage or arg_type == 'OutputMessage':
                 value = message
             elif callable(arg_type) and arg_type.__name__ != '_empty':
                 # fancy type conversion
