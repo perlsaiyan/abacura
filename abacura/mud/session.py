@@ -20,14 +20,12 @@ from abacura.config import Config
 from abacura.mud import BaseSession, OutputMessage
 from abacura.mud.options import GA
 from abacura.mud.options.msdp import MSDP
-from abacura.plugins.registry import ActionRegistry, CommandRegistry, TickerRegistry
-from abacura.plugins.plugin import PluginLoader
+from abacura.plugins.director import Director
+from abacura.plugins.loader import PluginLoader
 from abacura.plugins import command
-from abacura.plugins.aliases.manager import AliasManager
 from abacura.plugins.events import EventManager
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
     from abacura.abacura import Abacura
 
 
@@ -48,19 +46,14 @@ class Session(BaseSession):
         self.name = name
         self.host = None
         self.port = None
-        self.tl: Optional[TextLog] = None
+        self.tl: Optional[log] = None
         self.msdp: MSDP = MSDP(self.output, self.send, self)
         self.options = {}
         self.event_manager: EventManager = EventManager()
         self.dispatcher = self.event_manager.dispatcher
         self.listener = self.event_manager.listener
-        self.action_registry: Optional[ActionRegistry] = None
-        self.command_registry: Optional[CommandRegistry] = None
-        self.ticker_registry: Optional[TickerRegistry] = None
+        self.director: Optional[Director] = None
         self.plugin_loader: Optional[PluginLoader] = None
-
-        with Context(session=self, config=self.config):
-            self.alias_manager: AliasManager = AliasManager()
 
         with Context(config=self.config, session=self):
             if self.config.get_specific_option(name, "screen_class"):
@@ -87,18 +80,14 @@ class Session(BaseSession):
             time.sleep(1)
 
         with Context(session=self):
-            self.action_registry = ActionRegistry()
-            self.command_registry = CommandRegistry()
-            self.ticker_registry = TickerRegistry()
+            self.director = Director()
 
-        self.command_registry.register_object(self)
+        self.director.register_object(self)
 
         with Context(config=self.config, sessions=self.abacura.sessions, tl=self.tl,
-                     app=self.abacura, session=self, msdp=self.msdp, alias_manager=self.alias_manager,
-                     action_registry=self.action_registry, command_registry=self.command_registry,
-                     ticker_registry=self.ticker_registry):
+                     app=self.abacura, session=self, msdp=self.msdp, director=self.director):
             self.plugin_loader = PluginLoader()
-            self.screen.set_interval(interval=0.010, callback=self.ticker_registry.process_tick, name="tickers")
+            self.screen.set_interval(interval=0.01, callback=self.director.ticker_manager.process_tick, name="tickers")
 
         self.plugin_loader.load_plugins()
 
@@ -116,10 +105,10 @@ class Session(BaseSession):
         else:
             cmd = sl.split()[0]
 
-        if cmd.startswith("@") and self.command_registry.execute_command(line):
+        if cmd.startswith("@") and self.director.command_manager.execute_command(line):
             return
 
-        if self.alias_manager.handle(cmd, sl):
+        if self.director.alias_manager.handle(cmd, sl):
             return
 
         if self.connected:
@@ -145,8 +134,8 @@ class Session(BaseSession):
             self.output(f"[bold red]# NO-SESSION SEND: {msg}", markup=True, highlight=True)
 
     def output(self, msg,
-               markup: bool=False, highlight: bool=False, ansi: bool = False, actionable: bool=True,
-               gag: bool=False):
+               markup: bool = False, highlight: bool = False, ansi: bool = False, actionable: bool = True,
+               gag: bool = False):
 
         """Write to TextLog for this screen"""
         if self.tl is None:
@@ -163,8 +152,8 @@ class Session(BaseSession):
             elif re.match(r'^Enter your account name. If you do not have an account,', msg) and self.config.get_specific_option(self.name, "account_name"):
                 self.send(self.config.get_specific_option(self.name, "account_name"))
 
-            if self.action_registry:
-                self.action_registry.process_output(message)
+            if self.director and self.director.action_manager:
+                self.director.action_manager.process_output(message)
 
         if not message.gag:
             self.tl.markup = markup
@@ -174,7 +163,7 @@ class Session(BaseSession):
             else:
                 self.tl.write(message.message)
             self.tl.markup = False
-            self.tl.highlight =  False
+            self.tl.highlight = False
 
     async def telnet_client(self, host: str, port: int) -> None:
         """async worker to handle input/output on socket"""
@@ -195,18 +184,18 @@ class Session(BaseSession):
             try:
                 data = await reader.read(1)
             except BrokenPipeError:
-                self.output("[bold red]# Lost connection to server.", markup = True)
+                self.output("[bold red]# Lost connection to server.", markup=True)
                 self.connected = False
                 continue
 
             # Empty string means we lost our connection
             if data == b'':
-                self.output("[bold red]# Lost connection to server.", markup = True)
+                self.output("[bold red]# Lost connection to server.", markup=True)
                 self.connected = False
 
             # End of a MUD line in buffer, send for processing
             elif data == b'\n':
-                self.output(self.outb.decode("UTF-8", errors="ignore").replace("\r"," "), ansi = True)
+                self.output(self.outb.decode("UTF-8", errors="ignore").replace("\r", " "), ansi=True)
                 self.outb = b''
 
             # handle IAC sequences
@@ -278,7 +267,7 @@ class Session(BaseSession):
 
                 # telnet GA sequence, likely end of prompt
                 elif data == GA:
-                    self.output(self.outb.decode("UTF-8", errors="ignore"), ansi = True)
+                    self.output(self.outb.decode("UTF-8", errors="ignore"), ansi=True)
                     self.output("")
                     self.outb = b''
 

@@ -1,8 +1,9 @@
 from __future__ import annotations
 from serum import inject
 from typing import TYPE_CHECKING, Callable
-from abacura.plugins.registry import Action, Ticker, ActionRegistry, CommandRegistry, TickerRegistry
-from abacura.plugins.aliases.manager import AliasManager
+from abacura.plugins.director import Director
+from abacura.plugins.actions import Action
+from abacura.plugins.tickers import Ticker
 
 
 if TYPE_CHECKING:
@@ -14,10 +15,7 @@ if TYPE_CHECKING:
 class Plugin:
     """Generic Plugin Class"""
     session: Session
-    action_registry: ActionRegistry
-    command_registry: CommandRegistry
-    ticker_registry: TickerRegistry
-    alias_manager: AliasManager
+    director: Director
     msdp: MSDP
 
     def __init__(self):
@@ -25,9 +23,7 @@ class Plugin:
         self.plugin_enabled = True
         self.tickers = []
         self.substitutions = []
-        self.command_registry.register_object(self)
-        self.action_registry.register_object(self)
-        self.ticker_registry.register_object(self)
+        self.director.register_object(self)
 
     def get_name(self):
         return self.__class__.__name__
@@ -38,17 +34,17 @@ class Plugin:
 
     def add_action(self, pattern: str, callback_fn: Callable, flags: int = 0, name: str = '', color: bool = False):
         act = Action(source=self, pattern=pattern, callback=callback_fn, flags=flags, name=name, color=color)
-        self.action_registry.add(act)
+        self.director.action_manager.add(act)
 
     def remove_action(self, name: str):
-        self.action_registry.remove(name)
+        self.director.action_manager.remove(name)
 
     def add_ticker(self, seconds: float, callback_fn: Callable, repeats: int = 0, name: str = ''):
         ticker = Ticker(source=self, seconds=seconds, callback=callback_fn, repeats=repeats, name=name)
-        self.ticker_registry.add(ticker)
+        self.director.ticker_manager.add(ticker)
 
     def remove_ticker(self, name: str):
-        self.ticker_registry.remove(name)
+        self.director.ticker_manager.remove(name)
 
     def add_substitute(self, pattern: str, repl: str, name: str = ''):
         pass
