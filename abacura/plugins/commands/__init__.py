@@ -33,10 +33,10 @@ class Command:
         return self.callback(**d)
 
     def evaluate_argument(self, parameter: inspect.Parameter, submitted_value: str):
-        if parameter.annotation == int:
+        if parameter.annotation in [int, "int"]:
             return int(submitted_value)
 
-        if parameter.annotation == float:
+        if parameter.annotation in [float, "float"]:
             return float(submitted_value)
 
         return submitted_value
