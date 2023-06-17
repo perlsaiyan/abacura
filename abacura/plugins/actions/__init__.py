@@ -5,7 +5,7 @@ import re
 from typing import List, TYPE_CHECKING, Callable, Match
 
 from serum import inject
-
+from textual import log
 from abacura.mud import OutputMessage
 
 if TYPE_CHECKING:
@@ -56,6 +56,7 @@ class ActionManager:
         self.actions = [a for a in self.actions if a.source != obj]
 
     def add(self, action: Action):
+        log.debug(f"Appending action '{action.name}' from '{action.source}'")
         self.actions.append(action)
 
     def remove(self, name: str):
