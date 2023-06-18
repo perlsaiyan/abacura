@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from serum import inject
 
-from textual import log
+from textual import log, events
 from textual.app import ComposeResult
 from textual.containers import Container, Grid
 
@@ -155,9 +155,11 @@ class MapScreen(ModalScreen[bool]):
         log(f"{self.css_identifier_styled} popover")
         yield Grid(
                 Static("Map Overlay Screen", id="label"),
-                Button("Close", id="close"),
                 id="MapGrid"
         )
+
+    def on_key(self, event: events.Key) -> None:
+        self.dismiss(True)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "quit":
