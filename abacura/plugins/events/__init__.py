@@ -47,8 +47,7 @@ class EventManager():
 
     def listener(self, new_event: callable):
         """Add an event listener to a queue"""
-        log(f"Appending event '{new_event.event_name}'")
-        if new_event.event_name not in self.events:
+        if new_event.event_trigger not in self.events:
             self.events[new_event.event_trigger] = PriorityQueue()
 
         self.events[new_event.event_trigger].put(EventTask(new_event))
@@ -63,8 +62,9 @@ class EventManager():
                 cur_event = self.events[trigger].get()
                 newqueue.put(cur_event)
                 event_list.append(cur_event)
+
             self.events[trigger] = newqueue
-            return event_list
+
         return event_list
 
     def dispatcher(self, trigger: str, message):
