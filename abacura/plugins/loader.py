@@ -65,8 +65,8 @@ class PluginLoader(Plugin):
             try:
                 module = import_module(package)
             except Exception as exc:
-                self.session.output(f"[bold red]# ERROR LOADING PLUGIN {package} (from {pf}): {repr(exc)}",
-                                    markup=True, highlight=True)
+                self.session.show_exception(f"[bold red]# ERROR LOADING PLUGIN {package} (from {pf}): {repr(exc)}",
+                                    exc)
                 continue
 
             # Look for plugins subclasses within the module we just loaded and create a PluginHandler for each

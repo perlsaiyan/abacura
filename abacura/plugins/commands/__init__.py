@@ -175,7 +175,7 @@ class CommandManager:
             return True
 
         except (ValueError, NameError) as e:
-            self.session.show_exception(f"[bold red]# ERROR: {command.name}: {repr(e)}", e, show_tb=False)
+            self.session.show_exception(f"[bold red]# ERROR: {command.name}: {repr(e)}", e, show_tb=True)
             return True
 
         return True

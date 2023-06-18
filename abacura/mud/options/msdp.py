@@ -158,9 +158,12 @@ class MSDP(TelnetOption):
                     self.values[var] = int(self.values[var])
                 except ValueError:
                     pass
-            log(f"Firing event on {var} {self.values[var]}")
-            msg = MSDPMessage(varname, self.values[var], oldvalue="", subtype = "value_change")
+
+            # Two dispatchers here, first is "all", then "name specific"
+            msg = MSDPMessage(var, self.values[var], oldvalue="", subtype = "value_change")
+            self.session.dispatcher(f"msdp_value", msg)
             self.session.dispatcher(f"msdp_value_{var}", msg)
+
         else:
             # TODO this is a candidate for some kind of protocol.log
             self.handler(f"MSDP: Don't know how to handle {sb}")
