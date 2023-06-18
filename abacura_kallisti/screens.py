@@ -10,10 +10,10 @@ from serum import inject
 
 from textual import log
 from textual.app import ComposeResult
-from textual.containers import Container
+from textual.containers import Container, Grid
 
-from textual.screen import Screen
-from textual.widgets import Header, TextLog
+from textual.screen import Screen, ModalScreen
+from textual.widgets import Header, TextLog, Static, Button
 
 from abacura import InputBar
 from abacura.config import Config
@@ -22,6 +22,7 @@ from abacura.widgets.footer import AbacuraFooter
 from abacura.widgets.debug import DebugDock
 
 from abacura_kallisti.widgets import LOKLeft, LOKRight
+
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -40,7 +41,8 @@ class KallistiScreen(Screen):
         ("f2", "toggle_left_sidebar", "F2"),
         ("f3", "toggle_right_sidebar", "F3"),
         ("f4", "toggle_commslog", "F4"),
-        ("f5", "toggle_debug", "F5")
+        ("f5", "toggle_debug", "F5"),
+        ("f6", "toggle_map", "F6")
     ]
 
     AUTO_FOCUS = "InputBar"
@@ -50,6 +52,7 @@ class KallistiScreen(Screen):
         super().__init__()
         self.id = f"screen-{name}"
         self.tlid = f"output-{name}"
+        self._map_overlay = False
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the session"""
@@ -125,6 +128,15 @@ class KallistiScreen(Screen):
         self.tl.action_page_down()
         if self.tl.scroll_offset.x == 0:
             self.tl.auto_scroll = True
+    
+    def action_toggle_map(self) -> None:
+        def reset_mapkey():
+            self._map_overlay = False
+
+        if not self._map_overlay:
+            self._map_overlay = True
+            if self._map_overlay:
+                self.app.push_screen(MapScreen(id="LOKMap"), reset_mapkey())
 
 class BetterKallistiScreen(KallistiScreen):
     """
@@ -135,3 +147,20 @@ class BetterKallistiScreen(KallistiScreen):
     """
     DEFAULT_CLASSES = "BKS"
     pass
+
+class MapScreen(ModalScreen[bool]):  
+    """Screen with a dialog to quit."""
+
+    def compose(self) -> ComposeResult:
+        log(f"{self.css_identifier_styled} popover")
+        yield Grid(
+                Static("Map Overlay Screen", id="label"),
+                Button("Close", id="close"),
+                id="MapGrid"
+        )
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "quit":
+            self.dismiss(True)
+        else:
+            self.dismiss(False)
