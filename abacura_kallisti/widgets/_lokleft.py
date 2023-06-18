@@ -11,6 +11,7 @@ from abacura_kallisti.widgets import LOKCharacter, IndeterminateProgressBar
 
 
 class LOKLeft(Sidebar):
+    """Left hand dock, intended for user widgets"""
     def compose(self) -> ComposeResult:
         yield ResizeHandle(self, "right")
         with Container(id="leftsidecontainer", classes="SidebarContainer"):

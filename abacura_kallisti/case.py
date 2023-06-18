@@ -1,3 +1,7 @@
+"""
+Convert CamelCase to snake_case for easier naming of files
+"""
+
 import re
 from typing import Match, Pattern
 
