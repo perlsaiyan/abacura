@@ -146,7 +146,6 @@ class BetterKallistiScreen(KallistiScreen):
     their own stylesheet and CSS_PATH
     """
     DEFAULT_CLASSES = "BKS"
-    pass
 
 class MapScreen(ModalScreen[bool]):  
     """Screen with a dialog to quit."""

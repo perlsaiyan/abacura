@@ -16,4 +16,4 @@ class LOKComms(LOKPlugin):
         """Send gossips to the commslog"""
         if self.comms_textlog is None:
             self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
-        self.comms_textlog.write(f"{self._foo}{msg.message}")
+        self.comms_textlog.write(f"{msg.message}")

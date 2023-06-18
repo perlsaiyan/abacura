@@ -27,7 +27,6 @@ __LOCAL_CLASSES__ = [ "LOKPlugin" ]
 
 class LOKPlugin(Plugin):
     """Subclass of standard Plugin to allow insertion of Kallisti """
-    _foo: str = ">"
 
     def __init__(self):
         super().__init__()
