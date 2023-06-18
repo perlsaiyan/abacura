@@ -14,6 +14,7 @@ from abacura import AbacuraFooter
 from abacura.config import Config
 from abacura.mud.session import Session
 from abacura import Inspector
+from abacura.utils import pycharm
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -70,8 +71,13 @@ class Abacura(App):
 
 @click.command()
 @click.option("-c","--config", 'config')
+@click.option("-d", "--debug", "debug", type=str)
 @click.pass_context
-def main(ctx,config):
+def main(ctx, config, debug):
+    if debug:
+        host, port = debug.split(":")
+        pycharm.PycharmDebugger().connect(host, int(port))
+
     """Entry point for client"""
     _config = Config(config=config)
 

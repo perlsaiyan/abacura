@@ -28,14 +28,3 @@ class CommandHelper(Plugin):
         """Display list of commands"""
         self.help()
 
-    @command
-    def plugin(self) -> None:
-        """Get information about plugins"""
-
-        self.session.output("Current registered global plugins:")
-
-        for plugin_name, plugin in self.session.plugin_loader.plugins.items():
-            indicator = '[bold green]✓' if plugin.plugin_enabled else '[bold red]x'
-            self.session.output(
-                f"{indicator} [white]{plugin.get_name()}" +
-                f" - {plugin.get_help()}", markup=True)

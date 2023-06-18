@@ -5,8 +5,6 @@ from typing import Any
 
 from tomlkit import parse
 
-from abacura.plugins import command, Plugin
-
 DEFAULT_GLOBAL_CONFIG = {
     "module_paths": [],
     "css_path": "abacura.css",
@@ -39,7 +37,7 @@ class Config:
         except Exception as config_exception:
             print(f"{cfile}: {repr(config_exception)}")
 
-    def get_specific_option(self, section: str, key: str) -> Any:
+    def get_specific_option(self, section: str, key: str, default=None) -> Any:
         """Get configuration value for section, global, or default"""
 
         if section in self.config and key in self.config[section]:
@@ -51,7 +49,7 @@ class Config:
         if key in DEFAULT_GLOBAL_CONFIG:
             return DEFAULT_GLOBAL_CONFIG[key]
 
-        return None
+        return default
 
     @property
     def config(self):
