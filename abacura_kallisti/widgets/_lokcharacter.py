@@ -30,6 +30,7 @@ class LOKCharacterStatic(Static):
     character_class: reactive[str | None] = reactive[str | None](None)
     character_level: reactive[int | None] = reactive[int | None](None)
     mud_uptime: reactive[int | None] = reactive[int | None](None)
+    
 
     # TODO this could be cleaner, and potentially one-shot msdp reactives
     def on_mount(self):
@@ -41,6 +42,7 @@ class LOKCharacterStatic(Static):
         * Register a function self.msdp_update_generic to the MSDP var events
             (this could live in a parent class)
         """
+      
 
         for hook in [("character_name", "CHARACTER_NAME", self.update_char_name),
                      ("character_class", "CLASS", self.update_char_class),
@@ -87,4 +89,5 @@ class LOKCharacterStatic(Static):
 
     @event("msdp_value_UPTIME")
     def update_mud_uptime(self, message: MSDPMessage):
-        self.mud_uptime = message.value
+        self.mud_uptime  = self.screen.session._lokmsdp.uptime
+        #self.mud_uptime = message.value

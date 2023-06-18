@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from importlib import import_module
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Any
 
 from textual import log
 from textual.widget import Widget
@@ -27,9 +27,18 @@ __LOCAL_CLASSES__ = [ "LOKPlugin" ]
 
 class LOKPlugin(Plugin):
     """Subclass of standard Plugin to allow insertion of Kallisti """
+    _msdp: Dict[str, Dict[str, Any]] = {}
 
     def __init__(self):
         super().__init__()
+
+    @property
+    def uptime(self) -> int:
+
+        if self.session.name in self._msdp and "UPTIME" in self._msdp[self.session.name]:
+            return self._msdp[self.session.name]["UPTIME"]
+        
+        return 0
 
 
 _WIDGETS_LAZY_LOADING_CACHE: dict[str, type[Widget]] = {}
