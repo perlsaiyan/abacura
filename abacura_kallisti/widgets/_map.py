@@ -1,0 +1,3 @@
+
+class LOKMap():
+    pass

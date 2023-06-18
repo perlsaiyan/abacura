@@ -21,7 +21,7 @@ from abacura.widgets import Inspector, CommsLog
 from abacura.widgets.footer import AbacuraFooter
 from abacura.widgets.debug import DebugDock
 
-from abacura_kallisti.widgets.sidebars import LOKLeft, LOKRight
+from abacura_kallisti.widgets import LOKLeft, LOKRight
 
 if TYPE_CHECKING:
     from typing_extensions import Self
