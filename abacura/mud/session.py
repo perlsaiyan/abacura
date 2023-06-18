@@ -15,6 +15,7 @@ from serum import inject, Context
 from textual import log
 from textual.screen import Screen
 
+from abacura.utils.ring_buffer import RingBufferLogSql
 from abacura import SessionScreen, AbacuraFooter
 from abacura.config import Config
 from abacura.mud import BaseSession, OutputMessage
@@ -54,6 +55,7 @@ class Session(BaseSession):
         self.listener = self.event_manager.listener
         self.director: Optional[Director] = None
         self.plugin_loader: Optional[PluginLoader] = None
+        self.ring_buffer: Optional[RingBufferLogSql] = None
 
         with Context(config=self.config, session=self):
             if self.config.get_specific_option(name, "screen_class"):
@@ -66,6 +68,10 @@ class Session(BaseSession):
 
             else:
                 self.abacura.install_screen(SessionScreen(name), name=name)
+
+        if ring_filename := self.config.get_specific_option(name, "ring_filename"):
+            ring_size = self.config.get_specific_option(name, "ring_size", 10000)
+            self.ring_buffer = RingBufferLogSql(ring_filename, ring_size)
 
         self.abacura.push_screen(name)
         self.screen = self.abacura.query_one(f"#screen-{name}", expect_type=Screen)
@@ -135,7 +141,7 @@ class Session(BaseSession):
 
     def output(self, msg,
                markup: bool = False, highlight: bool = False, ansi: bool = False, actionable: bool = True,
-               gag: bool = False):
+               gag: bool = False, loggable: bool = True):
 
         """Write to TextLog for this screen"""
         if self.tl is None:
@@ -162,6 +168,10 @@ class Session(BaseSession):
                 self.tl.write(Text.from_ansi(message.message))
             else:
                 self.tl.write(message.message)
+
+            # TODO: Add location / vnum and any other context to the log
+            if self.ring_buffer and loggable:
+                self.ring_buffer.log(message)
             self.tl.markup = False
             self.tl.highlight = False
 

@@ -46,6 +46,9 @@ class PluginLoader(Plugin):
         for mod in ab_modules:
             log.info(f"Loading plugins from {mod}")
             spec = find_spec(mod)
+            if not spec:
+                continue
+
             for pathspec in spec.submodule_search_locations:
                 for dirpath, _, filenames in os.walk(pathspec):
                     for filename in [f for f in filenames if f.endswith(".py") and not f.startswith('_') and os.path.join(dirpath, f) != __file__]:
