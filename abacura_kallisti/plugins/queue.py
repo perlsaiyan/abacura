@@ -12,7 +12,9 @@ from datetime import datetime
 from typing import List, Dict, Optional
 
 from textual import log
-from abacura.plugins import Plugin, command, action
+from abacura.plugins import command, action
+
+from abacura_kallisti.plugins import LOKPlugin
 
 class InvalidQueueName(Exception):
     pass
@@ -33,7 +35,7 @@ class QueueTask():
     def __eq__(self, other):
         return self.insert_time == other.insert_time
     
-class LOKQueueRunner(Plugin):
+class LOKQueueRunner(LOKPlugin):
     """Manage action queues by priority"""
 
     _QUEUE_NAMES: List = ["Priority", "Combat", "NCO", "Any", "Move"]

@@ -1,7 +1,9 @@
-from abacura.plugins import Plugin, command
+from abacura.plugins import command
+
+from abacura_kallisti.plugins import LOKPlugin
 
 
-class LegendsOfKallisti(Plugin):
+class LegendsOfKallisti(LOKPlugin):
     """Main plugin for LOK modules"""
 
     @command
