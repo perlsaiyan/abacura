@@ -1,7 +1,7 @@
 """Main Textual App and Entrypoint"""
 from pathlib import Path
 import sys
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Dict, Optional
 from collections import OrderedDict
 
 import click
@@ -28,7 +28,7 @@ class Abacura(App):
     AUTO_FOCUS = "InputBar"
     CSS_PATH = ["abacura.css"]
     SCREENS = {}
-
+    START_SESSION: Optional[str] = None
     BINDINGS = [
         ("ctrl+d", "toggle_dark", "Toggle dark mode"),
         ("ctrl+q", "quit", "Quit"),
@@ -44,6 +44,8 @@ class Abacura(App):
     def on_mount(self) -> None:
         """When app is mounted, create first session"""
         self.create_session("null")
+        if self.START_SESSION:
+            self.create_session(self.START_SESSION)
 
     def create_session(self, name: str) -> None:
         """Create a session"""
@@ -72,8 +74,9 @@ class Abacura(App):
 @click.command()
 @click.option("-c","--config", 'config')
 @click.option("-d", "--debug", "debug", type=str)
+@click.option("-s", "--start", "start", type=str)
 @click.pass_context
-def main(ctx, config, debug):
+def main(ctx, config, debug, start):
     if debug:
         host, port = debug.split(":")
         pycharm.PycharmDebugger().connect(host, int(port))
@@ -99,4 +102,7 @@ def main(ctx, config, debug):
 
     with Context(config=_config):
         app = Abacura()
+
+    Abacura.START_SESSION = start
+
     app.run()
