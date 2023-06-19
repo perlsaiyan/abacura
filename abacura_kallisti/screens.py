@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from typing_extensions import Self
     from abacura.mud.session import Session
     from abacura.plugins.director import Director
+    from abacura_kallisti.atlas.world import World
     
 @inject
 class KallistiScreen(Screen):
@@ -136,7 +137,7 @@ class KallistiScreen(Screen):
         if not self._map_overlay:
             self._map_overlay = True
             if self._map_overlay:
-                self.app.push_screen(MapScreen(id="LOKMap"), reset_mapkey())
+                self.app.push_screen(MapScreen(id="LOKMap", session=self.session, world=self.screen.session.world), reset_mapkey())
 
 class BetterKallistiScreen(KallistiScreen):
     """
@@ -150,6 +151,11 @@ class BetterKallistiScreen(KallistiScreen):
 class MapScreen(ModalScreen[bool]):  
     """Screen with a dialog to quit."""
 
+    def __init__(self, session: Session, world: World, **kwargs):
+        super().__init__(id=kwargs["id"],*kwargs)
+        self.session = session
+        self.world = world
+
     def compose(self) -> ComposeResult:
         log(f"{self.css_identifier_styled} popover")
         yield Grid(
@@ -157,9 +163,9 @@ class MapScreen(ModalScreen[bool]):
                 id="MapGrid"
         )
 
-    def on_mount(self) -> None:
-        map = self.query_one("#bigmap")
-        map.generate_map()
+#    def on_mount(self) -> None:
+#        map = self.query_one("#bigmap")
+#        map.generate_map()
 
     def on_key(self, event: events.Key) -> None:
         self.dismiss(True)
