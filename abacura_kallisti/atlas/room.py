@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List
 
-from atlas import encounter
+import encounter
 
 
 # @dataclass(slots=True)
