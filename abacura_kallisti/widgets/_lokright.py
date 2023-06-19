@@ -6,13 +6,14 @@ from textual.widgets import Static
 
 from abacura.widgets.sidebar import Sidebar
 from abacura.widgets.resizehandle import ResizeHandle
-           
+
+from abacura_kallisti.widgets import LOKMap
 class LOKRight(Sidebar):
     """Right hand dock, intended for user widgets"""
     def compose(self) -> ComposeResult:
         yield ResizeHandle(self, "left")
         with Container(id="rightsidecontainer", classes="SidebarContainer"):
-            yield Static("Pending Sixel Support :)", classes="Map")
+            yield LOKMap(id="lokmap")
             yield Static("Zone", classes="WidgetTitle")
             yield Static("[bright blue]Ruins of DongDong\n[green]Level: [white]75-100")
             yield Static("Action Queues", classes="WidgetTitle")

@@ -13,11 +13,13 @@ if TYPE_CHECKING:
     from ._indeterminate_progress_bar import IndeterminateProgressBar
     from ._lokleft import LOKLeft
     from ._lokright import LOKRight
+    from ._lokmap import LOKMap
     
 
 __all__ = [
     "LOKCharacter",
     "LOKLeft",
+    "LOKMap",
     "LOKRight",
     "IndeterminateProgressBar",
 ]
