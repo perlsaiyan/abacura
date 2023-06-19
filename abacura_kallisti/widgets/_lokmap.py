@@ -172,11 +172,7 @@ class LOKMap(Container):
                 x += 5
             y += 3
 
-        buf = ""
-        for yp in a_map:
-            buf += ''.join(yp) + "\n"
- 
-        return buf
+        return "\n".join([''.join(yp) for yp in a_map])
 
     def on_resize(self, event: Resize):
         if getattr(self.screen.session, "world", None):
