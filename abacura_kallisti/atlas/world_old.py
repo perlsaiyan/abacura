@@ -3,8 +3,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional
-from atlas.room import ScannedRoom
-from atlas.wilderness import WildernessGrid
+from abacura_kallisti.atlas.room import ScannedRoom
+from abacura_kallisti.atlas.wilderness import WildernessGrid
 
 import re
 

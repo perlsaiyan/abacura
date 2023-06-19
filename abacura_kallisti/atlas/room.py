@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List
 
-import encounter
+from . import encounter
 
 
 # @dataclass(slots=True)

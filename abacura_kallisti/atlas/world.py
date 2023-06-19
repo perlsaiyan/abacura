@@ -4,8 +4,8 @@ from dataclasses import dataclass, field, fields, astuple
 from datetime import datetime
 from typing import List, Dict, Optional
 
-from room import ScannedRoom
-from wilderness import WildernessGrid
+from .room import ScannedRoom
+from .wilderness import WildernessGrid
 
 
 # TODO: Use the abacura methods for strip_ansi_codes
