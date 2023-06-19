@@ -33,13 +33,7 @@ class LOKMSDP(LOKPlugin):
 
     @event("msdp_value")
     def update_lok_msdp(self, message: MSDPMessage):
-
         if not self.session.name in LOKPlugin._msdp:
             LOKPlugin._msdp[self.session.name] = {}
 
-        if message.type not in LOKPlugin._msdp[self.session.name]:
-            LOKPlugin._msdp[self.session.name][message.type] = reactive(message.value)
-        else:
-            LOKPlugin._msdp[self.session.name][message.type] = message.value
-
-        log(f"Do update on value {message.type} and {message.__dict__}")
+        LOKPlugin._msdp[self.session.name][message.type] = message.value
