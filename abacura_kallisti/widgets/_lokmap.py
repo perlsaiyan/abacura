@@ -11,14 +11,20 @@ from abacura.widgets.resizehandle import ResizeHandle
 
 class LOKMap(Container):
 
-    def compose(self) -> ComposeResult:
+    def __init__(self, resizer: bool=True, id: str=""):
+        super().__init__()
+        self.id=id
+        self.resizer: bool = resizer
         self.map = Static(id="minimap", classes="lokmap", expand=True)
-#        with Center():
+        
+
+    def compose(self) -> ComposeResult:
         with Middle():
             yield self.map
-        yield ResizeHandle(self, "bottom")
+        if self.resizer:
+            yield ResizeHandle(self, "bottom")
 
-    def generate_map(self, msg) -> None:
+    def generate_map(self) -> None:
         log("regenerate a MAP")
         H = self.content_size.height - 1
         W = self.content_size.width
@@ -34,12 +40,11 @@ class LOKMap(Container):
         buf = f"width {self.map.container_size.width} or {W}\n"
         buf += f"height {self.map.container_size.height} or {H}\n"
         buf += f"viewport {self.content_size}\n"
-        buf += f"centerpoint: {cW}x{cH}\n"
+        buf += f"rooms: {cW}x{cH}\n"
         buf += f"{cenW} {cenH}"
 
         
         self.map.update(buf)
     
     def on_resize(self, event: Resize):
-        buf = f"{event}\n"
-        self.generate_map(buf)
+        self.generate_map()

@@ -21,7 +21,7 @@ from abacura.widgets import Inspector, CommsLog
 from abacura.widgets.footer import AbacuraFooter
 from abacura.widgets.debug import DebugDock
 
-from abacura_kallisti.widgets import LOKLeft, LOKRight
+from abacura_kallisti.widgets import LOKLeft, LOKRight, LOKMap
 
 
 if TYPE_CHECKING:
@@ -153,9 +153,13 @@ class MapScreen(ModalScreen[bool]):
     def compose(self) -> ComposeResult:
         log(f"{self.css_identifier_styled} popover")
         yield Grid(
-                Static("Map Overlay Screen", id="label"),
+            LOKMap(id="bigmap", resizer=False),
                 id="MapGrid"
         )
+
+    def on_mount(self) -> None:
+        map = self.query_one("#bigmap")
+        map.generate_map()
 
     def on_key(self, event: events.Key) -> None:
         self.dismiss(True)
