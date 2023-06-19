@@ -174,9 +174,9 @@ class LOKMap(Container):
 
         return "\n".join([''.join(yp) for yp in a_map])
 
+    # TODO remove this loading when the world is mounted on a session
     def on_resize(self, event: Resize):
         if getattr(self.screen.session, "world", None):
             if self.world is None:
-                log("Load the world")
                 self.world = self.screen.session.world
             self.generate_map()

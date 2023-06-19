@@ -24,7 +24,7 @@ class IndeterminateProgressBar(Widget):
 
     def on_mount(self) -> None:
         """Set up a timer to simulate progess happening."""
-        self.progress_timer = self.set_interval(1 / 10, self.make_progress, pause=True)
+        self.progress_timer = self.set_interval(1, self.make_progress, pause=True)
         self.action_start()
 
     def make_progress(self) -> None:
