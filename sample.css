@@ -1,3 +1,4 @@
+# SAMPLE CSS file, will eventually become the default
 App {
 
 }
@@ -7,6 +8,10 @@ Screen {
 
 #LOKMap {
         align: center middle;
+}
+
+#rightsidecontainer #lokmap {
+        height: 15;
 }
 
 Grid#MapGrid {
