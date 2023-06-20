@@ -1,15 +1,17 @@
 """Legends of Kallisti Specific Widgets"""
 from __future__ import annotations
 
-from importlib import import_module
 import sys
-from typing import TYPE_CHECKING, Dict, Any
+from importlib import import_module
+from typing import TYPE_CHECKING
 
+from serum import inject
 from textual import log
 from textual.widget import Widget
 
 from abacura.plugins import Plugin
-
+from abacura_kallisti.atlas.world import World
+from abacura_kallisti.plugins.msdp import TypedMSDP
 from ..case import camel_to_snake
 
 if TYPE_CHECKING:
@@ -25,9 +27,11 @@ __all__ = [
 
 __LOCAL_CLASSES__ = [ "LOKPlugin" ]
 
+@inject
 class LOKPlugin(Plugin):
     """Subclass of standard Plugin to allow insertion of Kallisti """
-    _msdp: Dict[str, Dict[str, Any]] = {}
+    msdp: TypedMSDP
+    world: World
 
     def __init__(self):
         super().__init__()
@@ -35,8 +39,8 @@ class LOKPlugin(Plugin):
     @property
     def uptime(self) -> int:
 
-        if self.session.name in self._msdp and "UPTIME" in self._msdp[self.session.name]:
-            return self._msdp[self.session.name]["UPTIME"]
+        if "UPTIME" in self.msdp.values:
+            return self.msdp.values["UPTIME"]
         
         return 0
 
@@ -68,6 +72,7 @@ def __getattr__(widget_class: str) -> type[Widget]:
     _WIDGETS_LAZY_LOADING_CACHE[widget_class] = class_
 
     return class_
+
 __all__ = [
 
 ]
