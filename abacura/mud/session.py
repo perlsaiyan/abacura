@@ -69,7 +69,6 @@ class Session(BaseSession):
             if self.config.get_specific_option(name, "screen_class"):
                 (package, screen_class) = self.config.get_specific_option(name, "screen_class").rsplit(".", 1)
                 log(f"Importing a package {package}")
-                log(sys.path)
                 mod = import_module(package)
                 user_screen = getattr(mod, screen_class)
                 self.screen = user_screen(name)
