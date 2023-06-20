@@ -12,3 +12,9 @@ There are some options you can overload a class for if you don't like the abacur
 * Screens
 * Bindings
 
+Working:
+* Maps :)
+
+Todo:
+* Custom MSDP with typed values
+

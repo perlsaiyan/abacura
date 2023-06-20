@@ -20,13 +20,14 @@ if TYPE_CHECKING:
     from abacura_kallisti.atlas.world import World
 
 class MapPoint():
+    """Class to hold a room vnum and its location in our rooms matrix"""
     def __init__(self, room: str, x: int, y: int):
         self.room = room
         self.x = x
         self.y = y
 
 class LOKMap(Container):
-
+    """Main map widget, used in sidebars and bigmap screen"""
     world: Optional[World] = None
 
     def __init__(self, resizer: bool=True, id: str=""):
@@ -108,6 +109,7 @@ class LOKMap(Container):
         self.map.update(buf)
     
     def get_terrain_icon(self, terrain: str) -> str:
+        """Return terrain color/icon"""
         if 'Inside' in terrain:
             return "[on rgb(55,59,65)] [/on rgb(55,59,65)]"
         if 'City' in terrain:
@@ -122,6 +124,7 @@ class LOKMap(Container):
             return "[on rgb(52,124,186)] [/on rgb(52,124,186)]"
         
         return " "
+
     def draw_map(self, Matrix, cW, cH) -> str:
         ytmp = len(Matrix) * 3
         xtmp = int((cW - len(Matrix[0])*5)/ 2)
@@ -193,5 +196,6 @@ class LOKMap(Container):
 
     @event("msdp_value_ROOM_VNUM")
     def recenter_map(self, message: MSDPMessage):
+        """Event to trigger map redraws on movement"""
         self.START_ROOM = str(message.value)
         self.generate_map()
