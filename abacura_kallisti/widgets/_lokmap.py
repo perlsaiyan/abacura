@@ -11,6 +11,8 @@ from textual.containers import Container, Center, Middle
 from textual.widget import Widget
 from textual.widgets import Static
 
+from abacura.plugins.events import event
+from abacura.mud.options.msdp import MSDPMessage
 from abacura.widgets.resizehandle import ResizeHandle
 
 if TYPE_CHECKING:
@@ -32,7 +34,7 @@ class LOKMap(Container):
         self.id=id
         self.resizer: bool = resizer
         self.map = Static(id="minimap", classes="lokmap", expand=True)
-
+        self.START_ROOM = None
 
     def compose(self) -> ComposeResult:
         yield self.map
@@ -40,11 +42,13 @@ class LOKMap(Container):
             yield ResizeHandle(self, "bottom")
 
     def on_mount(self) -> None:
+        # Register our listener until we have a RegisterableObject to descend from
+        self.screen.session.listener(self.recenter_map)
         pass
 
     def generate_map(self) -> None:
         #START_ROOM='3001'
-        START_ROOM='3001'
+        log(f"Generating map around {self.START_ROOM}")
         BFS = []
        
         H = self.content_size.height - 1
@@ -54,9 +58,15 @@ class LOKMap(Container):
         cenH = int(cH/2)
         cenW = int(cW/2)
 
+        # check if we're in a bad resize state and bail out
+        if cW == 0 or cH == 0:
+            return
         # Y is first in the matrix!
         Matrix = [['' for x in range(cW)] for y in range(cH)]
-        room = self.world.rooms[START_ROOM]
+        try:
+            room = self.world.rooms[self.START_ROOM]
+        except KeyError:
+            return
         visited = {}
 
         BFS.append(MapPoint(room.vnum, cenW-1, cenH))
@@ -94,7 +104,7 @@ class LOKMap(Container):
                         BFS.append(MapPoint(room.exits["west"].to_vnum, here.x-1, here.y))        
 
         # draw the map with Matrix of size Viewport
-        buf =self.draw_map(Matrix, self.content_size.width, self.content_size.height-1, cur_room="3001")
+        buf =self.draw_map(Matrix, self.content_size.width, self.content_size.height-1)
         self.map.update(buf)
     
     def get_terrain_icon(self, terrain: str) -> str:
@@ -112,7 +122,7 @@ class LOKMap(Container):
             return "[on rgb(52,124,186)] [/on rgb(52,124,186)]"
         
         return " "
-    def draw_map(self, Matrix, cW, cH, cur_room: str="") -> str:
+    def draw_map(self, Matrix, cW, cH) -> str:
         ytmp = len(Matrix) * 3
         xtmp = int((cW - len(Matrix[0])*5)/ 2)
         
@@ -131,7 +141,7 @@ class LOKMap(Container):
                     
                 room = self.world.rooms[xp]
                 t_icon = self.get_terrain_icon(room.terrain)
-                if room.vnum == cur_room:
+                if room.vnum == self.START_ROOM:
                     a_map[y][x] = "[bold red]@[/bold red]"
                 
                 a_map[y-1][x-1] = t_icon
@@ -180,3 +190,8 @@ class LOKMap(Container):
             if self.world is None:
                 self.world = self.screen.session.world
             self.generate_map()
+
+    @event("msdp_value_ROOM_VNUM")
+    def recenter_map(self, message: MSDPMessage):
+        self.START_ROOM = str(message.value)
+        self.generate_map()
