@@ -304,10 +304,9 @@ class Session(BaseSession):
         log(f"connect: {name} {host}:{port}")
 
         if name in self.abacura.sessions:
-            self.session.output("[bold red]# SESSION ALREADY EXISTS", markup=True)
+            self.output("[bold red]# SESSION ALREADY EXISTS", markup=True)
         elif name not in self.config.config and (not host or not port):
-            self.session.output(
-                " [bold red]#connect <session name> <host> <port>", markup=True, highlight=True)
+            self.output(" [bold red]#connect <session name> <host> <port>", markup=True, highlight=True)
         else:
             self.abacura.create_session(name)
             if host and port:
