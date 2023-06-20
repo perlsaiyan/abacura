@@ -16,7 +16,7 @@ class Plugin:
     """Generic Plugin Class"""
     session: Session
     director: Director
-    msdp: MSDP
+    core_msdp: MSDP
 
     def __init__(self):
         # super().__init__()

@@ -44,7 +44,7 @@ class Session(BaseSession):
         self.host = None
         self.port = None
         self.tl: Optional[log] = None
-        self.msdp: MSDP = MSDP(self.output, self.send, self)
+        self.core_msdp: MSDP = MSDP(self.output, self.send, self)
         self.options = {}
         self.event_manager: EventManager = EventManager()
         self.dispatcher = self.event_manager.dispatcher
@@ -62,7 +62,7 @@ class Session(BaseSession):
             self.director.register_object(self)
 
         self.plugin_context: Context = Context(config=self.config, session=self, app=self.abacura,
-                                               sessions=self.abacura.sessions, msdp=self.msdp,
+                                               sessions=self.abacura.sessions, core_msdp=self.core_msdp,
                                                director=self.director)
 
         with self.plugin_context:
@@ -102,7 +102,7 @@ class Session(BaseSession):
     def register_options(self):
         """Set up telnet options handlers"""
         # TODO swap to context?
-        self.options[self.msdp.code] = self.msdp
+        self.options[self.core_msdp.code] = self.core_msdp
 
     def player_input(self, line) -> None:
         """This is entry point of the inputbar on the screen"""        
