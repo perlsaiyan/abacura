@@ -45,11 +45,15 @@ class LOKMap(Container):
     def on_mount(self) -> None:
         # Register our listener until we have a RegisterableObject to descend from
         self.screen.session.listener(self.recenter_map)
-        pass
+        self.world = self.screen.world
+
 
     def generate_map(self) -> None:
         #START_ROOM='3001'
-        log(f"Generating map around {self.START_ROOM}")
+        # Bail if we don't have a start room
+        if self.START_ROOM == "":
+            log.warning("No start room present for map, do not draw")
+            return
         BFS = []
        
         H = self.content_size.height - 1
@@ -62,6 +66,7 @@ class LOKMap(Container):
         # check if we're in a bad resize state and bail out
         if cW == 0 or cH == 0:
             return
+
         # Y is first in the matrix!
         Matrix = [['' for x in range(cW)] for y in range(cH)]
         try:
@@ -126,14 +131,11 @@ class LOKMap(Container):
         return " "
 
     def draw_map(self, Matrix, cW, cH) -> str:
-        ytmp = len(Matrix) * 3
         xtmp = int((cW - len(Matrix[0])*5)/ 2)
         
         a_map = [[' ' for x in range(cW)] for y in range(cH)]
         # subtract one for the 0-index array
         y = 2 - 1
-        #x = xtmp + 3 - 1
-        # Let's just pad X for now
 
         for yp in Matrix:
             x = xtmp + 3 -1
@@ -187,12 +189,8 @@ class LOKMap(Container):
 
         return "\n".join([''.join(yp) for yp in a_map])
 
-    # TODO remove this loading when the world is mounted on a session
     def on_resize(self, event: Resize):
-        if getattr(self.screen.session, "world", None):
-            if self.world is None:
-                self.world = self.screen.session.world
-            self.generate_map()
+        self.generate_map()
 
     @event("msdp_value_ROOM_VNUM")
     def recenter_map(self, message: MSDPMessage):

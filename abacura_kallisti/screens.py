@@ -139,8 +139,7 @@ class KallistiScreen(Screen):
 
         if not self._map_overlay:
             self._map_overlay = True
-            if self._map_overlay:
-                self.app.push_screen(MapScreen(id="LOKMap", session=self.session, world=self.world), reset_mapkey())
+            self.app.push_screen(MapScreen(id="LOKMap", session=self.session, world=self.world), reset_mapkey())
 
 class BetterKallistiScreen(KallistiScreen):
     """
@@ -157,22 +156,16 @@ class MapScreen(ModalScreen[bool]):
     def __init__(self, session: Session, world: World, **kwargs):
         super().__init__(id=kwargs["id"],*kwargs)
         self.session = session
-        
-
         self.world = world
 
     def compose(self) -> ComposeResult:
-        log(f"{self.css_identifier_styled} popover")
+        
         bigmap = LOKMap(id="bigmap", resizer=False)
-        bigmap.START_ROOM = str(self.session.options[69].values["ROOM_VNUM"])
+        bigmap.START_ROOM = str(self.session.core_msdp.values["ROOM_VNUM"])
         yield Grid(
                 bigmap, 
                 id="MapGrid"
         )
-
-#    def on_mount(self) -> None:
-#        map = self.query_one("#bigmap")
-#        map.generate_map()
 
     def on_key(self, event: events.Key) -> None:
         self.dismiss(True)
