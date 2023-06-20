@@ -91,7 +91,7 @@ class Session(BaseSession):
 
         while self.tl is None:
             self.tl = self.screen.query_one(f"#output-{self.name}")
-            time.sleep(1)
+            time.sleep(0.1)
 
         with self.plugin_context:
             self.plugin_loader = PluginLoader()
@@ -183,7 +183,7 @@ class Session(BaseSession):
 
         while self.tl is None:
             log.warning("TL not available, sleeping 1 second before connection")
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.1)
 
         log.info(f"Session {self.name} connecting to {host} {port}")
         reader, self.writer = await asyncio.open_connection(host, port)
