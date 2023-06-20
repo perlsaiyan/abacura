@@ -39,9 +39,6 @@ class PluginLoader:
                         shortpath = dirpath.replace(pathspec, "") or "/"
                         plugin_modules.append(mod + os.path.join(shortpath, filename))
 
-        # TODO: We may want to handle case where we are loading plugins a second time
-        self.plugins = {}
-
         # import each one of the modules corresponding to each plugin .py file
         for pf in plugin_modules:
             package = pf.replace(os.sep, ".")[:-3]  # strip .py
