@@ -1,6 +1,7 @@
 """Main screen and widgets for abacura"""
 from __future__ import annotations
 
+# TODO: screen and widget definitions should go under the hierarchy, not in __init__
 import csv
 import io
 from typing import TYPE_CHECKING, Coroutine, Any
@@ -43,7 +44,7 @@ class SessionScreen(Screen):
     AUTO_FOCUS = "InputBar"
 
     def __init__(self, name: str):
-        # TODO The next release of textual should let us clean up per-session screens
+        # TODO The 0.28.0 release of textual let us assign CSS_PATH at the screen level
         self.CSS_PATH = self.config.get_specific_option(self.session.name, "css_path") or "abacura.css"
         super().__init__()
 

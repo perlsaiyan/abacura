@@ -85,9 +85,10 @@ class Session(BaseSession):
 
         self.screen.set_interval(interval=0.01, callback=self.director.ticker_manager.process_tick, name="tickers")
 
-    # TODO: This should possibly be an Message from the SessionScreen
+    # TODO: This doesn't launch a screen anymore, it loads plugins
     def launch_screen(self):
         """Fired on screen mounting, so our Footer is updated and Session gets a TextLog handle"""
+        #TODO this is static and can be updated at start?
         self.screen.query_one(AbacuraFooter).session = self.name
 
         while self.tl is None:
