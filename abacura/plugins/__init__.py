@@ -24,6 +24,7 @@ class Plugin:
         self.tickers = []
         self.substitutions = []
         self.director.register_object(self)
+        self.output = self.session.output
 
     def get_name(self):
         return self.__class__.__name__

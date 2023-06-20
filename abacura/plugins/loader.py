@@ -8,7 +8,6 @@ from typing import Dict, TYPE_CHECKING
 
 from serum import inject, Context
 from textual import log
-from textual.widgets import TextLog
 
 from abacura import Config
 from abacura.mud.options.msdp import MSDP
@@ -23,11 +22,9 @@ if TYPE_CHECKING:
 class PluginLoader(Plugin):
     """Loads all plugins and registers them"""
     config: Config
-    sessions: dict
     session: Session
     msdp: MSDP
     director: Director
-    tl: TextLog
 
     def __init__(self):
         super().__init__()
