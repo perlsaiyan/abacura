@@ -4,43 +4,30 @@ import inspect
 import os
 from importlib import import_module
 from importlib.util import find_spec
-from typing import Dict, TYPE_CHECKING
+from typing import Dict, TYPE_CHECKING, List
 
-from serum import inject, Context
+from serum import Context
 from textual import log
 
-from abacura import Config
-from abacura.mud.options.msdp import MSDP
 from abacura.plugins import Plugin
-from abacura.plugins.director import Director
 
 if TYPE_CHECKING:
-    from abacura.mud.session import Session
+    pass
 
 
-@inject
-class PluginLoader(Plugin):
+class PluginLoader:
     """Loads all plugins and registers them"""
-    config: Config
-    session: Session
-    core_msdp: MSDP
-    director: Director
 
     def __init__(self):
         super().__init__()
         self.plugins: Dict[str, Plugin] = {}
 
-    def load_plugins(self) -> None:
+    def load_plugins(self, modules: List, plugin_context: Context) -> None:
         """Load plugins"""
 
-        ab_modules = self.config.get_specific_option(self.session.name, "modules")
-        if isinstance(ab_modules, list):
-            ab_modules.insert(0, "abacura")
-        else:
-            ab_modules = ["abacura"]
-
         plugin_modules = []
-        for mod in ab_modules:
+
+        for mod in modules:
             log.info(f"Loading plugins from {mod}")
             spec = find_spec(mod)
             if not spec:
@@ -62,15 +49,15 @@ class PluginLoader(Plugin):
             try:
                 module = import_module(package)
             except Exception as exc:
-                self.session.show_exception(f"[bold red]# ERROR LOADING PLUGIN {package} (from {pf}): {repr(exc)}",
-                                    exc)
+                # TODO: Fix this hack to grab the session, maybe track the failed loads and return a list of failures
+                session = plugin_context['session']
+                session.show_exception(f"[bold red]# ERROR LOADING PLUGIN {package} (from {pf}): {repr(exc)}", exc)
                 continue
 
             # Look for plugins subclasses within the module we just loaded and create a PluginHandler for each
             for name, c in inspect.getmembers(module, inspect.isclass):
                 if c.__module__ == module.__name__ and inspect.isclass(c) and issubclass(c, Plugin):
-                    with Context(session=self.session, core_msdp=self.core_msdp, config=self.config,
-                                 director=self.director):
+                    with plugin_context:
                         plugin_instance: Plugin = c()
 
                     plugin_name = plugin_instance.get_name()
@@ -82,4 +69,5 @@ class PluginLoader(Plugin):
                     for member_name, member in inspect.getmembers(plugin_instance, callable):
                         if hasattr(member, 'event_name'):
                             log(f"Appending listener function '{member_name}'")
-                            self.session.event_manager.listener(member)
+                            # TODO: Move this into the director
+                            plugin_context['session'].event_manager.listener(member)

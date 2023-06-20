@@ -69,20 +69,23 @@ class Session(BaseSession):
             if self.config.get_specific_option(name, "screen_class"):
                 (package, screen_class) = self.config.get_specific_option(name, "screen_class").rsplit(".", 1)
                 log(f"Importing a package {package}")
-                log(sys.path)
                 mod = import_module(package)
                 user_screen = getattr(mod, screen_class)
-                self.abacura.install_screen(user_screen(name), name=name)
+                self.screen = user_screen(name)
 
             else:
-                self.abacura.install_screen(SessionScreen(name), name=name)
+                self.screen = SessionScreen(name)
+
+        self.abacura.install_screen(self.screen, name=name)
+        self.abacura.push_screen(name)
 
         if ring_filename := self.config.get_specific_option(name, "ring_filename"):
             ring_size = self.config.get_specific_option(name, "ring_size", 10000)
             self.ring_buffer = RingBufferLogSql(ring_filename, ring_size)
 
-        self.abacura.push_screen(name)
-        self.screen = self.abacura.query_one(f"#screen-{name}", expect_type=Screen)
+
+
+        self.screen.set_interval(interval=0.01, callback=self.director.ticker_manager.process_tick, name="tickers")
 
     # TODO: This should possibly be an Message from the SessionScreen
     def launch_screen(self):
@@ -93,10 +96,12 @@ class Session(BaseSession):
             self.tl = self.screen.query_one(f"#output-{self.name}")
             time.sleep(0.1)
 
-        with self.plugin_context:
-            self.plugin_loader = PluginLoader()
-            self.plugin_loader.load_plugins()
-            self.screen.set_interval(interval=0.01, callback=self.director.ticker_manager.process_tick, name="tickers")
+        self.plugin_loader = PluginLoader()
+        self.plugin_loader.load_plugins(modules=["abacura"], plugin_context=self.plugin_context)
+
+        session_modules = self.config.get_specific_option(self.name, "modules")
+        if isinstance(session_modules, list):
+            self.plugin_loader.load_plugins(session_modules, plugin_context=self.plugin_context)
 
     # TODO: Need a better way of handling this, possibly an autoloader
     def register_options(self):
