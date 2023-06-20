@@ -33,14 +33,10 @@ if TYPE_CHECKING:
 @inject
 class Session(BaseSession):
     """Main User Session Class"""
-    config: Config
 
+    # Injected Objects
+    config: Config
     abacura: Abacura
-    all: dict
-    outb = b''
-    writer = None
-    connected = False
-    name = ""
 
     def __init__(self, name: str):
 
@@ -57,7 +53,19 @@ class Session(BaseSession):
         self.plugin_loader: Optional[PluginLoader] = None
         self.ring_buffer: Optional[RingBufferLogSql] = None
 
-        with Context(config=self.config, session=self):
+        self.outb = b''
+        self.writer = None
+        self.connected = False
+
+        with Context(session=self):
+            self.director = Director()
+            self.director.register_object(self)
+
+        self.plugin_context: Context = Context(config=self.config, session=self, app=self.abacura,
+                                               sessions=self.abacura.sessions, msdp=self.msdp,
+                                               director=self.director)
+
+        with self.plugin_context:
             if self.config.get_specific_option(name, "screen_class"):
                 (package, screen_class) = self.config.get_specific_option(name, "screen_class").rsplit(".", 1)
                 log(f"Importing a package {package}")
@@ -85,17 +93,10 @@ class Session(BaseSession):
             self.tl = self.screen.query_one(f"#output-{self.name}")
             time.sleep(1)
 
-        with Context(session=self):
-            self.director = Director()
-
-        self.director.register_object(self)
-
-        with Context(config=self.config, sessions=self.abacura.sessions, tl=self.tl,
-                     app=self.abacura, session=self, msdp=self.msdp, director=self.director):
+        with self.plugin_context:
             self.plugin_loader = PluginLoader()
+            self.plugin_loader.load_plugins()
             self.screen.set_interval(interval=0.01, callback=self.director.ticker_manager.process_tick, name="tickers")
-
-        self.plugin_loader.load_plugins()
 
     # TODO: Need a better way of handling this, possibly an autoloader
     def register_options(self):
@@ -190,7 +191,7 @@ class Session(BaseSession):
         self.register_options()
         while self.connected is True:
 
-            # We read one character at a time so we can find IAC sequences
+            # We read one character at a time so that we can find IAC sequences
             try:
                 data = await reader.read(1)
             except BrokenPipeError:
