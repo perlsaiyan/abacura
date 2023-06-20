@@ -2,12 +2,10 @@
 from __future__ import annotations
 
 import asyncio
-from importlib import import_module
 import os
 import re
-import sys
 import time
-
+from importlib import import_module
 from typing import TYPE_CHECKING, Optional
 
 from rich.text import Text
@@ -15,19 +13,34 @@ from serum import inject, Context
 from textual import log
 from textual.screen import Screen
 
-from abacura.utils.ring_buffer import RingBufferLogSql
 from abacura import SessionScreen, AbacuraFooter
 from abacura.config import Config
 from abacura.mud import BaseSession, OutputMessage
 from abacura.mud.options import GA
 from abacura.mud.options.msdp import MSDP
+from abacura.plugins import command, ContextProvider
 from abacura.plugins.director import Director
-from abacura.plugins.loader import PluginLoader
-from abacura.plugins import command
 from abacura.plugins.events import EventManager
+from abacura.plugins.loader import PluginLoader
+from abacura.utils.ring_buffer import RingBufferLogSql
 
 if TYPE_CHECKING:
     from abacura.abacura import Abacura
+
+
+def load_class(class_name: str, default=None):
+    """dynamically load a class"""
+    if not class_name:
+        return default
+
+    pkg, class_path = class_name.rsplit(".", 1)
+    log(f"Importing {class_path} from {pkg}")
+    class_module = import_module(pkg)
+
+    cls = getattr(class_module, class_path, None)
+    if not cls:
+        raise ValueError(f"Unable to load {class_name}")
+    return cls
 
 
 @inject
@@ -61,20 +74,21 @@ class Session(BaseSession):
             self.director = Director()
             self.director.register_object(self)
 
-        self.plugin_context: Context = Context(config=self.config, session=self, app=self.abacura,
-                                               sessions=self.abacura.sessions, core_msdp=self.core_msdp,
-                                               director=self.director)
+        core_injections = {"config": self.config, "session": self, "app": self.abacura,
+                           "sessions": self.abacura.sessions, "core_msdp": self.core_msdp,
+                           "director": self.director}
 
-        with self.plugin_context:
-            if self.config.get_specific_option(name, "screen_class"):
-                (package, screen_class) = self.config.get_specific_option(name, "screen_class").rsplit(".", 1)
-                log(f"Importing a package {package}")
-                mod = import_module(package)
-                user_screen = getattr(mod, screen_class)
-                self.abacura.install_screen(user_screen(name), name=name)
+        self.core_plugin_context = Context(**core_injections)
 
-            else:
-                self.abacura.install_screen(SessionScreen(name), name=name)
+        context_provider_class_name = self.config.get_specific_option(self.name, "context_provider", "")
+        context_provider_class = load_class(context_provider_class_name, ContextProvider)
+        additional_injections = context_provider_class(self.config, self.name).get_injections()
+        self.additional_plugin_context = Context(**core_injections, **additional_injections)
+
+        screen_class = load_class(self.config.get_specific_option(self.name, "screen_class", ""), SessionScreen)
+
+        with self.additional_plugin_context:
+            self.abacura.install_screen(screen_class(name), name=name)
 
         if ring_filename := self.config.get_specific_option(name, "ring_filename"):
             ring_size = self.config.get_specific_option(name, "ring_size", 10000)
@@ -96,11 +110,11 @@ class Session(BaseSession):
             time.sleep(0.1)
 
         self.plugin_loader = PluginLoader()
-        self.plugin_loader.load_plugins(modules=["abacura"], plugin_context=self.plugin_context)
+        self.plugin_loader.load_plugins(modules=["abacura"], plugin_context=self.core_plugin_context)
 
         session_modules = self.config.get_specific_option(self.name, "modules")
         if isinstance(session_modules, list):
-            self.plugin_loader.load_plugins(session_modules, plugin_context=self.plugin_context)
+            self.plugin_loader.load_plugins(session_modules, plugin_context=self.additional_plugin_context)
 
     # TODO: Need a better way of handling this, possibly an autoloader
     def register_options(self):

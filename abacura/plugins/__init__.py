@@ -1,14 +1,26 @@
 from __future__ import annotations
-from serum import inject
-from typing import TYPE_CHECKING, Callable
-from abacura.plugins.director import Director
-from abacura.plugins.actions import Action
-from abacura.plugins.tickers import Ticker
 
+from typing import TYPE_CHECKING, Callable
+
+from serum import inject
+
+from abacura.plugins.actions import Action
+from abacura.plugins.director import Director
+from abacura.plugins.tickers import Ticker
 
 if TYPE_CHECKING:
     from abacura.mud.options.msdp import MSDP
     from abacura.mud.session import Session
+    from abacura.config import Config
+
+
+class ContextProvider:
+
+    def __init__(self, config: Config, session_name: str):
+        pass
+
+    def get_injections(self) -> dict:
+        return {}
 
 
 @inject

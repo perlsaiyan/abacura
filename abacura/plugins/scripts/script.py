@@ -57,7 +57,7 @@ class Script(Plugin):
             if self.exec_locals is None or reset_locals:
                 self.exec_locals = {}
 
-            exec_globals = {"session": self.session,
+            exec_globals = {"session": self.session, "plugins": self.session.plugin_loader.plugins,
                             'mean': lambda x: sum(x) / len(x)}
 
             if text.strip().startswith("def "):
