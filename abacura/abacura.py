@@ -45,7 +45,8 @@ class Abacura(App):
         """When app is mounted, create first session"""
         self.create_session("null")
         if self.START_SESSION:
-            self.create_session(self.START_SESSION)
+            self.sessions["null"].connect(self.START_SESSION)
+
 
     def create_session(self, name: str) -> None:
         """Create a session"""

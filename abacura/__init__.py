@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Coroutine, Any
 
 from serum import inject
 
-from textual import log
+from textual import log, on
 from textual.app import ComposeResult
 from textual.containers import Container
 from textual.message import Message
@@ -154,6 +154,10 @@ class InputBar(Input):
             return
 
         self.value = self.history[self.history_ptr]
+
+    @on(Input.Changed)
+    async def stop_input_change_propagation(self, message) -> None:
+        message.stop()
 
     def on_input_submitted(self, message: Input.Submitted) -> None:
         """Bubble-up player input and blank the bar"""
