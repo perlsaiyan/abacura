@@ -13,13 +13,14 @@ from textual.app import ComposeResult
 from textual.containers import Container, Grid
 
 from textual.screen import Screen, ModalScreen
-from textual.widgets import Header, TextLog, Static, Button
+from textual.widgets import Header, TextLog, Button
 
 from abacura import InputBar
 from abacura.config import Config
 from abacura.widgets import Inspector, CommsLog
 from abacura.widgets.footer import AbacuraFooter
 from abacura.widgets.debug import DebugDock
+
 
 from abacura_kallisti.widgets import LOKLeft, LOKRight, LOKMap
 
@@ -91,7 +92,7 @@ class KallistiScreen(Screen):
     async def on_input_bar_user_command(self, command: InputBar.UserCommand) -> None:
         """Handle user input from InputBar"""
         list = csv.reader(io.StringIO(command.command), delimiter=';', escapechar='\\')
-
+        command.stop()
         try:
             lines = list.__next__()
             for line in lines:
@@ -99,6 +100,7 @@ class KallistiScreen(Screen):
 
         except StopIteration:
             self.session.player_input("")
+
 
     def action_toggle_dark(self) -> None:
         """Dark mode"""

@@ -4,7 +4,7 @@ setup(
     name="abacura_kallisti",
     description="Abacura extensions for Legends of Kallisti",
     python_requires='>3.10',
-    version="0.0.2",
+    version="0.0.3",
     packages=find_packages(),
     license="Proprietary",
     classifiers=[
@@ -16,7 +16,7 @@ setup(
         'abacura': ['*.css'],
     },
     install_requires=[
-        "textual~=0.27.0",
+        "abacura~=0.0.9",
         ],
 )
 
