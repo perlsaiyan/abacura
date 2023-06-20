@@ -25,13 +25,13 @@ class PluginSession(Plugin):
     @command
     def msdp_command(self, variable: str = '') -> None:
         """Dump MSDP values for debugging"""
-        if "REPORTABLE_VARIABLES" not in self.msdp.values:
+        if "REPORTABLE_VARIABLES" not in self.core_msdp.values:
             self.session.output("[bold red]# MSDPERROR: MSDP NOT LOADED?", markup=True)
 
         if not variable:
-            panel = Panel(Pretty(self.msdp.values), highlight=True)
+            panel = Panel(Pretty(self.core_msdp.values), highlight=True)
         else:
-            panel = Panel(Pretty(self.msdp.values.get(variable, None)), highlight=True)
+            panel = Panel(Pretty(self.core_msdp.values.get(variable, None)), highlight=True)
         self.session.output(panel, highlight=True, actionable=False)
 
     @command

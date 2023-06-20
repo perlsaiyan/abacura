@@ -23,7 +23,7 @@ class PluginLoader(Plugin):
     """Loads all plugins and registers them"""
     config: Config
     session: Session
-    msdp: MSDP
+    core_msdp: MSDP
     director: Director
 
     def __init__(self):
@@ -69,7 +69,8 @@ class PluginLoader(Plugin):
             # Look for plugins subclasses within the module we just loaded and create a PluginHandler for each
             for name, c in inspect.getmembers(module, inspect.isclass):
                 if c.__module__ == module.__name__ and inspect.isclass(c) and issubclass(c, Plugin):
-                    with Context(session=self.session, msdp=self.msdp, config=self.config, director=self.director):
+                    with Context(session=self.session, core_msdp=self.core_msdp, config=self.config,
+                                 director=self.director):
                         plugin_instance: Plugin = c()
 
                     plugin_name = plugin_instance.get_name()
