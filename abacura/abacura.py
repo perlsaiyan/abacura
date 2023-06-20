@@ -49,7 +49,7 @@ class Abacura(App):
 
     def create_session(self, name: str) -> None:
         """Create a session"""
-        with Context(all=self.sessions, config=self.config, abacura=self):
+        with Context(config=self.config, abacura=self):
             self.sessions[name] = Session(name)
         self.session = name
 
