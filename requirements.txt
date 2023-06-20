@@ -1,4 +1,4 @@
 serum==5.1.0
-textual==0.27.0
+textual==0.28.0
 -e .
 

@@ -13,7 +13,7 @@ from textual.app import ComposeResult
 from textual.containers import Container, Grid
 
 from textual.screen import Screen, ModalScreen
-from textual.widgets import Header, TextLog, Static, Button
+from textual.widgets import Header, TextLog, Button
 
 from abacura import InputBar
 from abacura.config import Config
@@ -27,14 +27,15 @@ from abacura_kallisti.widgets import LOKLeft, LOKRight, LOKMap
 if TYPE_CHECKING:
     from typing_extensions import Self
     from abacura.mud.session import Session
-    from abacura.plugins.director import Director
     from abacura_kallisti.atlas.world import World
-    
+
+
 @inject
 class KallistiScreen(Screen):
     """Default Screen for sessions"""
     config: Config
     session: Session
+    world: World
 
     BINDINGS = [
         ("pageup", "pageup", "PageUp"),
@@ -52,6 +53,7 @@ class KallistiScreen(Screen):
 
         super().__init__()
         self.id = f"screen-{name}"
+        self.tl = None
         self.tlid = f"output-{name}"
         self._map_overlay = False
 
@@ -83,7 +85,6 @@ class KallistiScreen(Screen):
     def on_mount(self) -> None:
         """Screen is mounted, launch it"""
         self.tl = self.query_one(f"#{self.tlid}", expect_type=TextLog)
-        self.session.tl = self.tl
         self.session.launch_screen()
         cl = self.query_one("#commslog")
         self.session.director.register_object(cl)
@@ -137,7 +138,7 @@ class KallistiScreen(Screen):
         if not self._map_overlay:
             self._map_overlay = True
             if self._map_overlay:
-                self.app.push_screen(MapScreen(id="LOKMap", session=self.session, world=self.screen.session.world), reset_mapkey())
+                self.app.push_screen(MapScreen(id="LOKMap", session=self.session, world=self.world), reset_mapkey())
 
 class BetterKallistiScreen(KallistiScreen):
     """
