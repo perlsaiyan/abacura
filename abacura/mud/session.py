@@ -94,10 +94,12 @@ class Session(BaseSession):
             self.tl = self.screen.query_one(f"#output-{self.name}")
             time.sleep(0.1)
 
-        with self.plugin_context:
-            self.plugin_loader = PluginLoader()
-            self.plugin_loader.load_plugins()
-            self.screen.set_interval(interval=0.01, callback=self.director.ticker_manager.process_tick, name="tickers")
+        self.plugin_loader = PluginLoader()
+        self.plugin_loader.load_plugins(modules=["abacura"], plugin_context=self.plugin_context)
+
+        session_modules = self.config.get_specific_option(self.name, "modules")
+        if isinstance(session_modules, list):
+            self.plugin_loader.load_plugins(session_modules, plugin_context=self.plugin_context)
 
     # TODO: Need a better way of handling this, possibly an autoloader
     def register_options(self):
