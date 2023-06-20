@@ -72,17 +72,19 @@ class Session(BaseSession):
                 log(sys.path)
                 mod = import_module(package)
                 user_screen = getattr(mod, screen_class)
-                self.abacura.install_screen(user_screen(name), name=name)
+                self.screen = user_screen(name)
 
             else:
-                self.abacura.install_screen(SessionScreen(name), name=name)
+                self.screen = SessionScreen(name)
+
+        self.abacura.install_screen(self.screen, name=name)
+        self.abacura.push_screen(name)
 
         if ring_filename := self.config.get_specific_option(name, "ring_filename"):
             ring_size = self.config.get_specific_option(name, "ring_size", 10000)
             self.ring_buffer = RingBufferLogSql(ring_filename, ring_size)
 
-        self.abacura.push_screen(name)
-        self.screen = self.abacura.query_one(f"#screen-{name}", expect_type=Screen)
+        
 
     # TODO: This should possibly be an Message from the SessionScreen
     def launch_screen(self):
