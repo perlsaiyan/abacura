@@ -75,8 +75,10 @@ MSDP_MAP = {
     "HERO_POINTS_TNL": "hero_tnl",
     "PC_IN_ZONE": "pc_in_area",
     "PC_IN_ROOM": "pc_in_room",
-    "PROMPT": "flags"
+    "PROMPT": "prompt_flags",
+    "BARDSONG": "bardsong"
 }
+
 
 # TODO: disable the abacura @msdp command and let's implement it here
 class LOKMSDP(LOKPlugin):
@@ -107,13 +109,17 @@ class LOKMSDP(LOKPlugin):
     def update_lok_msdp(self, message: MSDPMessage):
         # self.msdp.values[message.type] = message.value
 
+        # TODO: Put exception handler in here
         if message.type in MSDP_MAP:
             attr_name = MSDP_MAP[message.type]
             value = message.value
             if self.msdp_types[attr_name] == int and type(message.value) != int:
                 value = 0 if len(message.value) == 0 else int(message.value)
 
-            setattr(self.msdp, attr_name, value)
+            if attr_name == 'group':
+                self.msdp.group.update_members_from_msdp(value)
+            else:
+                setattr(self.msdp, attr_name, value)
 
             # if name == 'MSDP_CHARACTER_NAME':
             #     self.dispatcher.dispatch(event.Event(event.NEW_CHARACTER, value))
