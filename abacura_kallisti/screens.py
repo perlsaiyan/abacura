@@ -112,7 +112,6 @@ class KallistiScreen(Screen):
         sidebar.display = not sidebar.display
 
     def action_toggle_right_sidebar(self) -> None:
-        BetterKallistiScreen.CSS_PATH = os.getenv("HOME") + "/a.css",
         sidebar = self.query_one("#rightsidebar")
         sidebar.display = not sidebar.display
 
@@ -143,15 +142,15 @@ class KallistiScreen(Screen):
 
 class BetterKallistiScreen(KallistiScreen):
     """
-    Subclassing the screen to test using class inheritence to get per-screen styles
-
-    After the next release of Textual this will not be necessary as screens can have
-    their own stylesheet and CSS_PATH
+    This will eventually be the standard screen for the abacura-kallisti module
     """
+    CSS_PATH="css/kallisti.css"
     DEFAULT_CLASSES = "BKS"
 
 class MapScreen(ModalScreen[bool]):  
     """Screen with a dialog to quit."""
+
+    CSS_PATH="css/kallisti.css"
 
     def __init__(self, session: Session, world: World, **kwargs):
         super().__init__(id=kwargs["id"],*kwargs)

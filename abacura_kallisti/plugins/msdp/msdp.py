@@ -1,4 +1,4 @@
-"""LOK MSDP plugis"""
+"""LOK MSDP plugin"""
 from __future__ import annotations
 
 from rich.panel import Panel
