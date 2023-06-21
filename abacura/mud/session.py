@@ -209,7 +209,11 @@ class Session(BaseSession):
             except BrokenPipeError:
                 self.output("[bold red]# Lost connection to server.", markup=True)
                 self.connected = False
-                continue
+                return
+            except ConnectionResetError:
+                self.output("[bold red]# Connect reset by peer.", markup = True)
+                self.connected = False
+                return
 
             # Empty string means we lost our connection
             if data == b'':
