@@ -211,7 +211,7 @@ class Session(BaseSession):
                 self.connected = False
                 return
             except ConnectionResetError:
-                self.output("[bold red]# Connect reset by peer.", markup = True)
+                self.output("[bold red]# Connection reset by peer.", markup = True)
                 self.connected = False
                 return
 
