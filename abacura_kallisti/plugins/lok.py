@@ -1,6 +1,7 @@
 import os
+import time
 
-from abacura.plugins import command, action
+from abacura.plugins import command, action, Ticker
 from abacura_kallisti.plugins import LOKPlugin
 
 
@@ -9,6 +10,14 @@ class LegendsOfKallisti(LOKPlugin):
 
     def __init__(self):
         super().__init__()
+        self.director.ticker_manager.add(
+            Ticker(source=self, seconds=60, callback=self.idle_check, repeats=-1, name="idle-watch")
+        )
+
+    def idle_check(self):
+        if time.monotonic() - 300 > self.session.last_socket_write:
+            self.session.send("\n")
+            self.session.output(f"[red][italics]idle protection",markup=True)    
 
     @command
     def lok(self) -> None:

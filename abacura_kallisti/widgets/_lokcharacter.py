@@ -40,6 +40,8 @@ class LOKCharacterStatic(Static):
     c_luk: reactive[int | None] = reactive[int | None](None)
     c_heros: reactive[int | None] = reactive[int | None](None)
     c_heros_tnl: reactive[int | None] = reactive[int | None](None)
+    c_xp: reactive[int | None] = reactive[int | None](None)
+    c_xp_tnl: reactive[int | None] = reactive[int | None](None)    
     c_gold: reactive[int | None] = reactive[int | None](None)
     c_gold_bank: reactive[int | None] = reactive[int | None](None)
 
@@ -51,10 +53,11 @@ class LOKCharacterStatic(Static):
             self.display = False
 
     def render(self) -> str:
-        buf = f"[cyan]{self.c_name} {self.c_race} {self.c_class} [{self.c_level}]\n"
+        buf = f"[cyan]{self.c_name}, {self.c_race} {self.c_class} [{self.c_level}]\n"
         buf += f"\n[cyan]S:[white]{self.c_str} [cyan]I:[white]{self.c_int} [cyan]W:[white]{self.c_wis} [cyan]D:[white]{self.c_dex} [cyan]C:[white]{self.c_con} [cyan]L:[white]{self.c_luk}\n"
         buf += f"\n[cyan]Heros: [white]{self.c_heros} [cyan]TNL: [white]{self.c_heros_tnl}"
-        buf += f"\n[cyan]Gold: [white]{self.c_gold} [cyan]Bank: [white]{self.c_gold_bank}"
+        buf += f"\n[cyan]XP: [white]{self.c_xp} [cyan]XPTNL: [white]{self.c_xp_tnl}"
+        buf += f"\n[cyan] Gold: [white]{self.c_gold} [cyan]Bank: [white]{self.c_gold_bank}"
         
         return buf
 
@@ -73,6 +76,8 @@ class LOKCharacterStatic(Static):
           "LUK": "c_luk",
           "HERO_POINTS": "c_heros",
           "HERO_POINTS_TNL": "c_heros_tnl",
+          "EXPERIENCE": "c_xp",
+          "EXPERIENCE_TNL": "c_xp_tnl",
           "GOLD": "c_gold",
           "BANK_GOLD": "c_gold_bank",
           "RACE": "c_race",
