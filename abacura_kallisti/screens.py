@@ -41,6 +41,8 @@ class KallistiScreen(Screen):
     BINDINGS = [
         ("pageup", "pageup", "PageUp"),
         ("pagedown", "pagedown", "PageDown"),
+        ("shift+end", "scroll_end", ""),
+        ("shift+home", "scroll_home", ""),
         ("f2", "toggle_left_sidebar", "F2"),
         ("f3", "toggle_right_sidebar", "F3"),
         ("f4", "toggle_commslog", "F4"),
@@ -122,6 +124,14 @@ class KallistiScreen(Screen):
     def action_toggle_debug(self) -> None:
         debugger = self.query_one("#debugger")
         debugger.display = not debugger.display
+
+    def action_scroll_home(self) -> None:
+        self.tl.auto_scroll = False
+        self.tl.action_scroll_home()
+    
+    def action_scroll_end(self) -> None:
+        self.tl.auto_scroll = True
+        self.tl.action_scroll_end()
 
     def action_pageup(self) -> None:
         self.tl.auto_scroll = False
