@@ -329,7 +329,9 @@ class Session(BaseSession):
         else:
             self.abacura.create_session(name)
             if host and port:
-                self.abacura.run_worker(self.abacura.sessions[name].telnet_client(host, port))
+                self.abacura.run_worker(self.abacura.sessions[name].telnet_client(host, port),
+                                        name=f"socket-{name}", group=name,
+                                        description=f"Mud connection for {name} ({host}:{port})")
             else:
                 log(f"Session: {name} created in disconnected state due to no host or port")
 
