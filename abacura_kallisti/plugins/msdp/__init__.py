@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from abacura_kallisti.mud.group import Group
 
 
 @dataclass(slots=True)
@@ -26,7 +27,7 @@ class TypedMSDP:
     ac: int = 0
     hitroll: int = 0
     damroll: int = 0
-    group: str = ""
+    group: Group = field(default_factory=Group)
     affects: str = ""
     ranged: int = 0
     stance: str = ""
@@ -66,8 +67,8 @@ class TypedMSDP:
     quickdraw: str = ""
     pc_in_area: int = 0
     pc_in_room: int = 0
-    flags: str = ""
-    song: str = ""
+    prompt_flags: str = ""
+    bardsong: str = ""
 
     def get_hp_pct(self) -> float:
         return 100 * self.hp / max(1, self.hp_max)
