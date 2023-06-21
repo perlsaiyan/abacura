@@ -171,12 +171,6 @@ class Session(BaseSession):
 
         if actionable:
 
-            # TODO (REMOVE after plugins fixed) temporary action so i can stream and share screen recordings
-            if re.match(r'^Please enter your account password', msg) and os.environ.get("MUD_PASSWORD") is not None:
-                self.send(os.environ.get("MUD_PASSWORD"))
-            elif re.match(r'^Enter your account name. If you do not have an account,', msg) and self.config.get_specific_option(self.name, "account_name"):
-                self.send(self.config.get_specific_option(self.name, "account_name"))
-
             if self.director and self.director.action_manager:
                 self.director.action_manager.process_output(message)
 
