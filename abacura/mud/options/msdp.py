@@ -152,6 +152,8 @@ class MSDP(TelnetOption):
                 self.values[var] = self.parse_group(value)
             elif var == "ROOM_EXITS":
                 self.values[var] = self.parse_exits(value)
+            elif var == "AFFECTS":
+                self.values[var] = self.parse_exits(value)
             else:
                 self.values[var] = ansi_escape.sub('',value.decode("UTF-8"))
                 try:
