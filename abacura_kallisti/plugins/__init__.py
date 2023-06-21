@@ -38,11 +38,8 @@ class LOKPlugin(Plugin):
 
     @property
     def uptime(self) -> int:
+        return self.msdp.uptime
 
-        if "UPTIME" in self.msdp.values:
-            return self.msdp.values["UPTIME"]
-        
-        return 0
 
 
 _WIDGETS_LAZY_LOADING_CACHE: dict[str, type[Widget]] = {}
