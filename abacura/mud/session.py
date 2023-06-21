@@ -66,6 +66,7 @@ class Session(BaseSession):
         self.plugin_loader: Optional[PluginLoader] = None
         self.ring_buffer: Optional[RingBufferLogSql] = None
 
+        self.last_socket_write: float = time.monotonic()
         self.outb = b''
         self.writer = None
         self.connected = False
@@ -152,6 +153,8 @@ class Session(BaseSession):
                     self.writer.write(msg)
                 else:
                     self.writer.write(bytes(msg + "\n", "UTF-8"))
+                self.last_socket_write = time.monotonic()
+
             except BrokenPipeError:
                 self.connected = False
                 self.output(f"[bold red]# Lost connection to server.", markup=True)
