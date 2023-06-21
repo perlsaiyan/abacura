@@ -22,7 +22,7 @@ class PluginSession(Plugin):
         """Send text to screen as if it came from the socket, triggers actions"""
         self.session.output(text, markup=True)
 
-    @command
+    @command(name="msdp")
     def msdp_command(self, variable: str = '') -> None:
         """Dump MSDP values for debugging"""
         if "REPORTABLE_VARIABLES" not in self.core_msdp.values:

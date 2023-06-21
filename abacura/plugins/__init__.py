@@ -27,6 +27,7 @@ class ContextProvider:
 class Plugin:
     """Generic Plugin Class"""
     session: Session
+    config: Config
     director: Director
     core_msdp: MSDP
 
