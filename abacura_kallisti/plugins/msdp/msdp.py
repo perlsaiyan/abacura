@@ -150,8 +150,10 @@ class LOKMSDP(LOKPlugin):
         if message.type in MSDP_MAP:
             attr_name = MSDP_MAP[message.type]
             value = message.value
-            if self.msdp_types[attr_name] == int and type(message.value) != int:
+            if self.msdp_types[attr_name] == int and type(message.value) is not int:
                 value = 0 if len(message.value) == 0 else int(message.value)
+            elif self.msdp_types[attr_name] == str and type(message.value) is not str:
+                value = str(message.value)
 
             if attr_name == 'group':
                 self.msdp.group.update_members_from_msdp(value)
