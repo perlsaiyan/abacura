@@ -7,6 +7,7 @@ from rich.panel import Panel
 from rich.pretty import Pretty
 
 from abacura.mud.options.msdp import MSDPMessage
+from abacura_kallisti.mud.affect import Affect
 from abacura.plugins import command
 from abacura.plugins.events import event
 from abacura_kallisti.plugins import LOKPlugin
@@ -80,6 +81,42 @@ MSDP_MAP = {
 }
 
 
+# ACCOUNT_NAME
+# SERVER_ID
+# SERVER_TIME
+# SNIPPET_VERSION
+# PRACTICE
+# STR_PERM
+# INT_PERM
+# WIS_PERM
+# DEX_PERM
+# CON_PERM
+# LUK_PERM
+# STR_MAX
+# INT_MAX
+# WIS_MAX
+# DEX_MAX
+# CON_MAX
+# LUK_MAX
+# QPOINTS
+# WHOFLAGS
+# CLIENT_ID
+# CLIENT_VERSION
+# PLUGIN_ID
+# ANSI_COLORS
+# XTERM_256_COLORS
+# UTF_8
+# SOUND
+# MXP
+# PARAGON_LEVEL
+# NOBLE_POINTS
+# NOBLE_POINTS_TNL
+# GROUPLEVEL
+# EQUIPMENT
+# QUEUE
+# REMORT_LAPS_IN_CLASS
+# REMORT_LAPS_TOTAL
+
 # TODO: disable the abacura @msdp command and let's implement it here
 class LOKMSDP(LOKPlugin):
 
@@ -113,11 +150,15 @@ class LOKMSDP(LOKPlugin):
         if message.type in MSDP_MAP:
             attr_name = MSDP_MAP[message.type]
             value = message.value
-            if self.msdp_types[attr_name] == int and type(message.value) != int:
+            if self.msdp_types[attr_name] == int and type(message.value) is not int:
                 value = 0 if len(message.value) == 0 else int(message.value)
+            elif self.msdp_types[attr_name] == str and type(message.value) is not str:
+                value = str(message.value)
 
             if attr_name == 'group':
                 self.msdp.group.update_members_from_msdp(value)
+            elif attr_name == 'affects' and type(value) is dict:
+                self.msdp.affects = sorted([Affect(name, hrs) for name, hrs in value.items()], key=lambda a: a.name)
             else:
                 setattr(self.msdp, attr_name, value)
 

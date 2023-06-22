@@ -110,9 +110,9 @@ class LOKMap(Container):
                         BFS.append(MapPoint(room.exits["west"].to_vnum, here.x-1, here.y))        
 
         # draw the map with Matrix of size Viewport
-        buf =self.draw_map(Matrix, self.content_size.width, self.content_size.height-1)
+        buf = self.draw_map(Matrix, self.content_size.width, self.content_size.height-1)
         self.map.update(buf)
-    
+
     def get_terrain_icon(self, terrain: str) -> str:
         """Return terrain color/icon"""
         if 'Inside' in terrain:

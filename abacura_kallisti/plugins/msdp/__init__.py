@@ -1,5 +1,9 @@
 from dataclasses import dataclass, field
 from abacura_kallisti.mud.group import Group
+from abacura_kallisti.mud.affect import Affect
+from abacura_kallisti.mud.skills import SKILLS
+from typing import List
+import re
 
 
 @dataclass(slots=True)
@@ -27,8 +31,8 @@ class TypedMSDP:
     ac: int = 0
     hitroll: int = 0
     damroll: int = 0
+    affects: List[Affect] = field(default_factory=list)
     group: Group = field(default_factory=Group)
-    affects: str = ""
     ranged: int = 0
     stance: str = ""
     position: str = ""
@@ -79,30 +83,22 @@ class TypedMSDP:
     def get_sp_pct(self) -> float:
         return 100 * self.sp / max(1, self.sp_max)
 
-    # def get_affects(self) -> List[Affect]:
-    #     ad = tintin.parse_table(self.affects)
-    #     # print(self.affects)
-    #     # print(ad)
-    #     affects: List[Affect] = []
-    #     for name, hours in ad.items():
-    #         affects.append(Affect(name=name, hours=int(hours)))
-    #     return affects
-    #
-    # def get_affect_hours(self, affect_name: str) -> int:
-    #     # lowercase and drop anything after the first space to handle 'focus dex', 'warpaint crimson', etc
-    #     affect_name = affect_name.split(' ')[0]
-    #
-    #     # handle case where command is different from spell name
-    #     # darmor -> Divine Armor, aura -> Unholy Aura, etc
-    #     skill = SKILLS.get(affect_name.lower(), None)
-    #     affect_pattern: str = skill.affect_name if skill is not None else affect_name
-    #
-    #     for a in self.get_affects():
-    #         # print(a, a.hours, affect_name)
-    #         if re.match(affect_pattern, a.name, re.IGNORECASE):
-    #             return a.hours
-    #
-    #     return 0
+    def get_affect_hours(self, affect_name: str) -> int:
+        # lowercase and drop anything after the first space to handle 'focus dex', 'warpaint crimson', etc
+        affect_name = affect_name.split(' ')[0]
+
+        # handle case where command is different from spell name
+        # darmor -> Divine Armor, aura -> Unholy Aura, etc
+
+        skill = SKILLS.get(affect_name.lower(), None)
+        affect_pattern: str = skill.affect_name if skill is not None else affect_name
+
+        for a in self.affects:
+            # print(a, a.hours, affect_name)
+            if re.match(affect_pattern, a.name, re.IGNORECASE):
+                return a.hours
+
+        return 0
     #
     # def get_exits(self) -> Dict:
     #     e = tintin.parse_table(self.room_exits)
