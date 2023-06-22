@@ -2,6 +2,7 @@ import re
 import sqlite3
 from dataclasses import dataclass, field, fields, astuple
 from datetime import datetime
+from pathlib import Path
 from typing import List, Dict, Optional
 
 from .room import ScannedRoom
@@ -71,14 +72,15 @@ class RoomTracking:
 
 class World:
     def __init__(self, db_filename: str):
+        db_path = Path(db_filename).expanduser()
+
         self.rooms: Dict[str, Room] = {}
         self.tracking: Dict[str, RoomTracking] = {}
 
         # temporary portals do not get persisted
         self.temporary_portals: Dict[str, Dict[str, Exit]] = {}
         self.grid = WildernessGrid()
-
-        self.db_conn = sqlite3.connect(db_filename)
+        self.db_conn = sqlite3.connect(db_path)
         self.db_conn.execute("PRAGMA journal_mode=WAL")
         self.create_tables()
 
