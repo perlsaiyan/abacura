@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from ._lokright import LOKRight
     from ._lokmap import LOKMap
     from ._lokzone import LOKZone
+    from ._lokgroup import LOKGroup
     
 
 __all__ = [
@@ -23,6 +24,7 @@ __all__ = [
     "LOKMap",
     "LOKRight",
     "LOKZone",
+    "LOKGroup",
     "IndeterminateProgressBar",
 ]
 

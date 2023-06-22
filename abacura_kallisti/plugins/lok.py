@@ -10,14 +10,12 @@ class LegendsOfKallisti(LOKPlugin):
 
     def __init__(self):
         super().__init__()
-        self.director.ticker_manager.add(
-            Ticker(source=self, seconds=60, callback=self.idle_check, repeats=-1, name="idle-watch")
-        )
+        self.add_ticker(seconds=60, callback_fn=self.idle_check, repeats=-1, name="idle-watch")
 
     def idle_check(self):
         if time.monotonic() - 300 > self.session.last_socket_write:
             self.session.send("\n")
-            self.session.output(f"[red][italics]idle protection",markup=True)    
+            #self.session.output(f"[red][italics]idle protection",markup=True)
 
     @command
     def lok(self) -> None:
