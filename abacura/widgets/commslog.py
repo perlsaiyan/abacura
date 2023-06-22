@@ -11,7 +11,7 @@ class CommsLog(Container):
     """
     def __init__(self, id: str, name: str = ""):
         super().__init__(id=id, name=name)
-        self.tl = TextLog(id="commsTL")
+        self.tl = TextLog(id="commsTL", wrap=True,auto_scroll=True)
         
 
     def compose(self) -> ComposeResult:

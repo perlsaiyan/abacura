@@ -10,7 +10,7 @@ from textual.app import App
 from textual.binding import Binding
 from textual.screen import Screen
 
-from abacura import AbacuraFooter
+
 from abacura.config import Config
 from abacura.mud.session import Session
 from abacura import Inspector
@@ -26,7 +26,7 @@ class Abacura(App):
     config: Config
 
     AUTO_FOCUS = "InputBar"
-    CSS_PATH = ["abacura.css"]
+    CSS_PATH = ["./css/abacura.css"]
     SCREENS = {}
     START_SESSION: Optional[str] = None
     BINDINGS = [
@@ -76,8 +76,7 @@ class Abacura(App):
 @click.option("-c","--config", 'config')
 @click.option("-d", "--debug", "debug", type=str)
 @click.option("-s", "--start", "start", type=str)
-@click.pass_context
-def main(ctx, config, debug, start):
+def main(config, debug, start):
     if debug:
         host, port = debug.split(":")
         pycharm.PycharmDebugger().connect(host, int(port))
@@ -107,3 +106,6 @@ def main(ctx, config, debug, start):
     Abacura.START_SESSION = start
 
     app.run()
+
+if getattr(sys, 'frozen', False):
+    main(sys.argv[1:])

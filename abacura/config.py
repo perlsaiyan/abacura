@@ -7,7 +7,7 @@ from tomlkit import parse
 
 DEFAULT_GLOBAL_CONFIG = {
     "module_paths": [],
-    "css_path": "abacura.css",
+    "css_path": "css/abacura.css",
 }
 
 

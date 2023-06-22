@@ -28,6 +28,8 @@ if TYPE_CHECKING:
     from abacura.mud.session import Session
 
 
+version= "0.0.9"
+
 @inject
 class SessionScreen(Screen):
     """Default Screen for sessions"""
@@ -45,7 +47,7 @@ class SessionScreen(Screen):
 
     def __init__(self, name: str):
         # TODO The 0.28.0 release of textual let us assign CSS_PATH at the screen level
-        self.CSS_PATH = self.config.get_specific_option(self.session.name, "css_path") or "abacura.css"
+        self.CSS_PATH = self.config.get_specific_option(self.session.name, "css_path") or "css/abacura.css"
         super().__init__()
 
         self.id = f"screen-{name}"
