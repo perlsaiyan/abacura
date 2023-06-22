@@ -67,7 +67,7 @@ class WorldPlugin(LOKPlugin):
     @staticmethod
     def get_room_flags(room: Room) -> str:
         flags = ['wild_magic', 'silent', 'set_recall', 'no_recall', 'no_magic', 'narrow',
-                 'peaceful', 'deathtrap', 'regen_hp', 'regen_mp', 'regen_sp']
+                 'peaceful', 'deathtrap', 'regen_hp', 'regen_mp', 'regen_sp', 'bank']
         flags = [f.replace('_', ' ') for f in flags if getattr(room, f, False)]
         return ','.join(flags)
 
