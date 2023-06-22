@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from ._lokleft import LOKLeft
     from ._lokright import LOKRight
     from ._lokmap import LOKMap
+    from ._lokzone import LOKZone
     
 
 __all__ = [
@@ -21,6 +22,7 @@ __all__ = [
     "LOKLeft",
     "LOKMap",
     "LOKRight",
+    "LOKZone",
     "IndeterminateProgressBar",
 ]
 
