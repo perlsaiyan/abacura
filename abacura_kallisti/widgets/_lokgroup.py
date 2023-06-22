@@ -9,6 +9,7 @@ from textual.widgets import Static
 from abacura.mud.options.msdp import MSDPMessage
 from abacura.plugins.events import event
 
+# TODO convert this to LOKMSDP and provide more info about group
 class LOKGroup(Container):
     """Group information Widget"""
 
@@ -36,7 +37,7 @@ class LOKGroup(Container):
             self.display = True
             buf = ""
             for g_member in self.group:
-                buf += f"{g_member['name']} info\n"
+                buf += f"{g_member['name']} infogroup   \n"
             self.group_block.update(buf)
             return
         
