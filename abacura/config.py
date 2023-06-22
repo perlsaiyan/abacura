@@ -35,7 +35,7 @@ class Config:
             self._config = parse(open(cfile, "r", encoding="UTF-8").read())
 
         except Exception as config_exception:
-            print(f"{cfile}: {repr(config_exception)}")
+            raise (config_exception)
 
     def get_specific_option(self, section: str, key: str, default=None) -> Any:
         """Get configuration value for section, global, or default"""
