@@ -69,10 +69,10 @@ class MSDP(TelnetOption):
             items = items[1:]
             for item in items:
                 pair = item.split(b'\x02')
-                try:
-                    member[pair[0].decode("UTF-8")] = int(pair[1])
-                except ValueError:
-                    member[pair[0].decode("UTF-8")] = ansi_escape.sub('',pair[1].decode("UTF-8"))
+                #try:
+                #    member[pair[0].decode("UTF-8")] = int(pair[1])
+                #except ValueError:
+                member[pair[0].decode("UTF-8")] = ansi_escape.sub('',pair[1].decode("UTF-8"))
 
             return member
 
@@ -105,10 +105,10 @@ class MSDP(TelnetOption):
         exits = {}
         for item in items:
             pair = item.split(b'\x02')
-            try:
-                exits[pair[0].decode("UTF-8")] = int(pair[1])
-            except ValueError:
-                exits[pair[0].decode("UTF-8")] = ansi_escape.sub('',pair[1].decode("UTF-8"))
+            #try:
+            #    exits[pair[0].decode("UTF-8")] = int(pair[1])
+            #except ValueError:
+            exits[pair[0].decode("UTF-8")] = ansi_escape.sub('',pair[1].decode("UTF-8"))
 
         return exits
 
@@ -156,10 +156,10 @@ class MSDP(TelnetOption):
                 self.values[var] = self.parse_exits(value)
             else:
                 self.values[var] = ansi_escape.sub('',value.decode("UTF-8"))
-                try:
-                    self.values[var] = int(self.values[var])
-                except ValueError:
-                    pass
+                #try:
+                #    self.values[var] = int(self.values[var])
+                #except ValueError:
+                #    pass
 
             # Two dispatchers here, first is "all", then "name specific"
             msg = MSDPMessage(var, self.values[var], oldvalue="", subtype = "value_change")
