@@ -11,6 +11,8 @@ from .wilderness import WildernessGrid
 
 # TODO: Use the abacura methods for strip_ansi_codes
 ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
+
 def strip_ansi_codes(s: str) -> str:
     """
     Remove ansi color codes / escape sequences from a string
@@ -76,6 +78,7 @@ class World:
 
         self.rooms: Dict[str, Room] = {}
         self.tracking: Dict[str, RoomTracking] = {}
+        self.wilderness_loaded: bool = False
 
         # temporary portals do not get persisted
         self.temporary_portals: Dict[str, Dict[str, Exit]] = {}
@@ -174,7 +177,10 @@ class World:
         if vnum in self.tracking:
             self.tracking[vnum].kills += 1
 
-    def visited_room(self, area_name: str, name: str, vnum: str, terrain: str, room_exits: Dict, scan_room: ScannedRoom):
+    def visited_room(self, area_name: str, name: str, vnum: str, terrain: str,
+                     room_exits: Dict, scan_room: ScannedRoom):
+        if not self.wilderness_loaded and area_name == 'The Wilderness':
+            self.load_wilderness()
 
         # can't do much with a '?' vnum for now
         if vnum == '?':
@@ -289,9 +295,8 @@ class World:
 
         self.db_conn.commit()
 
-    def load(self):
-
-        cursor = self.db_conn.execute(f"select * from rooms")
+    def load(self, where_clause: str = "where area_name != 'The Wilderness'"):
+        cursor = self.db_conn.execute(f"select * from rooms {where_clause}")
         # field_names = [c[0] for c in cursor.description]
         rows = cursor.fetchall()
         for row in rows:
@@ -301,7 +306,8 @@ class World:
 
         # print(len(rows), "rooms loaded from db")
 
-        cursor = self.db_conn.execute(f"select * from room_tracking")
+        sql = f"select t.* from room_tracking t join rooms r on t.vnum = r.vnum {where_clause}"
+        cursor = self.db_conn.execute(sql)
         # field_names = [c[0] for c in cursor.description]
         rows = cursor.fetchall()
         for row in rows:
@@ -309,8 +315,8 @@ class World:
             new_trk = RoomTracking(*row)
             self.tracking[new_trk.vnum] = new_trk
 
-
-        cursor = self.db_conn.execute(f"select e.* from exits e join rooms r on e.from_vnum = r.vnum")
+        sql = f"select e.* from exits e join rooms r on e.from_vnum = r.vnum {where_clause}"
+        cursor = self.db_conn.execute(sql)
         rows = cursor.fetchall()
 
         for row in rows:
@@ -319,3 +325,7 @@ class World:
                 self.rooms[new_exit.from_vnum].exits[new_exit.direction] = new_exit
 
         # print(len(rows), "exits loaded from db")
+
+    def load_wilderness(self):
+        self.load("where area_name = 'The Wilderness'")
+        self.wilderness_loaded = True
