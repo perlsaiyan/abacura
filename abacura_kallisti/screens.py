@@ -78,9 +78,10 @@ class KallistiScreen(Screen):
                               name=self.tlid, classes="mudoutput", id=self.tlid)
             yield InputBar()
         yield AbacuraFooter()
-        inspector = Inspector()
-        inspector.display = False
-        yield inspector
+        if self.session.abacura.inspector:
+            inspector = Inspector()
+            inspector.display = False
+            yield inspector
         debugger = DebugDock(id="debugger")
         debugger.display = False
         yield debugger
