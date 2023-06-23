@@ -2,6 +2,7 @@
 from __future__ import annotations
 from typing import Optional
 from rich.text import Text
+import re
 
 from textual.widgets import TextLog
 
@@ -33,10 +34,18 @@ class LOKComms(LOKPlugin):
         self.comms_textlog.write(Text.from_ansi(msg.message))
 
     #**Whitechain: 'huehuehue'
-    #You grouptell: huehuehue
-    @action (r"(^\*\*\w+|You)(:| grouptell:) (.*)$", color=False)
-    def comms_group(self, speaker: str, niu2: str, message: str, msg: OutputMessage):
+    @action (r"(^\*\*(\w+): '(.*'))", color=False)
+    def comms_group_other(self, speaker: str, message: str, msg: OutputMessage):
         channel = 'group'
+        if self.comms_textlog is None:
+            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
+        self.comms_textlog.write(Text.from_ansi(msg.message))
+
+    #You grouptell: huehuehue
+    @action (r"You grouptell: (.*)$", color=False)
+    def comms_group_self(self, message: str, msg: OutputMessage):
+        channel = 'group'
+        speaker = 'You'
         if self.comms_textlog is None:
             self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
         self.comms_textlog.write(Text.from_ansi(msg.message))
@@ -118,6 +127,71 @@ class LOKComms(LOKPlugin):
     @action(r"^\[(\w+) responds to (\w+) \((.*)\):] '(.*)'", color=False)
     def comms_respond(self, speaker: str, listener: str, listener_acct: str, msg:OutputMessage):
         channel = 'respond'
+        if self.comms_textlog is None:
+            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
+        self.comms_textlog.write(Text.from_ansi(msg.message))
+
+    @action(r"^The winds whisper, (.*)", color=False)
+    def comms_world(self, message: str, msg: OutputMessage):
+        channel = 'world'
+        if self.comms_textlog is None:
+            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
+        self.comms_textlog.write(Text.from_ansi(msg.message))
+
+    """
+    Whitechain says, 'huehue'
+    You say, 'huehue'
+    """
+    @action(r"^(\w+) say[s]?, '(.*)'", color=False)
+    def comms_say(self, speaker: str, message: str, msg: OutputMessage):
+        channel = 'say'
+        if self.comms_textlog is None:
+            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
+        self.comms_textlog.write(Text.from_ansi(msg.message))
+
+    #Vajra whispers to you, 'huehue'
+    @action(r"(\w+) whispers to you, '(.*)'", color=False)
+    def comms_whisper(self, speaker: str, message: str, msg: OutputMessage):
+        listener = 'You'
+        if self.comms_textlog is None:
+            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
+        self.comms_textlog.write(Text.from_ansi(msg.message)) 
+
+    """
+    You tell Vajra (Anicca){Rp}, 'huehue'
+    You tell Vajra{Rp}, 'huehue'
+    """
+    @action(r"You tell (.*){Rp}, '(.*)'", color=False)
+    def comms_tell_self(self, listener: str, message: str, msg: OutputMessage):
+        speaker = 'You'
+        _listener = listener.split()
+        if len(_listener) > 1:
+            acct = _listener[1]
+            acct = re.sub("\(|\)", '', acct)
+            listener = _listener[0]
+        if self.comms_textlog is None:
+            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
+        self.comms_textlog.write(Text.from_ansi(msg.message))  
+
+    """
+    Vajra tells you, 'huehue'
+    Whitechain (Goliath) tells you, 'huehue'
+    """
+    @action(r"^(.*) tells you, '(.*)'", color=False)
+    def comms_tell_other(self, speaker: str, message: str, msg: OutputMessage):
+        listener = 'You'
+        _speaker = speaker.split()
+        if len(_speaker) > 1:
+            acct  = speaker[1]
+            acct = re.sub("\(|\)", '', acct)
+            speaker = _speaker[0]
+        if self.comms_textlog is None:
+            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
+        self.comms_textlog.write(Text.from_ansi(msg.message))  
+    
+    @action (r"^The winds whisper, '(.*)'", color=False)
+    def comms_world(self, message: str, msg: OutputMessage):
+        speaker = 'world'
         if self.comms_textlog is None:
             self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
         self.comms_textlog.write(Text.from_ansi(msg.message))
