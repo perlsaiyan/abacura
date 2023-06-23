@@ -21,7 +21,7 @@ from abacura.mud.options import GA
 from abacura.mud.options.msdp import MSDP
 from abacura.plugins import command, ContextProvider
 from abacura.plugins.director import Director
-from abacura.plugins.events import EventManager
+from abacura.plugins.events import EventManager, AbacuraMessage
 from abacura.plugins.loader import PluginLoader
 from abacura.utils.ring_buffer import RingBufferLogSql
 
@@ -295,7 +295,9 @@ class Session(BaseSession):
                 # telnet GA sequence, likely end of prompt
                 elif data == GA:
                     self.output(self.outb.decode("UTF-8", errors="ignore"), ansi=True)
+                    self.dispatcher("prompt", AbacuraMessage("Prompt", self.outb.decode("UTF-8", errors="ignore")))
                     self.output("")
+
                     self.outb = b''
 
                 # IAC UNKNOWN
