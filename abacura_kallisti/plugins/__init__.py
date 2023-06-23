@@ -16,7 +16,7 @@ from ..case import camel_to_snake
 
 if TYPE_CHECKING:
     from .lokcomms import LOKComms
-    from .queue import LOKQueueRunner
+    from .queue import LOKQueueRunner, QueueManager
     
 
 __all__ = [
@@ -32,6 +32,7 @@ class LOKPlugin(Plugin):
     """Subclass of standard Plugin to allow insertion of Kallisti """
     msdp: TypedMSDP
     world: World
+    cq: QueueManager
 
     def __init__(self):
         super().__init__()
@@ -39,8 +40,6 @@ class LOKPlugin(Plugin):
     @property
     def uptime(self) -> int:
         return self.msdp.uptime
-
-
 
 _WIDGETS_LAZY_LOADING_CACHE: dict[str, type[Widget]] = {}
 
