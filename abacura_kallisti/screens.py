@@ -15,6 +15,8 @@ from textual.containers import Container, Grid
 from textual.screen import Screen, ModalScreen
 from textual.widgets import Header, TextLog, Button
 
+from abacura_kallisti.widgets import LOKLeft, LOKRight, LOKMap
+
 from abacura import InputBar
 from abacura.config import Config
 from abacura.widgets import CommsLog
@@ -22,7 +24,7 @@ from abacura.widgets.footer import AbacuraFooter
 from abacura.widgets.debug import DebugDock
 
 
-from abacura_kallisti.widgets import LOKLeft, LOKRight, LOKMap
+
 
 
 if TYPE_CHECKING:
