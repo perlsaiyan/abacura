@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Optional
 from rich.text import Text
 from serum import inject, Context
 from textual import log
+from textual.widgets import TextLog
 from textual.screen import Screen
 
 from abacura import SessionScreen, AbacuraFooter
@@ -56,13 +57,13 @@ class Session(BaseSession):
         self.name = name
         self.host = None
         self.port = None
-        self.tl: Optional[log] = None
+        self.tl: Optional[TextLog] = None
         self.core_msdp: MSDP = MSDP(self.output, self.send, self)
         self.options = {}
         self.event_manager: EventManager = EventManager()
         self.dispatcher = self.event_manager.dispatcher
         self.listener = self.event_manager.listener
-        self.director: Optional[Director] = None
+        
         self.plugin_loader: Optional[PluginLoader] = None
         self.ring_buffer: Optional[RingBufferLogSql] = None
 
@@ -72,7 +73,7 @@ class Session(BaseSession):
         self.connected = False
 
         with Context(session=self):
-            self.director = Director()
+            self.director: Director = Director()
             self.director.register_object(self)
 
         core_injections = {"config": self.config, "session": self, "app": self.abacura,
@@ -104,7 +105,7 @@ class Session(BaseSession):
     def launch_screen(self):
         """Fired on screen mounting, so our Footer is updated and Session gets a TextLog handle"""
         self.screen.query_one(AbacuraFooter).session = self.name
-        self.tl = self.screen.query_one(f"#output-{self.name}")
+        self.tl = self.screen.query_one(f"#output-{self.name}", expect_type=TextLog)
 
         self.plugin_loader = PluginLoader()
         self.plugin_loader.load_plugins(modules=["abacura"], plugin_context=self.core_plugin_context)
