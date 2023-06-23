@@ -17,7 +17,7 @@ from textual.widgets import Header, TextLog, Button
 
 from abacura import InputBar
 from abacura.config import Config
-from abacura.widgets import Inspector, CommsLog
+from abacura.widgets import CommsLog
 from abacura.widgets.footer import AbacuraFooter
 from abacura.widgets.debug import DebugDock
 
@@ -79,6 +79,7 @@ class KallistiScreen(Screen):
             yield InputBar()
         yield AbacuraFooter()
         if self.session.abacura.inspector:
+            from abacura.widgets import Inspector
             inspector = Inspector()
             inspector.display = False
             yield inspector
