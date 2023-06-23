@@ -103,12 +103,8 @@ class Session(BaseSession):
     # TODO: This doesn't launch a screen anymore, it loads plugins
     def launch_screen(self):
         """Fired on screen mounting, so our Footer is updated and Session gets a TextLog handle"""
-        #TODO this is static and can be updated at start?
         self.screen.query_one(AbacuraFooter).session = self.name
-
-        while self.tl is None:
-            self.tl = self.screen.query_one(f"#output-{self.name}")
-            time.sleep(0.1)
+        self.tl = self.screen.query_one(f"#output-{self.name}")
 
         self.plugin_loader = PluginLoader()
         self.plugin_loader.load_plugins(modules=["abacura"], plugin_context=self.core_plugin_context)
@@ -197,7 +193,7 @@ class Session(BaseSession):
         self.port = port
 
         while self.tl is None:
-            log.warning("TL not available, sleeping 1 second before connection")
+            log.warning("TL not available, sleeping 0.1 second before connection")
             await asyncio.sleep(0.1)
 
         log.info(f"Session {self.name} connecting to {host} {port}")
