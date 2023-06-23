@@ -18,7 +18,7 @@ from textual.suggester import Suggester
 from textual.widgets import Header, Input, TextLog
 
 from abacura.config import Config
-from abacura.widgets import CommsLog, Inspector
+from abacura.widgets import CommsLog
 
 from abacura.widgets.sidebar import Sidebar
 from abacura.widgets.footer import AbacuraFooter
@@ -69,9 +69,11 @@ class SessionScreen(Screen):
                 yield self.tl
             yield InputBar()
         yield AbacuraFooter()
-        inspector = Inspector()
-        inspector.display = False
-        yield inspector
+        if self.session.abacura.inspector:
+            from abacura import Inspector
+            inspector = Inspector()
+            inspector.display = False
+            yield inspector
 
     def on_mount(self) -> None:
         """Screen is mounted, launch it"""

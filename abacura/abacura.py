@@ -13,7 +13,6 @@ from textual.screen import Screen
 
 from abacura.config import Config
 from abacura.mud.session import Session
-from abacura import Inspector
 from abacura.utils import pycharm
 
 if TYPE_CHECKING:
@@ -69,6 +68,7 @@ class Abacura(App):
 
     def action_toggle_inspector(self) -> None:
         if self.inspector:
+            from abacura import Inspector
             insp = self.query_one(Inspector)
             insp.display = not insp.display
             if not insp.display:
