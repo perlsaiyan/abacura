@@ -35,6 +35,7 @@ class MSDP(TelnetOption):
         self.writer = writer
         self.session = session
         self.values = {}
+        self.initialized: bool = False
 
     def msdpvar(self, buf) -> tuple[bytes, bytes]:
         """Handle MSDP VAR sequences"""
@@ -114,17 +115,10 @@ class MSDP(TelnetOption):
 
     def request_all_values(self) -> None:
         """Automatically request all possible MSDP values"""
-        for key in self.values["REPORTABLE_VARIABLES"]:
-            log(f"Requesting MSDP value {key}")
-            # tiny sleep to avoid overwriting socket
-            # TODO see why this is possible, in Session?
-            time.sleep(0.001)
-            self.writer(b''.join(
-                [IAC, SB, self.hexcode,
-                 VAR, bytes("REPORT", "UTF-8"),
-                 VAL, bytes(key, "UTF-8"),
-                 IAC, SE]
-                ), raw=True)
+        buf = IAC + SB + self.hexcode + VAR + bytes("REPORT", "UTF-8") + VAL
+        msdp_vals = [VAL + bytes(f, "UTF-8") for f in self.values["REPORTABLE_VARIABLES"]]
+        buf += VAL.join(msdp_vals) + IAC + SE
+        self.writer(buf, raw=True)
 
     def will(self):
         self.writer(b"\xff\xfd\x45", raw=True)
@@ -147,7 +141,9 @@ class MSDP(TelnetOption):
             if var == "REPORTABLE_VARIABLES":
                 #self.handler(f"MSDP: Requesting all variables from {var}")
                 self.values[var] = self.parse_reportable_variables(value)
-                self.request_all_values()
+                if not self.initialized:
+                    self.request_all_values()
+                    self.initialized = True
             elif var == "GROUP":
                 self.values[var] = self.parse_group(value)
             elif var == "ROOM_EXITS":
