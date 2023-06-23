@@ -24,6 +24,7 @@ class Abacura(App):
     """A Textual mudclient"""
     screens: Dict[Session, Screen]
     config: Config
+    inspector: bool = False
 
     AUTO_FOCUS = "InputBar"
     CSS_PATH = ["./css/abacura.css"]
@@ -67,16 +68,18 @@ class Abacura(App):
         tl.markup = False
 
     def action_toggle_inspector(self) -> None:
-        inspector = self.query_one(Inspector)
-        inspector.display = not inspector.display
-        if not inspector.display:
-            inspector.picking = False
+        if self.inspector:
+            insp = self.query_one(Inspector)
+            insp.display = not insp.display
+            if not insp.display:
+                insp.picking = False
 
 @click.command()
 @click.option("-c","--config", 'config')
 @click.option("-d", "--debug", "debug", type=str)
 @click.option("-s", "--start", "start", type=str)
-def main(config, debug, start):
+@click.option("-i", "--inspector", "inspector", is_flag=True, default=False)
+def main(config, debug, start, inspector):
     if debug:
         host, port = debug.split(":")
         pycharm.PycharmDebugger().connect(host, int(port))
@@ -100,7 +103,7 @@ def main(config, debug, start):
         usercss.extend(Abacura.CSS_PATH)
         Abacura.CSS_PATH = usercss
 
-    with Context(config=_config):
+    with Context(config=_config, inspector=inspector):
         app = Abacura()
 
     Abacura.START_SESSION = start
