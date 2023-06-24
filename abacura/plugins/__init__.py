@@ -34,8 +34,6 @@ class Plugin:
     def __init__(self):
         # super().__init__()
         self.plugin_enabled = True
-        self.tickers = []
-        self.substitutions = []
         self.director.register_object(self)
         self.output = self.session.output
 
