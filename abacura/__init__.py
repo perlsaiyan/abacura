@@ -67,7 +67,7 @@ class SessionScreen(Screen):
             yield Sidebar(id="sidebar", name="sidebar")
             with Container(id="mudoutputs"):
                 yield self.tl
-            yield InputBar()
+            yield InputBar(id="playerinput")
         yield AbacuraFooter()
         if self.session.abacura.inspector:
             from abacura import Inspector
@@ -126,8 +126,8 @@ class InputBar(Input):
             self.command = command
             super().__init__()
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, id: str=""):
+        super().__init__(id=id)
         self.history = []
         self.history_ptr = None
 
@@ -167,8 +167,10 @@ class InputBar(Input):
     def on_input_submitted(self, message: Input.Submitted) -> None:
         """Bubble-up player input and blank the bar"""
 
-        self.suggester.add_entry(self.value)
-        self.history.append(self.value)
+        if not self.password:
+            self.suggester.add_entry(self.value)
+            self.history.append(self.value)
+
         self.history_ptr = None
         self.post_message(self.UserCommand(self.value))
         self.value = ""

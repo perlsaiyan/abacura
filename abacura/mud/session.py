@@ -14,7 +14,7 @@ from textual import log
 from textual.widgets import TextLog
 from textual.screen import Screen
 
-from abacura import SessionScreen, AbacuraFooter
+from abacura import SessionScreen, AbacuraFooter, Input
 from abacura.config import Config
 from abacura.mud import BaseSession, OutputMessage
 from abacura.mud.options import GA
@@ -259,6 +259,10 @@ class Session(BaseSession):
                     data = await reader.read(1)
                     if ord(data) in self.options:
                         self.options[ord(data)].will()
+                    elif ord(data) == 1:
+                        ibar = self.screen.query_one("#playerinput", expect_type=Input)
+                        ibar.password = True
+                        
                     else:
                         pass
                         #self.output(f"IAC WILL {ord(data)}")
@@ -267,7 +271,9 @@ class Session(BaseSession):
                 elif data == b'\xfc':
                     data = await reader.read(1)
                     #self.output(f"IAC WONT {data}")
-
+                    if ord(data) == 1:
+                        ibar = self.screen.query_one("#playerinput", expect_type=Input)
+                        ibar.password = False
                 # SB
                 elif data == b'\xfa':
                     c = await reader.read(1)
