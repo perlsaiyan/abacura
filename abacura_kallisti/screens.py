@@ -78,7 +78,7 @@ class KallistiScreen(Screen):
                 # TODO: wrap should be a config file field option
                 yield TextLog(highlight=False, markup=False, wrap=True,
                               name=self.tlid, classes="mudoutput", id=self.tlid)
-            yield InputBar()
+            yield InputBar(id="playerinput")
         yield AbacuraFooter()
         if self.session.abacura.inspector:
             from abacura.widgets import Inspector
