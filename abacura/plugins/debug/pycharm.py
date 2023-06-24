@@ -15,6 +15,7 @@ class PycharmDebug(Plugin):
     def pycharm_debug(self, host: str = "localhost", port=12345):
         self.debugger = PycharmDebugger()
         try:
+            self.output(f"Connecting to {host}:{port}")
             self.debugger.connect(host, port)
         except ConnectionRefusedError:
             self.session.output(f"Connection refused by pycharm debugger {host}:{port}")

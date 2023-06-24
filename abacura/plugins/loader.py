@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import os
+from datetime import datetime
 from importlib import import_module
 from importlib.util import find_spec
 from typing import Dict, TYPE_CHECKING, List
@@ -21,10 +22,14 @@ class PluginLoader:
     def __init__(self):
         super().__init__()
         self.plugins: Dict[str, Plugin] = {}
+        self.times = {}
+        self.total_time = 0
+        self.failures = []
 
     def load_plugins(self, modules: List, plugin_context: Context) -> None:
         """Load plugins"""
 
+        start_time = datetime.utcnow()
         plugin_modules = []
 
         for mod in modules:
@@ -41,6 +46,8 @@ class PluginLoader:
 
         # import each one of the modules corresponding to each plugin .py file
         for pf in plugin_modules:
+            module_start_time = datetime.utcnow()
+
             package = pf.replace(os.sep, ".")[:-3]  # strip .py
 
             try:
@@ -49,6 +56,7 @@ class PluginLoader:
                 # TODO: Fix this hack to grab the session, maybe track the failed loads and return a list of failures
                 session = plugin_context['session']
                 session.show_exception(f"[bold red]# ERROR LOADING PLUGIN {package} (from {pf}): {repr(exc)}", exc)
+                self.failures.append(str(package))
                 continue
 
             # Look for plugins subclasses within the module we just loaded and create a PluginHandler for each
@@ -68,3 +76,10 @@ class PluginLoader:
                             log(f"Appending listener function '{member_name}'")
                             # TODO: Move this into the director
                             plugin_context['session'].event_manager.listener(member)
+
+            elapsed = (datetime.utcnow() - module_start_time).total_seconds()
+            mname = module.__name__
+            self.times[mname] = self.times.get(mname,0) + elapsed
+
+        end_time = datetime.utcnow()
+        self.total_time += (end_time - start_time).total_seconds()
