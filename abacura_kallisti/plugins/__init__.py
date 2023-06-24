@@ -9,7 +9,7 @@ from serum import inject
 from textual import log
 from textual.widget import Widget
 
-from abacura.plugins import Plugin
+from abacura.plugins import Plugin, action, command
 from abacura_kallisti.atlas.world import World
 from abacura_kallisti.plugins.msdp import TypedMSDP
 from ..case import camel_to_snake
@@ -17,7 +17,7 @@ from ..case import camel_to_snake
 if TYPE_CHECKING:
     from .lokcomms import LOKComms
     from .queue import LOKQueueRunner, QueueManager
-    
+
 
 __all__ = [
     "LOKComms",
