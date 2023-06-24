@@ -2,6 +2,7 @@ from abacura.plugins import command
 from abacura_kallisti.atlas.terrain import TERRAIN
 from abacura_kallisti.plugins import LOKPlugin
 from abacura_kallisti.atlas.world import Room, Exit
+from abacura_kallisti.atlas.navigator import Navigator, PlayerCharacter
 
 
 class WorldPlugin(LOKPlugin):
@@ -129,3 +130,20 @@ class WorldPlugin(LOKPlugin):
         num_rooms = len(rooms)
         self.session.output(f"\nArea:{area}\n\n  Known Rooms: {num_rooms:5d}\nVisited Rooms: {num_visited:5d}",
                             actionable=False)
+
+    @command
+    def path(self, vnum: str = '3001', detailed: bool = False):
+        pc = PlayerCharacter(level=self.msdp.level)
+        nav = Navigator(self.world, pc, False)
+        nav_path = nav.get_path_to_room(self.msdp.room_vnum, vnum, avoid_vnums=set())
+        self.session.output(f"Path to {vnum} is {nav_path.get_simplified_path()}")
+        if detailed:
+            for step in nav_path.steps:
+                if step.exit.to_vnum in self.world.rooms:
+                    terrain = self.world.rooms[step.exit.to_vnum].terrain
+                    # area = self.world.rooms[step.exit.to_vnum].area_name
+
+                    record = (step.vnum, step.exit.direction, step.exit.to_vnum, step.exit.door,
+                              step.exit.portal_method, step.exit.closes, step.exit.locks, step.cost, terrain)
+
+                    self.output(record)

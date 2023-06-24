@@ -87,7 +87,10 @@ class World:
         self.db_conn.execute("PRAGMA journal_mode=WAL")
         self.create_tables()
 
+        from datetime import datetime
+        start_time = datetime.utcnow()
         self.load()
+        self.load_time = (datetime.utcnow() - start_time).total_seconds()
 
     def get_exits(self, vnum: str, exclude_temporary: bool = False) -> Dict[str, Exit]:
         if vnum not in self.rooms:
