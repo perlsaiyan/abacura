@@ -1,7 +1,6 @@
-import cProfile
+
 import importlib
 import io
-import pstats
 
 from abacura.plugins import Plugin, command
 
@@ -34,12 +33,39 @@ class Profiler(Plugin):
         else:
             self.session.output(str(self.heap.heap()))
 
+    @command
+    def profile2(self, num_functions: int = 40, disable: bool = False):
+        """Python implemented profiler"""
+        from abacura.utils import profiler
+
+        if disable:
+            profiler.profile_off()
+            return
+
+        self.session.output(profiler.p_profiling)
+        if not profiler.p_profiling:
+            profiler.profile_on()
+            self.session.output("ThreadAware Profiler enabled")
+            return
+
+        profiler.profile_off()
+        stats_dict = profiler.get_profile_stats()
+
+        stats = []
+        for key, value in stats_dict.items():
+            fn, filename, linenum = key
+            calls, realtime, cputime = value
+            stats.append((fn, filename, linenum, calls, realtime, cputime))
+
+        for pfn in sorted(stats, key=lambda x: x[5], reverse=True)[:num_functions]:
+            self.output("%60s %6d %7d %6.3f" % (pfn[0], pfn[2], pfn[3], pfn[5]))
+
     @command()
     def profile(self, num_functions: int = 40, disable: bool = False, callers: bool = False,
                 sort_cumulative: bool = False, sort_calls: bool = False):
         """Use to profile CPU usage by method"""
-        # importlib.import_module('cProfile')
-        # importlib.import_module('pstats')
+        import cProfile
+        import pstats
 
         if disable and self.profiler is not None:
             self.profiler.disable()
