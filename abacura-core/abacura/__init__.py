@@ -180,16 +180,17 @@ class AbacuraSuggester(Suggester):
         super().__init__(use_cache=False)
         self.session = session
         self.history = []
+        self.command_char = self.session.config.get_specific_option(self.session.name, "command_char","#")
 
     def add_entry(self, value) -> None:
         self.history.insert(0,value)
 
     async def get_suggestion(self, value: str) -> Coroutine[Any, Any, str] | None:
-        if value.startswith("@"):
+        if value.startswith(self.command_char):
             value = value[1:]
             for command in self.session.director.command_manager.commands:
                 if command.name.startswith(value):
-                    return f"@{command.name}"
+                    return f"{self.command_char}{command.name}"
         else:
             try:
                 for cmds in self.history:

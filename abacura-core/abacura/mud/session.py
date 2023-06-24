@@ -69,6 +69,7 @@ class Session(BaseSession):
         self.outb = b''
         self.writer = None
         self.connected = False
+        self.command_char = self.config.get_specific_option(self.name, "command_char", "#")
 
         with Context(session=self):
             self.director: Director = Director()
@@ -126,7 +127,7 @@ class Session(BaseSession):
         else:
             cmd = sl.split()[0]
 
-        if cmd.startswith("@") and self.director.command_manager.execute_command(line):
+        if cmd.startswith(self.command_char) and self.director.command_manager.execute_command(line):
             return
 
         if self.director.alias_manager.handle(cmd, sl):
