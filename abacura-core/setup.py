@@ -1,17 +1,10 @@
 from setuptools import setup, find_packages
 
 setup(
-<<<<<<< HEAD
     name="abacura",
     description="Multi-session MUD client written in Python with Textual library",
     python_requires='>3.10',
     version="0.0.10",
-=======
-    name="abacura_kallisti",
-    description="Abacura extensions for Legends of Kallisti",
-    python_requires='>3.10',
-    version="0.0.3",
->>>>>>> abacura-kallisti/main
     packages=find_packages(),
     license="Proprietary",
     classifiers=[
@@ -20,7 +13,6 @@ setup(
 
     include_package_data=True,
     package_data={
-<<<<<<< HEAD
         'abacura': ['css/*.css'],
     },
     install_requires=[
@@ -35,12 +27,5 @@ setup(
         [console_scripts]
         abacura=abacura.abacura:main
     """,
-=======
-        'abacura': ['*.css'],
-    },
-    install_requires=[
-        "abacura~=0.0.9",
-        ],
->>>>>>> abacura-kallisti/main
 )
 

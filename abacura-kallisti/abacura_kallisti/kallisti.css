@@ -1,0 +1,47 @@
+App {
+
+}
+
+Screen {
+}
+
+Input {
+    margin: 0 0;
+    border: none;
+}
+
+#sidebar {
+    dock: left;
+    width: 15;
+    display: none;
+}
+
+#commslog {
+    width: 100%;
+    display: block;
+    height: 20;
+}
+
+#mudoutputs {
+
+}
+
+SessionName {
+    display: block
+}
+
+.masthead {
+    display: block;
+}
+
+.mudoutput {
+    height: 100%;
+    width: 100%;
+    display: block;
+}
+
+#motd {
+    height: 100%;
+    display: block;
+    layer: lower;
+}

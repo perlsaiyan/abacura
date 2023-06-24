@@ -184,7 +184,7 @@ class AbacuraSuggester(Suggester):
     def add_entry(self, value) -> None:
         self.history.insert(0,value)
 
-    async def get_suggestion(self, value: str) -> Coroutine[Any, Any, str | None]:
+    async def get_suggestion(self, value: str) -> Coroutine[Any, Any, str] | None:
         if value.startswith("@"):
             value = value[1:]
             for command in self.session.director.command_manager.commands:
