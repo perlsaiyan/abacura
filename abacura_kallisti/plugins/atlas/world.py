@@ -63,7 +63,7 @@ class WorldPlugin(LOKPlugin):
         self.session.output(exits)
 
         if location.vnum == self.msdp.room_vnum:
-            self.session.output("\nMSDP_EXITS: " + self.msdp.room_exits)
+            self.session.output("\nMSDP_EXITS: " + str(self.msdp.room_exits))
 
     @staticmethod
     def get_room_flags(room: Room) -> str:
