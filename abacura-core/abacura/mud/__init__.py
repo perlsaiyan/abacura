@@ -1,10 +1,15 @@
+"""
+The mud module contains Session objects and protocol handlers
+"""
+import re
 import traceback
 from rich.markup import escape
 from rich.panel import Panel
-import re
+
 
 
 class BaseSession:
+    """Base class for all Session objects"""
 
     def output(self, msg, **kwargs):
         """Subclasses will handle this"""
