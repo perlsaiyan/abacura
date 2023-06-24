@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from abacura_kallisti.mud.group import Group
 from abacura_kallisti.mud.affect import Affect
 from abacura_kallisti.mud.skills import SKILLS
-from typing import List
+from typing import List, Dict
 import re
 
 
@@ -56,7 +56,7 @@ class TypedMSDP:
     area_min_level: int = 0
     room_vnum: str = ""
     room_name: str = ""
-    room_exits: str = ""
+    room_exits: Dict = field(default_factory=dict)
     room_terrain: str = ""
     mount_hp: int = 0
     mount_hp_max: int = 0
