@@ -13,7 +13,7 @@ setup(
 
     include_package_data=True,
     package_data={
-        'css/': ['*.css'],
+        'abacura_kallisti': ['css/*.css'],
     },
     install_requires=[
         "abacura~=0.0.9",
