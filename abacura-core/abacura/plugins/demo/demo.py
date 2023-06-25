@@ -12,10 +12,10 @@ class PluginDemo(Plugin):
 
     @command
     def foo(self) -> None:
-        self.session.output(f"{sys.path}")
-        self.session.output(f"{self.session.app.sessions}", markup=True)
-        self.session.output(
-            f"MSDP HEALTH: [bold red]🛜 [bold green]🛜  {self.session}", markup=True)
+        # self.session.output(f"{sys.path}")
+        self.session.output("FOO 15")
+        # self.session.output(f"{self.session.app.sessions}", markup=True)
+        # self.session.output(f"MSDP HEALTH: [bold red]🛜 [bold green]🛜  {self.session}", markup=True)
 
     @action("Ptam", flags=re.IGNORECASE)
     def ptam(self):

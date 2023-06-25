@@ -40,11 +40,24 @@ class PluginSession(Plugin):
 
         self.session.output("Current registered global plugins:")
 
-        for plugin_name, plugin in self.session.plugin_loader.plugins.items():
+        for plugin_name, loaded_plugin in self.session.plugin_loader.plugins.items():
+            plugin = loaded_plugin.plugin
             indicator = '[bold green]✓' if plugin.plugin_enabled else '[bold red]x'
             self.session.output(
                 f"{indicator} [white]{plugin.get_name()}" +
                 f" - {plugin.get_help()}", markup=True)
+
+    @command
+    def reload(self, plugin_name: str = "", auto: bool = False):
+        """Reload plugins"""
+        if not plugin_name:
+            self.session.plugin_loader.autoreload_plugins()
+        else:
+            self.session.plugin_loader.reload_plugin_by_name(plugin_name)
+
+        if auto:
+            cb = self.session.plugin_loader.autoreload_plugins
+            self.session.screen.set_interval(interval=1, callback=cb, name="reloadplugins")
 
     def ring_log_query(self, like: str = "", limit: int = 100, minutes_ago: int = 30,
                        hide_msdp: bool = False, show_commands: bool = False, grouped: bool = False):
@@ -85,4 +98,3 @@ class PluginSession(Plugin):
         if self.session.ring_buffer is None:
             raise ValueError("No ring buffer configured")
         self.ring_log_query(like, limit, hide_msdp=False, minutes_ago=minutes_ago)
-
