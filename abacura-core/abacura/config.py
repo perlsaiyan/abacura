@@ -37,16 +37,6 @@ class Config:
         except Exception as config_exception:
             raise (config_exception)
 
-    def data_directory(self, section: str) -> Path:
-        """Returns the per-session repository of save files for persistence"""
-        if section in self.config and "data_directory" in self.config[section]:
-            path = Path(os.path.join(self.config["data_directory"], section)).expanduser()
-        else:
-            path = Path(os.path.join("~/Documents/abacura", section)).expanduser()
-
-        path.mkdir(parents=True, exist_ok=True)
-        return path
-
     def get_specific_option(self, section: str, key: str, default=None) -> Any:
         """Get configuration value for section, global, or default"""
 
@@ -61,6 +51,20 @@ class Config:
 
         return default
 
+    def data_directory(self, section: str) -> Path:
+        """Returns the per-session repository of save files for persistence"""
+        if section in self.config and "data_directory" in self.config[section]:
+            path = Path(os.path.join(self.config["data_directory"], section)).expanduser()
+        else:
+            path = Path(os.path.join("~/Documents/abacura", section)).expanduser()
+
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    def ring_log(self, section: str) -> str:
+        """Returns the location of the ring log"""
+        return Path(os.path.join(self.data_directory(section), "ringlog.db")).as_posix()
+    
     @property
     def config(self) -> TOMLDocument:
         return self._config

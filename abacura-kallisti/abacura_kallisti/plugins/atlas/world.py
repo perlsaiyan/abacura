@@ -1,8 +1,9 @@
 from abacura.plugins import command
 from abacura_kallisti.atlas.terrain import TERRAIN
+from abacura_kallisti.mud.player import PlayerCharacter
 from abacura_kallisti.plugins import LOKPlugin
 from abacura_kallisti.atlas.world import Room, Exit
-from abacura_kallisti.atlas.navigator import Navigator, PlayerCharacter
+from abacura_kallisti.atlas.navigator import Navigator
 
 
 class WorldPlugin(LOKPlugin):
@@ -133,8 +134,7 @@ class WorldPlugin(LOKPlugin):
 
     @command
     def path(self, vnum: str = '3001', detailed: bool = False):
-        pc = PlayerCharacter(level=self.msdp.level)
-        nav = Navigator(self.world, pc, False)
+        nav = Navigator(self.world, self.session.pc, False)
         nav_path = nav.get_path_to_room(self.msdp.room_vnum, vnum, avoid_vnums=set())
         self.session.output(f"Path to {vnum} is {nav_path.get_simplified_path()}")
         if detailed:

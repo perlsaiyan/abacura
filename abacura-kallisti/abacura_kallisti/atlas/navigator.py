@@ -5,6 +5,7 @@ from typing import Dict, Set, List, Generator
 from abacura_kallisti.atlas.terrain import TERRAIN
 from abacura_kallisti.atlas.wilderness import WildernessGrid
 from abacura_kallisti.atlas.world import Exit, Room, World
+from abacura_kallisti.mud.player import PlayerCharacter
 from itertools import chain
 
 HOMETOWN = 'Mortal Residences'
@@ -16,16 +17,6 @@ class NavigationStep:
     vnum: str
     exit: Exit
     cost: float
-
-
-# TODO: Move this out so we can load pieces from a config file
-@dataclass(slots=True)
-class PlayerCharacter:
-    home_vnum: str = '3001'
-    egress_vnum: str = '3001'
-    recall_vnum: str = '3001'
-    level: int = 0
-
 
 class NavigationPath:
     def __init__(self, destination: Room = None):

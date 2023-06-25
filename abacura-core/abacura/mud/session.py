@@ -98,7 +98,7 @@ class Session(BaseSession):
         with self.additional_plugin_context:
             self.abacura.install_screen(screen_class(name), name=name)
 
-        if ring_filename := self.config.get_specific_option(name, "ring_filename"):
+        if ring_filename := self.config.ring_log(name):
             ring_size = self.config.get_specific_option(name, "ring_size", 10000)
             self.ring_buffer = RingBufferLogSql(ring_filename, ring_size)
 
