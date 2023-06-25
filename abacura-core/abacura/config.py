@@ -54,7 +54,7 @@ class Config:
     def data_directory(self, section: str) -> Path:
         """Returns the per-session repository of save files for persistence"""
         if section in self.config and "data_directory" in self.config[section]:
-            path = Path(os.path.join(self.config["data_directory"], section)).expanduser()
+            path = Path(os.path.join(self.config[section]["data_directory"], section)).expanduser()
         else:
             path = Path(os.path.join("~/Documents/abacura", section)).expanduser()
 
