@@ -1,9 +1,10 @@
 """Abacura configuration module"""
 
+import os
 from pathlib import Path
 from typing import Any
 
-from tomlkit import parse
+from tomlkit import parse, TOMLDocument
 
 DEFAULT_GLOBAL_CONFIG = {
     "module_paths": [],
@@ -13,7 +14,6 @@ DEFAULT_GLOBAL_CONFIG = {
 
 class Config:
     """Base configuration class"""
-    _config = None
     _config_file: str
     name = "config"
        
@@ -37,6 +37,16 @@ class Config:
         except Exception as config_exception:
             raise (config_exception)
 
+    def data_directory(self, section: str) -> Path:
+        """Returns the per-session repository of save files for persistence"""
+        if section in self.config and "data_directory" in self.config[section]:
+            path = Path(os.path.join(self.config["data_directory"], section)).expanduser()
+        else:
+            path = Path(os.path.join("~/Documents/abacura", section)).expanduser()
+
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
     def get_specific_option(self, section: str, key: str, default=None) -> Any:
         """Get configuration value for section, global, or default"""
 
@@ -52,5 +62,5 @@ class Config:
         return default
 
     @property
-    def config(self):
+    def config(self) -> TOMLDocument:
         return self._config
