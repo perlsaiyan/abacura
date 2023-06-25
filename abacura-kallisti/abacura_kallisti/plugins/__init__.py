@@ -9,9 +9,12 @@ from serum import inject
 from textual import log
 from textual.widget import Widget
 
-from abacura.plugins import Plugin, action, command
+from abacura.plugins import Plugin
 from abacura_kallisti.atlas.world import World
 from abacura_kallisti.plugins.msdp import TypedMSDP
+from abacura_kallisti.atlas.location import LocationList
+from abacura_kallisti.mud.player import PlayerCharacter
+
 from ..case import camel_to_snake
 
 if TYPE_CHECKING:
@@ -25,7 +28,8 @@ __all__ = [
     "LOKPlugin"
 ]
 
-__LOCAL_CLASSES__ = [ "LOKPlugin" ]
+__LOCAL_CLASSES__ = ["LOKPlugin"]
+
 
 @inject
 class LOKPlugin(Plugin):
@@ -33,15 +37,55 @@ class LOKPlugin(Plugin):
     msdp: TypedMSDP
     world: World
     cq: QueueManager
+    pc: PlayerCharacter
+    locations: LocationList
 
     def __init__(self):
         super().__init__()
 
-    @property
-    def uptime(self) -> int:
-        return self.msdp.uptime
+    # @staticmethod
+    # def parse_direction(direction: str):
+    #     matches = [s for s in CARDINAL_DIRECTIONS if s.startswith(direction.lower())]
+    #     if len(matches) == 0:
+    #         raise ValueError("Invalid direction %s" % direction)
+    #     elif len(matches) > 1:
+    #         raise ValueError("Ambiguous direction %s" % direction)
+    #     return matches[0]
+    #
+    # def parse_destination(self, destination: str):
+    #
+    # def parse_vnum(self, vnum: str):
+    #     if vnum not in self.world.rooms:
+    #         raise ValueError('Unknown room [%s]' % vnum)
+    #
+    #     return self.world.rooms[vnum]
+
+    def evaluate_argument_room(self, submitted_value: str):
+        """function to evaluate command arguments that are Rooms / locations"""
+        if not self.msdp or not self.locations:
+            return
+
+        if submitted_value is None:
+            vnum = self.msdp.room_vnum
+        # elif submitted_value.lower() == 'guild':
+        #     if self.msdp.cls not in GUILDS:
+        #         raise ValueError("Guild unknown for class %s" % self.msdp.cls)
+        #     vnum = GUILDS[self.msdp.cls]
+        else:
+            location = self.locations.get_location(submitted_value)
+            if location is not None:
+                vnum = location.vnum
+            else:
+                vnum = submitted_value
+
+        if vnum in self.world.rooms:
+            return self.world.rooms[vnum]
+
+        raise ValueError(f'Unknown room [{submitted_value}]')
+
 
 _WIDGETS_LAZY_LOADING_CACHE: dict[str, type[Widget]] = {}
+
 
 # Let's decrease startup time by lazy loading our Widgets
 # We won't _prefix them so they also get picked up by the plugin loader
@@ -50,8 +94,7 @@ def __getattr__(widget_class: str) -> type[Widget]:
     # Skip our local ones
     if widget_class in __LOCAL_CLASSES__:
         log(f"Local class attempt in {sys.modules[__name__]} for {widget_class}")
-        return getattr(sys.modules[__name__],widget_class)
-        
+        return getattr(sys.modules[__name__], widget_class)
 
     try:
         return _WIDGETS_LAZY_LOADING_CACHE[widget_class]
@@ -68,6 +111,7 @@ def __getattr__(widget_class: str) -> type[Widget]:
     _WIDGETS_LAZY_LOADING_CACHE[widget_class] = class_
 
     return class_
+
 
 __all__ = [
 

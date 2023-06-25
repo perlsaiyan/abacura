@@ -39,6 +39,13 @@ class Command:
         if parameter.annotation in [float, "float"]:
             return float(submitted_value)
 
+        if parameter.annotation not in [str, "str"] and hasattr(parameter.annotation, "__name__"):
+            parameter_class_name = parameter.annotation.__name__
+            custom_evaluator_name = f"evaluate_argument_{parameter_class_name.lower()}"
+            custom_evaluator = getattr(self.source, custom_evaluator_name, None)
+            if custom_evaluator:
+                return custom_evaluator(submitted_value)
+
         return submitted_value
 
     def evaluate_arguments(self, submitted_arguments: List[str], cmd_str: str) -> Dict:

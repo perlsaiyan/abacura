@@ -18,6 +18,7 @@ class NavigationStep:
     exit: Exit
     cost: float
 
+
 class NavigationPath:
     def __init__(self, destination: Room = None):
         self.steps: List[NavigationStep] = []
@@ -54,42 +55,46 @@ class NavigationPath:
             return ''
 
         n = 0
-        result = ''
+        result = []
         last_direction = self.steps[0].exit.direction
 
         for step in self.steps + [NavigationStep('', Exit(), 0)]:
             if step.exit.direction != last_direction or step.exit.closes or step.exit.portal_method != "":
                 # print(last_direction, room_exit.direction, room_exit.closes, room_exit.portal_method)
                 if last_direction is not None:
-                    result += '%s%s' % (n > 1 and n or '', last_direction[0])
+                    result.append(f"{n > 1 and n or ''}{last_direction[0]}")
 
                 if step.exit.closes:
-                    result += ';open %s %s;' % (step.exit.door or "door", step.exit.direction)
+                    result.append(f"open {step.exit.door or 'door'} {step.exit.direction}")
                     last_direction = step.exit.direction
                     n = 1
                 elif step.exit.portal_method != "":
-                    result += ";%s %s;" % (step.exit.portal_method, step.exit.direction)
+                    result.append(f"{step.exit.portal_method} {step.exit.direction}")
                     last_direction = None
                     n = 0
                 else:
                     last_direction = step.exit.direction
                     n = 1
+            elif step.exit.direction in ['home', 'depart', 'recall']:
+                result.append(step.exit.direction)
+                last_direction = None
             else:
                 last_direction = step.exit.direction
                 n += 1
 
-        return result.strip(';')
+        return ";".join(result)
 
 
 class Navigator:
 
-    def __init__(self, world: World, pc: PlayerCharacter, avoid_home: bool = False):
+    def __init__(self, world: World, pc: PlayerCharacter, level: int = 0, avoid_home: bool = False):
         super().__init__()
         self.world: World = world
         self.wilderness_grid = WildernessGrid()
         # self.knows_bifrost = self.pc.probably_knows('Bifrost')
         self.exit_costs: dict = {}
         self.pc: PlayerCharacter = pc
+        self.level = level
         self.avoid_home = avoid_home
 
     def get_path_to_room(self, start_vnum: str, goal_vnum: str,
@@ -170,7 +175,10 @@ class Navigator:
         if room_exit.to_vnum in ['?', 'L'] or room_exit.locks:  # and not special_unlock :
             return -1
 
-        if room_exit.max_level < self.pc.level:
+        if room_exit.max_level < self.level:
+            return -1
+
+        if room_exit.min_level > self.level:
             return -1
 
         if room_exit.to_vnum not in self.world.rooms:

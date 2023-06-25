@@ -94,8 +94,8 @@ class PluginSession(Plugin):
         self.session.output(s, actionable=False, loggable=False)
 
     @command()
-    def ring_log(self, like: str = "%", limit: int = 40, minutes_ago: int = 30):
-        """Search all log entries"""
+    def log(self, like: str = "%", limit: int = 40, minutes_ago: int = 30):
+        """Search output log """
         if self.session.ring_buffer is None:
-            raise ValueError("No ring buffer configured")
+            raise ValueError("No output log ring buffer configured")
         self.ring_log_query(like, limit, hide_msdp=False, minutes_ago=minutes_ago)
