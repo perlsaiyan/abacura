@@ -16,4 +16,4 @@ class CommsLog(Container):
 
     def compose(self) -> ComposeResult:
         yield self.tl
-        yield ResizeHandle(self, "bottom")    
+        yield ResizeHandle(self, "bottom")

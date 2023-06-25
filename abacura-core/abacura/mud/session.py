@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 from importlib import import_module
+import re
 import time
 from typing import TYPE_CHECKING, Optional
 
@@ -26,6 +27,8 @@ from abacura.utils.ring_buffer import RingBufferLogSql
 if TYPE_CHECKING:
     from abacura.abacura import Abacura
 
+speedwalk_pattern = r'^(\d*[neswud])+$'
+speedwalk_step_pattern = r'\d*[neswud]'
 
 def load_class(class_name: str, default=None):
     """dynamically load a class"""
@@ -70,6 +73,9 @@ class Session(BaseSession):
         self.writer = None
         self.connected = False
         self.command_char = self.config.get_specific_option(self.name, "command_char", "#")
+
+        self.speedwalk_re = re.compile(speedwalk_pattern)
+        self.speedwalk_step_re = re.compile(speedwalk_step_pattern)
 
         with Context(session=self):
             self.director: Director = Director()
@@ -128,6 +134,17 @@ class Session(BaseSession):
             cmd = sl.split()[0]
 
         if cmd.startswith(self.command_char) and self.director.command_manager.execute_command(line):
+            return
+
+        if self.speedwalk_re.match(sl) and self.connected:
+            for walk in self.speedwalk_step_re.findall(sl):
+                # We're keeping delimiters so without a preceding number, first part is ''
+                parts = re.split('([neswud])',walk)
+                if parts[0] == '':
+                        self.send(parts[1] + "\n")
+                else:
+                    for _ in range(int(parts[0])):
+                        self.send(parts[1] + "\n")
             return
 
         if self.director.alias_manager.handle(cmd, sl):
