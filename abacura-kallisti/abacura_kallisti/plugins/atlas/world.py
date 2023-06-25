@@ -13,7 +13,12 @@ class WorldPlugin(LOKPlugin):
         """Display information about a room"""
         
         if location_vnum is None:
-            location = self.world.rooms[self.msdp.room_vnum]
+            if self.msdp.room_vnum in self.world.rooms:
+                location = self.world.rooms[self.msdp.room_vnum]
+            else:
+                self.session.output(f"Unknown room {self.msdp.room_vnum}", actionable=False)
+                return
+
         elif location_vnum not in self.world.rooms:
             self.session.output(f"Unknown location {location_vnum}", actionable=False)
             return
