@@ -36,7 +36,9 @@ class Script(LOKPlugin):
                             "send": self.session.send,
                             "input": self.session.player_input,
                             "world": self.world,
-                            "msdp": self.msdp
+                            "msdp": self.msdp,
+                            "pc": self.pc,
+                            "locations": self.locations
                             }
 
             self.session.output(f"# Running script {filename}", actionable=False)
@@ -61,7 +63,8 @@ class Script(LOKPlugin):
                 self.exec_locals = {}
 
             exec_globals = {"session": self.session, "plugins": self.session.plugin_loader.plugins,
-                            "world": self.world, "msdp": self.msdp}
+                            "world": self.world, "msdp": self.msdp, "locations": self.locations,
+                            "pc": self.pc}
 
             if text.strip().startswith("def "):
                 result = exec(text, exec_globals, self.exec_locals)

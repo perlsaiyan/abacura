@@ -13,10 +13,9 @@ from abacura import Config
 class PlayerCharacter:
     """Kallisti specific player information"""
     _config: TOMLDocument = field(default_factory=document)
-    home_vnum: str = '3001'
+    home_vnum: str = ''
     egress_vnum: str = '3001'
     recall_vnum: str = '3001'
-    level: int = 0
 
     def load(self, data_dir: str, name: str):
         char_file = os.path.join(data_dir, name.lower())
@@ -29,10 +28,3 @@ class PlayerCharacter:
         for key, val in self._config.items():
             if hasattr(self,key):
                 setattr(self, key, val)
-        
-
-
-
-        
-
-

@@ -1,24 +1,33 @@
 from abacura.plugins import command
 from abacura_kallisti.atlas.terrain import TERRAIN
-from abacura_kallisti.mud.player import PlayerCharacter
 from abacura_kallisti.plugins import LOKPlugin
 from abacura_kallisti.atlas.world import Room, Exit
 from abacura_kallisti.atlas.navigator import Navigator
+from rich.table import Table
 
 
 class WorldPlugin(LOKPlugin):
 
     @command()
-    def room(self, location_vnum: str = None, delete: bool = False):
+    def room(self, location: Room=None, delete: bool = False):
         """Display information about a room"""
-        
-        if location_vnum is None:
+
+        if location is None:
+            if self.msdp.room_vnum not in self.world.rooms:
+                self.output(f"Unknown room {self.msdp.room_vnum}")
             location = self.world.rooms[self.msdp.room_vnum]
-        elif location_vnum not in self.world.rooms:
-            self.session.output(f"Unknown location {location_vnum}", actionable=False)
-            return
-        else:
-            location = self.world.rooms[location_vnum]
+        # if location is None:
+        #     if self.msdp.room_vnum in self.world.rooms:
+        #         location = self.world.rooms[self.msdp.room_vnum]
+        #     else:
+        #         self.session.output(f"Unknown room {self.msdp.room_vnum}", actionable=False)
+        #         return
+        #
+        # elif location_vnum not in self.world.rooms:
+        #     self.session.output(f"Unknown location {location_vnum}", actionable=False)
+        #     return
+        # else:
+        #     location = self.world.rooms[location_vnum]
 
         tr = self.world.get_tracking(location.vnum)
         self.session.output("[%s] %s" % (location.vnum, location.name))
@@ -35,10 +44,10 @@ class WorldPlugin(LOKPlugin):
             self.session.output("x, y: %d,%d [%d, %d]" % (x, y, ox, oy))
             self.session.output("Harvested: %s" % tr.last_harvested)
 
-        # alias_names = [f"{a.category}.{a.name}" for a in self.world.get_aliases_for_vnum(location.vnum)]
-        # if len(alias_names) > 0:
-        #     self.session.output("Aliases: " + ", ".join(alias_names))
-        # self.session.output("")
+        location_names = [f"{a.category}.{a.name}" for a in self.locations.get_locations_for_vnum(location.vnum)]
+        if len(location_names) > 0:
+            self.session.output("Locations: " + ", ".join(location_names))
+        self.session.output("")
 
         if delete:
             self.world.delete_room(location.vnum)
@@ -133,10 +142,10 @@ class WorldPlugin(LOKPlugin):
                             actionable=False)
 
     @command
-    def path(self, vnum: str = '3001', detailed: bool = False):
-        nav = Navigator(self.world, self.session.pc, False)
-        nav_path = nav.get_path_to_room(self.msdp.room_vnum, vnum, avoid_vnums=set())
-        self.session.output(f"Path to {vnum} is {nav_path.get_simplified_path()}")
+    def path(self, destination: Room, detailed: bool = False):
+        nav = Navigator(self.world, self.pc, level=self.msdp.level, avoid_home=False)
+        nav_path = nav.get_path_to_room(self.msdp.room_vnum, destination.vnum, avoid_vnums=set())
+        self.session.output(f"Path to {destination.vnum} is {nav_path.get_simplified_path()}")
         if detailed:
             for step in nav_path.steps:
                 if step.exit.to_vnum in self.world.rooms:
@@ -147,3 +156,87 @@ class WorldPlugin(LOKPlugin):
                               step.exit.portal_method, step.exit.closes, step.exit.locks, step.cost, terrain)
 
                     self.output(record)
+
+    @command(name="locations")
+    def location_cmd(self, location: str = None, destination: Room = None, delete: bool = False, add: bool = False):
+        """View and modify room locations"""
+
+        if location is None:
+            self.session.output('\nCATEGORY\n--------')
+            for c in self.locations.get_categories():
+                self.session.output(c)
+            return
+
+        s = location.split(".")
+        if len(s) > 2:
+            raise ValueError('Location should be of the format <category>.<name>')
+
+        if add and delete:
+            raise ValueError('Cannot specify both add and delete')
+
+        category = s[0]
+
+        if len(s) == 1:
+            if add or delete:
+                raise ValueError('Cannot add or delete category directly, use <category>.<name>')
+
+            if category not in self.locations.get_categories():
+                raise ValueError(f'Unknown category {category}')
+
+            rooms = []
+
+            # nav = Navigator(check_specials=True)
+
+            for a in self.locations.get_category(category):
+                room_name = self.world.rooms[a.vnum].name if a.vnum in self.world.rooms else "<missing>"
+                area_name = self.world.rooms[a.vnum].area_name if a.vnum in self.world.rooms else "<missing>"
+
+                # don't try to compute navigation between wilderness and non-wilderness areas
+                # cost = 0
+                # if not ('The Wilderness' in [self.msdp.area_name, area_name] and self.msdp.area_name != area_name):
+                #     path = nav.get_path_to_room(self.msdp.room_vnum, a.vnum, set())
+                #     cost = round(path.get_travel_cost())
+
+                rooms.append((a.name, a.vnum, room_name[:30], area_name[:30]))
+
+            tbl: Table = Table(title=f"{category}: locations")
+            tbl.add_column("Name")
+            tbl.add_column("VNUM")
+            tbl.add_column("Room Name")
+            tbl.add_column("Area")
+
+            for r in rooms:
+                tbl.add_row(*r)
+            self.session.output(tbl)                
+            return
+
+        existing_location = self.locations.get_location(location)
+
+        if delete:
+            if existing_location is None:
+                raise ValueError(f"Unknown location {location}")
+
+            self.locations.delete_location(location)
+            self.session.output("Alias %s deleted" % location)
+
+            return
+
+        if add:
+            if existing_location is not None:
+                raise ValueError(f"Alias %s already exists {location}")
+
+            if destination is None:
+                destination = self.world.rooms[self.msdp.room_vnum]
+
+            self.locations.add_location(location, destination.vnum)
+            self.session.output("Alias %s added for [%s]" % (location, destination.vnum))
+            return
+
+        if existing_location is None:
+            raise ValueError(f"Unknown location '{location}'")
+
+        if existing_location.vnum not in self.world.rooms:
+            raise ValueError(f'Alias {location} points to missing room {existing_location.vnum}')
+
+        location_room = self.world.rooms[existing_location.vnum]
+        self.session.output(f"{location} pints to {existing_location.vnum} in {location_room.area_name}")
