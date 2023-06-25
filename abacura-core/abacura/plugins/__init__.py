@@ -36,6 +36,7 @@ class Plugin:
         self.plugin_enabled = True
         self.director.register_object(self)
         self.output = self.session.output
+        self.dispatcher = self.director.event_manager.dispatcher
 
     def get_name(self):
         return self.__class__.__name__

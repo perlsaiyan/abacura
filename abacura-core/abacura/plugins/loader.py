@@ -70,13 +70,6 @@ class PluginLoader:
 
                     self.plugins[plugin_name] = plugin_instance
 
-                    # Look for listeners in the plugin
-                    for member_name, member in inspect.getmembers(plugin_instance, callable):
-                        if hasattr(member, 'event_name'):
-                            log(f"Appending listener function '{member_name}'")
-                            # TODO: Move this into the director
-                            plugin_context['session'].event_manager.listener(member)
-
             elapsed = (datetime.utcnow() - module_start_time).total_seconds()
             mname = module.__name__
             self.times[mname] = self.times.get(mname,0) + elapsed

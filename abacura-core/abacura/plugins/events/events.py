@@ -2,14 +2,14 @@
 from abacura.plugins import Plugin, command
 from abacura.plugins.events import event, AbacuraMessage
 
+
 class EventPlugin(Plugin):
     """Commands and things """
 
     def __init__(self):
         super().__init__()
         self.dispatcher = self.session.dispatcher
-        self.event_manager = self.session.event_manager
-
+        self.event_manager = self.session.director.event_manager
 
     @command(name="events")
     def eventscommand(self):

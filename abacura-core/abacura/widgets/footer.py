@@ -17,7 +17,7 @@ class AbacuraFooter(Footer):
     level: reactive[str] = reactive[str]("")
 
     def on_mount(self):
-        self.screen.session.event_manager.listener(self.update_level)
+        self.screen.session.director.event_manager.listener(self.update_level)
 
     def render(self) -> str:
         return f"#{self.session} {self.level}"

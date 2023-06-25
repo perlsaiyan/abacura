@@ -2,16 +2,16 @@
 from __future__ import annotations
 
 import asyncio
-from importlib import import_module
 import re
 import time
+from importlib import import_module
 from typing import TYPE_CHECKING, Optional
 
 from rich.text import Text
 from serum import inject, Context
 from textual import log
-from textual.widgets import TextLog
 from textual.screen import Screen
+from textual.widgets import TextLog
 
 from abacura import SessionScreen, AbacuraFooter, Input
 from abacura.config import Config
@@ -20,7 +20,7 @@ from abacura.mud.options import GA
 from abacura.mud.options.msdp import MSDP
 from abacura.plugins import command, ContextProvider
 from abacura.plugins.director import Director
-from abacura.plugins.events import EventManager, AbacuraMessage
+from abacura.plugins.events import AbacuraMessage
 from abacura.plugins.loader import PluginLoader
 from abacura.utils.ring_buffer import RingBufferLogSql
 
@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
 speedwalk_pattern = r'^(\d*[neswud])+$'
 speedwalk_step_pattern = r'\d*[neswud]'
+
 
 def load_class(class_name: str, default=None):
     """dynamically load a class"""
@@ -61,10 +62,7 @@ class Session(BaseSession):
         self.tl: Optional[TextLog] = None
         self.core_msdp: MSDP = MSDP(self.output, self.send, self)
         self.options = {}
-        self.event_manager: EventManager = EventManager()
-        self.dispatcher = self.event_manager.dispatcher
-        self.listener = self.event_manager.listener
-        
+
         self.plugin_loader: Optional[PluginLoader] = None
         self.ring_buffer: Optional[RingBufferLogSql] = None
 
@@ -80,6 +78,9 @@ class Session(BaseSession):
         with Context(session=self):
             self.director: Director = Director()
             self.director.register_object(self)
+
+        self.dispatcher = self.director.event_manager.dispatcher
+        self.listener = self.director.event_manager.listener
 
         core_injections = {"config": self.config, "session": self, "app": self.abacura,
                            "sessions": self.abacura.sessions, "core_msdp": self.core_msdp,
@@ -139,9 +140,9 @@ class Session(BaseSession):
         if self.speedwalk_re.match(sl) and self.connected:
             for walk in self.speedwalk_step_re.findall(sl):
                 # We're keeping delimiters so without a preceding number, first part is ''
-                parts = re.split('([neswud])',walk)
+                parts = re.split('([neswud])', walk)
                 if parts[0] == '':
-                        self.send(parts[1] + "\n")
+                    self.send(parts[1] + "\n")
                 else:
                     for _ in range(int(parts[0])):
                         self.send(parts[1] + "\n")
@@ -227,7 +228,7 @@ class Session(BaseSession):
                 self.connected = False
                 return
             except ConnectionResetError:
-                self.output("[bold red]# Connection reset by peer.", markup = True)
+                self.output("[bold red]# Connection reset by peer.", markup=True)
                 self.connected = False
                 return
 

@@ -8,6 +8,8 @@ from abacura.plugins.actions import ActionManager
 from abacura.plugins.commands import CommandManager
 from abacura.plugins.tickers import TickerManager
 from abacura.plugins.aliases.manager import AliasManager
+from abacura.plugins.events import EventManager
+
 
 if TYPE_CHECKING:
     from abacura.mud.session import Session
@@ -23,13 +25,16 @@ class Director:
             self.command_manager: CommandManager = CommandManager()
             self.ticker_manager: TickerManager = TickerManager()
             self.alias_manager: AliasManager = AliasManager()
+            self.event_manager: EventManager = EventManager()
 
     def register_object(self, obj: object):
         self.action_manager.register_object(obj)
         self.ticker_manager.register_object(obj)
         self.command_manager.register_object(obj)
+        self.event_manager.register_object(obj)
 
     def unregister_object(self, obj: object):
         self.action_manager.unregister_object(obj)
         self.ticker_manager.unregister_object(obj)
         self.command_manager.unregister_object(obj)
+        self.event_manager.register_object(obj)
