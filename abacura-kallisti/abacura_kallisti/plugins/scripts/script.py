@@ -52,7 +52,7 @@ class Script(LOKPlugin):
             self.session.show_exception(f"[bold red] # ERROR: {repr(ex)}", ex)
             return False
 
-    @command(name="@")
+    @command(name="#")
     def exec_python(self, text: str, reset_locals: bool = False):
         """Execute python code and display results"""
 
@@ -61,7 +61,7 @@ class Script(LOKPlugin):
                 self.exec_locals = {}
 
             exec_globals = {"session": self.session, "plugins": self.session.plugin_loader.plugins,
-                            "world": self.world, "msdp": self.msdp }
+                            "world": self.world, "msdp": self.msdp}
 
             if text.strip().startswith("def "):
                 result = exec(text, exec_globals, self.exec_locals)

@@ -34,7 +34,6 @@ class Plugin:
     def __init__(self):
         # super().__init__()
         self.plugin_enabled = True
-        self.director.register_object(self)
         self.output = self.session.output
         self.dispatcher = self.director.event_manager.dispatcher
 
