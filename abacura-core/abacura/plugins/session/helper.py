@@ -57,6 +57,7 @@ class PluginSession(Plugin):
 
         if auto:
             cb = self.session.plugin_loader.autoreload_plugins
+            self.output(f"[orange1]> Auto reloading enabled", markup=True, highlight=True)
             self.session.screen.set_interval(interval=1, callback=cb, name="reloadplugins")
 
     def ring_log_query(self, like: str = "", limit: int = 100, minutes_ago: int = 30,

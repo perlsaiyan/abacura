@@ -120,7 +120,7 @@ class PluginLoader:
         package = first_lp.package
         session = first_lp.plugin.session
 
-        session.output(f"[orange][italic]> reloading package {package}", markup=True, highlight=True)
+        session.output(f"[orange1][italic]> reloading package {package}", markup=True, highlight=True)
         for name, lp in package_plugins:
             lp.plugin.director.unregister_object(lp.plugin)
             del self.plugins[name]

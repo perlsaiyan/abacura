@@ -155,12 +155,12 @@ class CommandManager:
             command = starts[0]
         elif len(starts) == 0:
             error_msg = f"Unknown Command {submitted_command}"
-            self.session.output(f"[orange][italic]> {escape(error_msg)}", markup=True, highlight=True)
+            self.session.output(f"[orange1][italic]> {escape(error_msg)}", markup=True, highlight=True)
             return False
         else:
             matches = ", ".join([cmd.name for cmd in starts])
             error_msg = f"Ambiguous command '{submitted_command}' [{matches}]"
-            self.session.output(f"[orange][italic]> {escape(error_msg)}", markup=True, highlight=True)
+            self.session.output(f"[orange1][italic]> {escape(error_msg)}", markup=True, highlight=True)
             return False
 
         try:
