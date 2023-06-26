@@ -96,7 +96,7 @@ class TypedMSDP:
         for a in self.affects:
             # print(a, a.hours, affect_name)
             if re.match(affect_pattern, a.name, re.IGNORECASE):
-                return a.hours
+                return int(a.hours)
 
         return 0
     #

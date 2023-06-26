@@ -277,4 +277,4 @@ class WorldPlugin(LOKPlugin):
             raise ValueError(f'Alias {location} points to missing room {existing_location.vnum}')
 
         location_room = self.world.rooms[existing_location.vnum]
-        self.session.output(f"{location} pints to {existing_location.vnum} in {location_room.area_name}")
+        self.session.output(f"{location} points to {existing_location.vnum} in {location_room.area_name}")

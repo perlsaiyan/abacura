@@ -85,26 +85,30 @@ class Session(BaseSession):
         core_injections = {"config": self.config, "session": self, "app": self.abacura,
                            "sessions": self.abacura.sessions, "core_msdp": self.core_msdp,
                            "director": self.director}
-
         self.core_plugin_context = Context(**core_injections)
 
-        context_provider_class_name = self.config.get_specific_option(self.name, "context_provider", "")
-        context_provider_class = load_class(context_provider_class_name, ContextProvider)
-        additional_injections = context_provider_class(self.config, self.name).get_injections()
+        additional_injections = {}
+        session_modules = self.config.get_specific_option(self.name, "modules")
+        if session_modules:
+            for ses_mod in session_modules:
+                sm = import_module(ses_mod)
+                ctx = getattr(sm, "__CONTEXT_PROVIDER", None)
+                if ctx:
+                    sm_cls = load_class(ctx, ContextProvider)
+                    additional_injections.update(sm_cls(self.config, self.name).get_injections())
         self.additional_plugin_context = Context(**core_injections, **additional_injections)
 
         screen_class = load_class(self.config.get_specific_option(self.name, "screen_class", ""), SessionScreen)
 
         with self.additional_plugin_context:
-            self.abacura.install_screen(screen_class(name), name=name)
+            self.screen = screen_class(name)
+            self.abacura.install_screen(self.screen, name=name)
 
         if ring_filename := self.config.ring_log(name):
             ring_size = self.config.get_specific_option(name, "ring_size", 10000)
             self.ring_buffer = RingBufferLogSql(ring_filename, ring_size)
 
         self.abacura.push_screen(name)
-        self.screen = self.abacura.query_one(f"#screen-{name}", expect_type=Screen)
-
         self.screen.set_interval(interval=0.01, callback=self.director.ticker_manager.process_tick, name="tickers")
 
     # TODO: This doesn't launch a screen anymore, it loads plugins
@@ -155,9 +159,8 @@ class Session(BaseSession):
             self.send(line + "\n")
             return
 
-        self.tl.markup = True
-        self.tl.write("[bold red]# NO SESSION CONNECTED")
-        self.tl.markup = False
+        self.output("[bold red]# NO SESSION CONNECTED", markup=True)
+
 
     def send(self, msg: str, raw: bool = False) -> None:
         """Send to writer (socket), raw will send the message without byte translation"""
@@ -205,6 +208,7 @@ class Session(BaseSession):
             self.tl.markup = False
             self.tl.highlight = False
 
+    # TODO move this into a separate thing, it's getting too long
     async def telnet_client(self, host: str, port: int) -> None:
         """async worker to handle input/output on socket"""
         self.host = host
