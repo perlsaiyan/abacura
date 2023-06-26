@@ -92,8 +92,8 @@ class Session(BaseSession):
         if session_modules:
             for ses_mod in session_modules:
                 sm = import_module(ses_mod)
-                ctx = getattr(sm, "__CONTEXT_PROVIDER", None)
-                if ctx:
+                if hasattr(sm, "__CONTEXT_PROVIDER"):
+                    ctx = getattr(sm, "__CONTEXT_PROVIDER")
                     sm_cls = load_class(ctx, ContextProvider)
                     additional_injections.update(sm_cls(self.config, self.name).get_injections())
         self.additional_plugin_context = Context(**core_injections, **additional_injections)
