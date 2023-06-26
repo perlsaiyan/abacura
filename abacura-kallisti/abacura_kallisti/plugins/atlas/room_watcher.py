@@ -1,5 +1,4 @@
 import re
-from functools import lru_cache
 from typing import List, Optional
 
 # from atlas.known_areas import KNOWN_AREAS
@@ -7,9 +6,12 @@ from abacura.mud import OutputMessage
 from abacura.plugins.events import event, AbacuraMessage
 from abacura.plugins import action
 from abacura_kallisti.atlas import encounter
-from abacura_kallisti.atlas.room import ScannedRoom
+from abacura_kallisti.atlas.room import ScannedRoom, RoomMessage
 from abacura_kallisti.plugins import LOKPlugin
 from abacura_kallisti.atlas.world import strip_ansi_codes
+
+from rich.text import Text
+from rich.panel import Panel
 
 
 class RoomWatcher(LOKPlugin):
@@ -213,6 +215,23 @@ class RoomWatcher(LOKPlugin):
 
         return []
 
+    def show_debug(self):
+        # TODO: hide this when finished
+        text = Text()
+        text.append(f"ROOM_WATCHER ", style="purple")
+        text.append("[")
+        text.append(self.scanned_room.room_vnum, style="bright_cyan")
+        text.append("]")
+        text.append(f" {self.scanned_room.room_header}\n\n")
+        text.append(f"     players: {self.scanned_room.room_players}\n", style="bright_yellow")
+        text.append(f"    charmies: {self.scanned_room.room_charmies}\n", style="white")
+        text.append(f"     corpses: {self.scanned_room.room_corpses}\n", style="white")
+        text.append(f"  encounters: {self.scanned_room.room_encounters}\n", style="white")
+        text.append(f"       blood: {self.scanned_room.blood_trail}\n", style="bold red")
+        text.append(f"      tracks: {self.scanned_room.hunt_tracks}", style="bold green")
+        text.highlight_regex(r"[\w]+: ", style="bold white")
+        self.output(Panel(text), highlight=True)
+
     @event("core.prompt", priority=1)
     def got_prompt(self, _: AbacuraMessage):
         """Getting a prompt ends the room"""
@@ -223,19 +242,23 @@ class RoomWatcher(LOKPlugin):
         if self.scanned_room is None:
             return
 
-        # if self.msdp.area_name == 'The Wilderness':
-            # self.update_minimap()
-
         # TODO: Make the latest available scanned room available somewhere
         # self.msdp.room = self.scanned_room
 
+        # self.show_debug()
+
         self.world.visited_room(area_name=self.msdp.area_name, name=self.msdp.room_name, vnum=self.msdp.room_vnum,
-                                terrain=self.msdp.room_terrain, room_exits=self.msdp.room_exits, scan_room=self.scanned_room)
+                                terrain=self.msdp.room_terrain, room_exits=self.msdp.room_exits,
+                                scan_room=self.scanned_room)
 
-        # TODO: Dispatch an event
-        # self.dispatcher.dispatch(event.Event(event.GOT_ROOM, self.scanned_room.room_vnum, properties={'room': self.scanned_room}))
+        self.dispatcher("room", RoomMessage(self.scanned_room.room_vnum, self.scanned_room))
 
-        self.output('ROOM_WATCHER: got room %s' % self.scanned_room)
+        if self.scanned_room.room_vnum in self.world.rooms:
+            room = self.world.rooms[self.scanned_room.room_vnum]
+            missing_msdp_exits = any([d for d in self.msdp.room_exits if d not in room.exits])
+            extra_room_exits = any([d for d in room.exits if d not in self.msdp.room_exits])
+            if missing_msdp_exits or extra_room_exits:
+                self.session.output(Text(f"\nROOM WATCHER: Mismatch between MSDP and Room exits\n", style="purple"))
 
         self.last_room = self.scanned_room
         self.scanned_room = None
@@ -274,6 +297,9 @@ class RoomWatcher(LOKPlugin):
         if message.stripped.startswith("[* You see your target's tracks leading "):
             self.scanned_room.hunt_tracks = message.stripped.split('leading ')[1].split('.')[0]
             # self.session.trace('tracks %s' % self.scanned_room.hunt_tracks)
+
+        if message.stripped.startswith("[* You found "):
+            self.scanned_room.hunt_tracks = "here"
 
         if len(encounters) > 0:
             self.scanned_room.room_encounters += encounters

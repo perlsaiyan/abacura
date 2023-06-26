@@ -3,8 +3,8 @@ from typing import List
 
 from . import encounter
 
+from abacura.plugins.events import AbacuraMessage
 
-# @dataclass(slots=True)
 @dataclass
 class ScannedRoom:
     room_vnum: str = ''
@@ -24,3 +24,12 @@ class ScannedRoom:
     #         header = header.replace(c, "")
     #     # TODO: strip out hidden exits that appear sometimes instead of just stripping the () characters
     #     return hash(self.room_vnum + "\n" + self.room_header + "\n".join(self.minimap))
+
+
+class RoomMessage(AbacuraMessage):
+    """Message when a room is viewed"""
+    def __init__(self, vnum: str, scanned_room: ScannedRoom):
+        super().__init__(vnum, scanned_room)
+        self.vnum = vnum
+        self.room: ScannedRoom = scanned_room
+

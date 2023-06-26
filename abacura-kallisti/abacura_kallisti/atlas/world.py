@@ -115,7 +115,7 @@ class World:
         wilderness_exits.update(exits)
         return wilderness_exits
 
-    def del_door(self, vnum: str, direction: str):
+    def del_exit(self, vnum: str, direction: str):
         if vnum not in self.rooms:
             return
 
@@ -124,8 +124,9 @@ class World:
             return
 
         del room.exits[direction]
+        self._save_room(vnum)
 
-    def set_door(self, vnum: str, direction: str, door: str, to_vnum: str = None):
+    def set_exit(self, vnum: str, direction: str, door: str, to_vnum: str = None):
         if vnum not in self.rooms:
             return
 
