@@ -4,17 +4,22 @@ from abacura_kallisti.plugins import LOKPlugin
 from abacura_kallisti.atlas.world import Room, Exit
 from abacura_kallisti.atlas.navigator import Navigator
 from rich.table import Table
+from rich.panel import Panel
+from rich.text import Text
+from rich.console import Group
 
 
 class WorldPlugin(LOKPlugin):
 
     @command()
-    def room(self, location: Room=None, delete: bool = False):
+    def room(self, location: Room = None, delete: bool = False):
         """Display information about a room"""
 
         if location is None:
             if self.msdp.room_vnum not in self.world.rooms:
-                self.output(f"Unknown room {self.msdp.room_vnum}")
+                self.output(f"[bright red]Unknown room {self.msdp.room_vnum}", markup=True)
+                return
+
             location = self.world.rooms[self.msdp.room_vnum]
         # if location is None:
         #     if self.msdp.room_vnum in self.world.rooms:
@@ -29,30 +34,29 @@ class WorldPlugin(LOKPlugin):
         # else:
         #     location = self.world.rooms[location_vnum]
 
+        text = Text()
+
         tr = self.world.get_tracking(location.vnum)
-        self.session.output("[%s] %s" % (location.vnum, location.name))
-        self.session.output("Area: %s" % location.area_name)
+        text.append(f"[{location.vnum}] {location.name}\n\n", style="bold magenta")
+        text.append(f"     Area: {location.area_name}\n")
+
         terrain = TERRAIN.get(location.terrain, None)
         terrain_weight = terrain.weight if terrain else -1
-        self.session.output("Terrain: %s [%d]" % (location.terrain, terrain_weight))
-        self.session.output("Flags: %s" % self.get_room_flags(location))
-        self.session.output("Visited: %s, %s" % (tr.last_visited is not None, tr.last_visited))
+        text.append(f"  Terrain: {location.terrain} [{terrain_weight}]\n")
+        text.append(f"    Flags: {self.get_room_flags(location)}\n")
+        text.append(f"  Visited: {tr.last_visited}\n")
 
         if location.area_name == 'The Wilderness':
             x, y = self.wild_grid.get_point(location.vnum)
             ox, oy = self.wild_grid.get_orienteering_point(location.vnum)
-            self.session.output("x, y: %d,%d [%d, %d]" % (x, y, ox, oy))
-            self.session.output("Harvested: %s" % tr.last_harvested)
+            text.append(f"     x, y: {x}, {y} [{ox}, {oy}]\n")
+            text.append(f"Harvested: {tr.last_harvested}\n")
 
         location_names = [f"{a.category}.{a.name}" for a in self.locations.get_locations_for_vnum(location.vnum)]
         if len(location_names) > 0:
-            self.session.output("Locations: " + ", ".join(location_names))
-        self.session.output("")
+            text.append(f"Locations: {', '.join(location_names)}\n")
 
-        if delete:
-            self.world.delete_room(location.vnum)
-            self.session.output("deleted")
-            return
+        text.highlight_regex(r"[\w]+:", style="bold")
 
         exits = []
         for e in self.world.get_exits(location.vnum).values():
@@ -63,17 +67,36 @@ class WorldPlugin(LOKPlugin):
                 visited = self.world.get_tracking(e.to_vnum).last_visited is not None
                 terrain = self.world.rooms[e.to_vnum].terrain
 
-            exits.append([e.direction, e.to_vnum, e.door, e.portal, e.portal_method,
-                          e.closes, e.locks, known, visited, terrain, e.deathtrap])
+            exits.append((e.direction, e.to_vnum, e.door, e.portal, e.portal_method,
+                          bool(e.closes), bool(e.locks), known, visited, terrain, bool(e.deathtrap)))
 
         exits = sorted(exits)
-        # s = tabulate(exits, headers=["Exit", "To", "Door", "Portal", "Method",
-        #                              "Closes", "Locks", "Known", "Visited", "Terrain", "Deathtrap"])
-
-        self.session.output(exits)
-
+        caption = ""
         if location.vnum == self.msdp.room_vnum:
-            self.session.output("\nMSDP_EXITS: " + str(self.msdp.room_exits))
+            caption = f"MSDP_EXITS: {str(self.msdp.room_exits)}"
+
+        if delete:
+            self.world.delete_room(location.vnum)
+            self.session.output("\n[orange1] ROOM DELETED\n", markup=True)
+
+        table = Table(caption=caption, caption_justify="left")
+        table.add_column("Direction")
+        table.add_column("To", justify="right")
+        table.add_column("Door")
+        table.add_column("Portal")
+        table.add_column("Portal Method")
+        table.add_column("Closes")
+        table.add_column("Locks")
+        table.add_column("Known")
+        table.add_column("Visited")
+        table.add_column("Terrain")
+        table.add_column("Deathtrap")
+        for e in exits:
+            table.add_row(*map(str, e))
+
+        group = Group(text, table)
+        panel = Panel(group)
+        self.output(panel, highlight=True)
 
     @staticmethod
     def get_room_flags(room: Room) -> str:
@@ -121,18 +144,28 @@ class WorldPlugin(LOKPlugin):
 
         rooms = [r for r in self.world.rooms.values() if r.area_name == area]
 
-        table = []
+        sorted_rooms = list(sorted(rooms, key=lambda x: x.vnum))[:300]
+
+        table = Table(caption=f"{len(sorted_rooms)} of {len(rooms)} rooms shown", caption_justify="left")
+        table.add_column("Room", justify="right")
+        table.add_column("Name")
+        table.add_column("Direction")
+        table.add_column("To Room")
+        table.add_column("Closes")
+        table.add_column("Locks")
+        table.add_column("Known")
+        table.add_column("Visited")
+
         r: Room
-        for r in sorted(rooms, key=lambda x: x.vnum):
+        for r in sorted_rooms:
             e: Exit
             for e in r.exits.values():
                 known: bool = e.to_vnum in self.world.rooms
                 visited = known and self.world.get_tracking(e.to_vnum).last_visited is not None
 
-                record = (r.vnum, r.name, e.direction, e.to_vnum, e.closes, e.locks, known, visited)
-                table.append(record)
+                table.add_row(r.vnum, r.name, e.direction, e.to_vnum, str(bool(e.closes)), str(bool(e.locks)),
+                              str(known), str(visited))
 
-        table = table[:500]
         # s = tabulate(table, headers=["Room", "Name", "Exit", "To", "Closes", "Locks", "Known", "Visited"])
         self.session.output(table, actionable=False)
 
@@ -143,9 +176,10 @@ class WorldPlugin(LOKPlugin):
 
     @command
     def path(self, destination: Room, detailed: bool = False):
+        """Compute path to a room/location"""
         nav = Navigator(self.world, self.pc, level=self.msdp.level, avoid_home=False)
         nav_path = nav.get_path_to_room(self.msdp.room_vnum, destination.vnum, avoid_vnums=set())
-        self.session.output(f"Path to {destination.vnum} is {nav_path.get_simplified_path()}")
+        self.session.output(f"Path to {destination.vnum} is {nav_path.get_simplified_path()}", highlight=True)
         if detailed:
             for step in nav_path.steps:
                 if step.exit.to_vnum in self.world.rooms:
@@ -162,9 +196,13 @@ class WorldPlugin(LOKPlugin):
         """View and modify room locations"""
 
         if location is None:
-            self.session.output('\nCATEGORY\n--------')
+            tbl = Table(title="Location Categories")
+            tbl.add_column("Category Name")
+
             for c in self.locations.get_categories():
-                self.session.output(c)
+                tbl.add_row(c)
+
+            self.session.output(tbl)
             return
 
         s = location.split(".")

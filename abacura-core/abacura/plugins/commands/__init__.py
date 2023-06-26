@@ -13,10 +13,11 @@ if TYPE_CHECKING:
 
 
 class Command:
-    def __init__(self, source: object, callback: Callable, name: str):
+    def __init__(self, source: object, callback: Callable, name: str, hide_help: bool=False):
         self.callback = callback
         self.name = name
         self.source = source
+        self.hide_help = hide_help
 
     def execute(self, command_arguments: str):
         submitted_arguments = shlex.split(command_arguments)
@@ -133,7 +134,7 @@ class CommandManager:
         for name, member in inspect.getmembers(obj, callable):
             if hasattr(member, "command_name"):
                 log(f"Appending command function '{member.command_name}'")
-                self.commands.append(Command(obj, member, member.command_name))
+                self.commands.append(Command(obj, member, member.command_name, member.command_hide))
 
     def unregister_object(self, obj: object):
         self.commands = [a for a in self.commands if a.source != obj]

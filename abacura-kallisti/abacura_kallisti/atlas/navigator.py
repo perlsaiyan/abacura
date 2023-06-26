@@ -1,6 +1,7 @@
 import heapq
 from dataclasses import dataclass
 from typing import Dict, Set, List, Generator
+from itertools import groupby
 
 from abacura_kallisti.atlas.terrain import TERRAIN
 from abacura_kallisti.atlas.wilderness import WildernessGrid
@@ -55,7 +56,7 @@ class NavigationPath:
             return ''
 
         commands = []
-        for step in self.steps + [NavigationStep('', Exit(direction=" "), 0)]:
+        for step in self.steps:
             if step.exit.closes:
                 commands.append(f"open {step.exit.door or 'door'} {step.exit.direction}")
             elif step.exit.direction in ['home', 'depart', 'recall']:
@@ -65,17 +66,8 @@ class NavigationPath:
             else:
                 commands.append(step.exit.direction[0])
 
-        simplified = []
-        last = commands[0]
-        n = 0
-        for cmd in commands:
-            if cmd == last:
-                n += 1
-                continue
-
-            simplified.append(f"{n > 1 and n or ''}{last}")
-            n = 0
-            last = cmd
+        grouped = [(len(list(g)), cmd) for cmd, g in groupby(commands) ]
+        simplified = [f"{cnt if cnt > 1 else ''}{cmd}" for cnt, cmd in grouped]
 
         return ";".join(simplified)
 
