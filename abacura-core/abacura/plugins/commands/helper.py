@@ -9,11 +9,11 @@ class CommandHelper(Plugin):
     def __init__(self):
         super().__init__()
 
-    @command()
+    @command(hide=True)
     def help(self):
         help_text = ["Plugin Commands", "\nUsage: @command <arguments>", "\nAvailable Commands: "]
 
-        commands = [c for c in self.director.command_manager.commands if c.name != 'help']
+        commands = [c for c in self.director.command_manager.commands if not c.hide_help]
 
         for c in sorted(commands, key=lambda c: c.name):
             doc = getattr(c.callback, '__doc__', None)

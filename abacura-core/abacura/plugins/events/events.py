@@ -1,6 +1,7 @@
 """The Event plugin"""
 from abacura.plugins import Plugin, command
 from abacura.plugins.events import event, AbacuraMessage
+from rich.table import Table
 
 
 class EventPlugin(Plugin):
@@ -14,8 +15,13 @@ class EventPlugin(Plugin):
     @command(name="events")
     def eventscommand(self):
         """Show events"""
+        tbl = Table()
+        tbl.add_column("Event Name")
+        tbl.add_column("# Handlers", justify="right")
         for key in self.event_manager.events.keys():
-            self.session.output(f"{key}: {self.event_manager.events[key].qsize()} events")
+            tbl.add_row(key, str(self.event_manager.events[key].qsize()))
+
+        self.session.output(tbl)
 
     @command(name="testevent")
     def eventsfire(self, trigger: str = "sample"):

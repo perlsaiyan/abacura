@@ -11,20 +11,21 @@ class PluginDemo(Plugin):
         super().__init__()
 
     @command
-    def foo(self) -> None:
+    def demo(self, arg: str = "") -> None:
+        """Demo command"""
         # self.session.output(f"{sys.path}")
-        self.session.output("FOO 15")
+        self.session.output(f"Demo Command! [{arg}]")
         # self.session.output(f"{self.session.app.sessions}", markup=True)
         # self.session.output(f"MSDP HEALTH: [bold red]🛜 [bold green]🛜  {self.session}", markup=True)
 
-    @action("Ptam", flags=re.IGNORECASE)
-    def ptam(self):
-        self.session.output("PTAM!!", actionable=False)
+    # @action("Ptam", flags=re.IGNORECASE)
+    # def ptam(self):
+    #     self.session.output("PTAM!!", actionable=False)
 
-    @action("spoon", flags=re.IGNORECASE)
-    def spoon(self, msg: OutputMessage):
-        msg.gag = True
-
-    @action("Ptam (.*)")
-    def ptam2(self, s: str):
-        self.session.output(f"PTAM!! [{s}]")
+    # @action("spoon", flags=re.IGNORECASE)
+    # def spoon(self, msg: OutputMessage):
+    #     msg.gag = True
+    #
+    # @action("Ptam (.*)")
+    # def ptam2(self, s: str):
+    #     self.session.output(f"PTAM!! [{s}]")

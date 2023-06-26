@@ -11,7 +11,7 @@ class PycharmDebug(Plugin):
         super().__init__()
         self.debugger: Optional[PycharmDebugger] = None
 
-    @command
+    @command(hide=True)
     def pycharm_debug(self, host: str = "localhost", port=12345):
         self.debugger = PycharmDebugger()
         try:

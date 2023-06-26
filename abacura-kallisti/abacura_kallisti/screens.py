@@ -107,7 +107,6 @@ class KallistiScreen(Screen):
         except StopIteration:
             self.session.player_input("")
 
-
     def action_toggle_dark(self) -> None:
         """Dark mode"""
         self.dark = not self.dark

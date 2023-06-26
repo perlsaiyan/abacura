@@ -3,6 +3,8 @@ import ast
 
 from abacura.plugins import command
 from abacura_kallisti.plugins import LOKPlugin
+from rich.pretty import Pretty
+from rich.panel import Panel
 
 
 class Script(LOKPlugin):
@@ -48,7 +50,9 @@ class Script(LOKPlugin):
             result = exec(source, exec_globals, self.exec_locals)
 
             if result is not None:
-                self.session.output(str(result))
+                pretty = Pretty(result, max_length=20, max_depth=4)
+                panel = Panel(pretty)
+                self.session.output(panel)
 
         except Exception as ex:
             self.session.show_exception(f"[bold red] # ERROR: {repr(ex)}", ex)
@@ -73,8 +77,9 @@ class Script(LOKPlugin):
                 result = self.exec_locals.get('__result', None)
 
             if result is not None:
-                # TODO: Pretty print
-                self.session.output(str(result))
+                pretty = Pretty(result, max_length=20, max_depth=4)
+                panel = Panel(pretty)
+                self.session.output(panel)
 
         except Exception as ex:
             self.session.show_exception(f"[bold red] # ERROR: {repr(ex)}", ex)
