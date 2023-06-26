@@ -292,10 +292,12 @@ class World:
 
             self.db_conn.execute(f"INSERT OR REPLACE INTO room_tracking VALUES({trk_binds})", trk_fields)
 
+        self.db_conn.execute(f"DELETE FROM exits WHERE from_vnum = ?", (vnum,))
+
         for room_exit in room.exits.values():
             exit_fields = astuple(room_exit)
             exit_binds = ",".join("?" * len(exit_fields))
-            self.db_conn.execute(f"INSERT OR REPLACE INTO exits VALUES({exit_binds})", exit_fields)
+            self.db_conn.execute(f"INSERT INTO exits VALUES({exit_binds})", exit_fields)
 
         self.db_conn.commit()
 
