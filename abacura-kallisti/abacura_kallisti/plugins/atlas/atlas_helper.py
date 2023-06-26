@@ -178,23 +178,6 @@ class WorldPlugin(LOKPlugin):
         self.session.output(f"\nArea:{area}\n\n  Known Rooms: {num_rooms:5d}\nVisited Rooms: {num_visited:5d}",
                             actionable=False)
 
-    @command
-    def path(self, destination: Room, detailed: bool = False):
-        """Compute path to a room/location"""
-        nav = Navigator(self.world, self.pc, level=self.msdp.level, avoid_home=False)
-        nav_path = nav.get_path_to_room(self.msdp.room_vnum, destination.vnum, avoid_vnums=set())
-        self.session.output(f"Path to {destination.vnum} is {nav_path.get_simplified_path()}", highlight=True)
-        if detailed:
-            for step in nav_path.steps:
-                if step.exit.to_vnum in self.world.rooms:
-                    terrain = self.world.rooms[step.exit.to_vnum].terrain
-                    # area = self.world.rooms[step.exit.to_vnum].area_name
-
-                    record = (step.vnum, step.exit.direction, step.exit.to_vnum, step.exit.door,
-                              step.exit.portal_method, step.exit.closes, step.exit.locks, step.cost, terrain)
-
-                    self.output(record)
-
     @command(name="locations")
     def location_cmd(self, location: str = None, destination: Room = None, delete: bool = False, add: bool = False):
         """View and modify room locations"""

@@ -19,6 +19,16 @@ class NavigationStep:
     exit: Exit
     cost: float
 
+    def get_command(self):
+        if self.exit.closes:
+            return f"open {self.exit.door or 'door'} {self.exit.direction}"
+        elif self.exit.direction in ['home', 'depart', 'recall']:
+            return self.exit.direction
+        elif self.exit.portal_method:
+            return f"{self.exit.portal_method} {self.exit.direction}"
+        else:
+            return self.exit.direction[0]
+
 
 class NavigationPath:
     def __init__(self, destination: Room = None):
@@ -55,17 +65,7 @@ class NavigationPath:
         if len(self.steps) == 0:
             return ''
 
-        commands = []
-        for step in self.steps:
-            if step.exit.closes:
-                commands.append(f"open {step.exit.door or 'door'} {step.exit.direction}")
-            elif step.exit.direction in ['home', 'depart', 'recall']:
-                commands.append(step.exit.direction)
-            elif step.exit.portal_method:
-                commands.append(f"{step.exit.portal_method} {step.exit.direction}")
-            else:
-                commands.append(step.exit.direction[0])
-
+        commands = [step.get_command() for step in self.steps]
         grouped = [(len(list(g)), cmd) for cmd, g in groupby(commands) ]
         simplified = [f"{cnt if cnt > 1 else ''}{cmd}" for cnt, cmd in grouped]
 

@@ -58,14 +58,12 @@ class EventManager:
         for member_name, member in inspect.getmembers(obj, callable):
             if hasattr(member, 'event_name'):
                 log(f"Appending listener function '{member_name}'")
-                # TODO: Move this into the director
                 self.listener(member)
 
     def unregister_object(self, obj):
         for member_name, member in inspect.getmembers(obj, callable):
             if hasattr(member, 'event_name'):
                 log(f"Removing listener function '{member_name}'")
-                # TODO: Move this into the director
                 self.remove_listener(member)
 
     def remove_listener(self, event_handler: callable):

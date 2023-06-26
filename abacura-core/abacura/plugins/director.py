@@ -37,4 +37,4 @@ class Director:
         self.action_manager.unregister_object(obj)
         self.ticker_manager.unregister_object(obj)
         self.command_manager.unregister_object(obj)
-        self.event_manager.register_object(obj)
+        self.event_manager.unregister_object(obj)
