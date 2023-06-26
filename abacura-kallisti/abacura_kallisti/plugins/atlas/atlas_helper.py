@@ -11,6 +11,41 @@ from rich.console import Group
 
 class WorldPlugin(LOKPlugin):
 
+    def get_table_of_exits(self, vnum: str):
+        exits = []
+        for e in self.world.get_exits(vnum).values():
+            known = e.to_vnum in self.world.rooms
+            visited = False
+            terrain = ""
+            if known:
+                visited = self.world.get_tracking(e.to_vnum).last_visited is not None
+                terrain = self.world.rooms[e.to_vnum].terrain
+
+            exits.append((e.direction, e.to_vnum, e.door, e.portal, e.portal_method,
+                          bool(e.closes), bool(e.locks), known, visited, terrain, bool(e.deathtrap)))
+
+        exits = sorted(exits)
+        caption = ""
+        if vnum == self.msdp.room_vnum:
+            caption = f"MSDP_EXITS: {str(self.msdp.room_exits)}"
+
+        table = Table(caption=caption, caption_justify="left")
+        table.add_column("Direction")
+        table.add_column("To", justify="right")
+        table.add_column("Door")
+        table.add_column("Portal")
+        table.add_column("Portal Method")
+        table.add_column("Closes")
+        table.add_column("Locks")
+        table.add_column("Known")
+        table.add_column("Visited")
+        table.add_column("Terrain")
+        table.add_column("Deathtrap")
+        for e in exits:
+            table.add_row(*map(str, e))
+
+        return table
+
     @command()
     def room(self, location: Room = None, delete: bool = False):
         """Display information about a room"""
@@ -58,45 +93,14 @@ class WorldPlugin(LOKPlugin):
 
         text.highlight_regex(r"[\w]+:", style="bold")
 
-        exits = []
-        for e in self.world.get_exits(location.vnum).values():
-            known = e.to_vnum in self.world.rooms
-            visited = False
-            terrain = ""
-            if known:
-                visited = self.world.get_tracking(e.to_vnum).last_visited is not None
-                terrain = self.world.rooms[e.to_vnum].terrain
-
-            exits.append((e.direction, e.to_vnum, e.door, e.portal, e.portal_method,
-                          bool(e.closes), bool(e.locks), known, visited, terrain, bool(e.deathtrap)))
-
-        exits = sorted(exits)
-        caption = ""
-        if location.vnum == self.msdp.room_vnum:
-            caption = f"MSDP_EXITS: {str(self.msdp.room_exits)}"
+        table = self.get_table_of_exits(location.vnum)
+        group = Group(text, table)
+        panel = Panel(group)
+        self.output(panel, highlight=True)
 
         if delete:
             self.world.delete_room(location.vnum)
             self.session.output("\n[orange1] ROOM DELETED\n", markup=True)
-
-        table = Table(caption=caption, caption_justify="left")
-        table.add_column("Direction")
-        table.add_column("To", justify="right")
-        table.add_column("Door")
-        table.add_column("Portal")
-        table.add_column("Portal Method")
-        table.add_column("Closes")
-        table.add_column("Locks")
-        table.add_column("Known")
-        table.add_column("Visited")
-        table.add_column("Terrain")
-        table.add_column("Deathtrap")
-        for e in exits:
-            table.add_row(*map(str, e))
-
-        group = Group(text, table)
-        panel = Panel(group)
-        self.output(panel, highlight=True)
 
     @staticmethod
     def get_room_flags(room: Room) -> str:
@@ -278,3 +282,46 @@ class WorldPlugin(LOKPlugin):
 
         location_room = self.world.rooms[existing_location.vnum]
         self.session.output(f"{location} points to {existing_location.vnum} in {location_room.area_name}")
+
+    @command()
+    def exits(self, direction: str = '', name: str = None, destination: Room = None, delete: bool = False):
+        """Add and modify exits"""
+
+        vnum = self.msdp.room_vnum
+
+        if vnum not in self.world.rooms:
+            self.session.output(f"[orange1][italic]Unknown room [{vnum}]", highlight=True, markup=True)
+            return
+
+        if not direction:
+            self.session.output(self.get_table_of_exits(vnum))
+            return
+
+        if name:
+            to_vnum = None
+            if destination is not None and (destination.vnum != self.msdp.room_vnum):
+                to_vnum = destination.vnum
+            self.world.set_exit(vnum, direction, name, to_vnum)
+            self.session.output(f"Set [{vnum}] {direction} name {name}", highlight=True)
+            if destination is not None:
+                self.session.output(f"Set destination {to_vnum}", highlight=True)
+            return
+
+        if delete:
+            self.world.del_exit(vnum, direction)
+            self.session.output(f"Deleted [{vnum}] {direction}", highlight=True)
+            return
+
+        room = self.world.rooms[vnum]
+        if direction not in room.exits:
+            self.session.output(f"[orange1]Unknown direction {direction} for room [{vnum}]", markup=True)
+            return
+        e = room.exits[direction]
+        properties = [(name, getattr(e, name)) for name in sorted(e.__slots__)]
+
+        tbl = Table(title=f"\n[{vnum}] {direction}", title_justify="left")
+        tbl.add_column("Property")
+        tbl.add_column("Value", justify="right")
+        for p in properties:
+            tbl.add_row(*map(str, p))
+        self.output(tbl)

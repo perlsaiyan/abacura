@@ -133,6 +133,9 @@ class PluginLoader:
         package_files = {(lp.package_file, lp.modified_time, lp.plugin.session) for lp in self.plugins.values()}
         reloads = set()
         for pf, modified_time, session in package_files:
+            if not os.path.exists(pf):
+                continue
+
             if os.path.getmtime(pf) > modified_time:
                 log(f"{pf} has been modified, reloading")
                 reloads.add(pf)
