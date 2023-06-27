@@ -91,7 +91,7 @@ class WorldPlugin(LOKPlugin):
         if len(location_names) > 0:
             text.append(f"Locations: {', '.join(location_names)}\n")
 
-        text.highlight_regex(r"[\w]+:", style="bold")
+        text.highlight_regex(r"[a-zA-Z]+:", style="bold")
 
         table = self.get_table_of_exits(location.vnum)
         group = Group(text, table)
