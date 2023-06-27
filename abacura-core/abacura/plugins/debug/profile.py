@@ -61,8 +61,7 @@ class Profiler(Plugin):
             self.output("%60s %6d %7d %6.3f" % (pfn[0], pfn[2], pfn[3], pfn[5]))
 
     @command()
-    def profile(self, num_functions: int = 40, disable: bool = False, callers: bool = False,
-                sort_cumulative: bool = False, sort_calls: bool = False):
+    def profile(self, num_functions: int = 40, disable: bool = False, callers: bool = False, _sort: str = 'time'):
         """Use to profile CPU usage by method"""
         import cProfile
         import pstats
@@ -82,12 +81,11 @@ class Profiler(Plugin):
             return
 
         stream = io.StringIO()
-        if sort_cumulative:
-            sort_by = 'cumulative'
-        elif sort_calls:
-            sort_by = 'calls'
-        else:
-            sort_by = 'time'
+
+        sort_by = [s for s in ('time', 'calls', 'cumulative') if s.startswith(_sort.lower())]
+        if len(sort_by) == 0:
+            raise ValueError("Invalid sort option.  Valid values are time, calls, cumulative")
+        sort_by = sort_by[0]
 
         # ps = eval("pstats.Stats(self.profiler, stream=s).sort_stats(sort_by)")
         ps = pstats.Stats(self.profiler, stream=stream).sort_stats(sort_by)
