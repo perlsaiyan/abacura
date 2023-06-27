@@ -60,7 +60,7 @@ class LOKPlugin(Plugin):
     #
     #     return self.world.rooms[vnum]
 
-    def evaluate_argument_room(self, submitted_value: str):
+    def evaluate_value_room(self, submitted_value: str):
         """function to evaluate command arguments that are Rooms / locations"""
         if not self.msdp or not self.locations:
             return
