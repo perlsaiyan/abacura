@@ -33,7 +33,19 @@ class LOKZoneHeading(Static):
 class LOKZoneInfo(Static):
     r_name: reactive[str | None] = reactive[str | None](None)
     r_vnum: reactive[str | None] = reactive[str | None](None)
+    r_icon: reactive[str] = reactive[str](" ")
 
+    weather_icons = {
+        'clear': "[yellow]☀",
+        'cloudy': "🌥",
+        'snowing': "🌨",
+        'sandstorm': "🌪",
+        'raining': "🌧",
+        'hailing': "⛈",
+        'storming': "🌩",
+        'maelstrom': "🌀",
+        'unknown': " "
+    }
     def __init__(self) -> None:
         super().__init__()
         self.display = False
@@ -41,10 +53,20 @@ class LOKZoneInfo(Static):
     def on_mount(self):
         self.screen.session.listener(self.update_room_name)
         self.screen.session.listener(self.update_room_vnum)
+        self.screen.session.listener(self.update_room_weather)
 
 
     def render(self) -> str:
-        return f"[{self.r_vnum}] {self.r_name}"
+        return f"{self.r_icon} {self.r_name} [{self.r_vnum}]"
+
+    @event("msdp_value_ROOM_WEATHER")
+    def update_room_weather(self, message: MSDPMessage):
+        if message.value in self.weather_icons:
+            self.r_icon = self.weather_icons[message.value]
+        else:
+            self.r_icon = " "
+
+        
 
     @event("msdp_value_ROOM_VNUM")
     def update_room_vnum(self, message: MSDPMessage):

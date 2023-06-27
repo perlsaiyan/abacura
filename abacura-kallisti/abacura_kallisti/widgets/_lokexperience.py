@@ -7,8 +7,6 @@ from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual.widgets import Static, ProgressBar
 
-from rich.pretty import Pretty
-
 from abacura.mud.options.msdp import MSDPMessage
 from abacura.plugins.events import event
 
@@ -52,9 +50,9 @@ class LOKExperience(Static):
     def compose(self) -> ComposeResult:
         yield Static("Experience", classes="WidgetTitle")
         yield self.remort_line
-        yield Static("XP to Level", id="levelxplabel")
-        yield Static("XP to Cap", id="capxplabel")
-        yield Static("Heros to Level", id="herplabel")
+        yield Static("[cyan]XP to Level", id="levelxplabel")
+        yield Static("[cyan]XP to Cap", id="capxplabel")
+        yield Static("[cyan]Heros to Level", id="herplabel")
         
 
     def on_mount(self):
