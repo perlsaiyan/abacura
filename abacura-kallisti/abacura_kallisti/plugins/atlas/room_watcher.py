@@ -23,7 +23,7 @@ class RoomWatcher(LOKPlugin):
         self.last_room: Optional[ScannedRoom] = None
 
         self.re_room_nocompass = re.compile(r"^.* (\[ [ NSWEUD<>v^\|\(\)\[\]]* \] *$)")
-        self.re_room_compass = re.compile(r".* [0-9]+[ap]m \|")
+        self.re_room_compass = re.compile(r".* \|")
 
         self.re_room_here = re.compile(r"^Here +- ")
         self.re_prompt = re.compile(r"^<.* \| ")
