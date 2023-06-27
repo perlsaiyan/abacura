@@ -18,9 +18,10 @@ class NavigationStep:
     vnum: str
     exit: Exit
     cost: float
+    open: bool = False
 
     def get_command(self):
-        if self.exit.closes:
+        if self.exit.closes and self.open:
             return f"open {self.exit.door or 'door'} {self.exit.direction}"
         elif self.exit.direction in ['home', 'depart', 'recall']:
             return self.exit.direction
@@ -66,7 +67,7 @@ class NavigationPath:
             return ''
 
         commands = [step.get_command() for step in self.steps]
-        grouped = [(len(list(g)), cmd) for cmd, g in groupby(commands) ]
+        grouped = [(len(list(g)), cmd) for cmd, g in groupby(commands)]
         simplified = [f"{cnt if cnt > 1 else ''}{cmd}" for cnt, cmd in grouped]
 
         return ";".join(simplified)
@@ -147,13 +148,19 @@ class Navigator:
         while current_vnum in came_from and came_from[current_vnum][1].to_vnum != '':
             current_vnum, room_exit, cost = came_from[current_vnum]
             path.add_step(NavigationStep(current_vnum, room_exit, cost))
+            # add command to open door after the door because we will reverse below
+            if room_exit.closes:
+                path.add_step(NavigationStep(current_vnum, room_exit, 0, open=True))
 
         path.reverse()
 
         # translate from running cost to actual cost per step
         last_cost = 0
         for s in path.steps:
-            s.cost, last_cost = s.cost - last_cost, s.cost
+            if s.open:
+                s.cost = 1
+            else:
+                s.cost, last_cost = s.cost - last_cost, s.cost
 
         return path
 
