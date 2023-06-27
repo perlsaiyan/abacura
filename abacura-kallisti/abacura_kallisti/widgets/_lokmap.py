@@ -117,6 +117,8 @@ class LOKMap(Container):
         """Return terrain color/icon"""
         if 'Inside' in terrain:
             return "[on rgb(55,59,65)] [/on rgb(55,59,65)]"
+        if 'Beach' in terrain:
+            return "[on rgb(238,207,147)] [/on rgb(238,207,147)]"
         if 'City' in terrain:
             return "[on rgb(40,42,46)] [/on rgb(40,42,46)]"
         if 'Path' in terrain:
@@ -125,6 +127,10 @@ class LOKMap(Container):
             return "[on rgb(28,93,25)] [/on rgb(28,93,25)]"
         if 'Field' in terrain:
             return "[on rgb(91,163,88)] [/on rgb(91,163,88)]"
+        if 'Desert' in terrain:
+            return "[on rgb(243,203,147)] [/on rgb(243,203,147)]"
+        if 'Shallow Water' in terrain:
+            return "[on rgb(90,164,228)] [/on rgb(90,164,228)]"
         if 'Water' in terrain:
             return "[on rgb(52,124,186)] [/on rgb(52,124,186)]"
         
