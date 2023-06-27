@@ -45,7 +45,6 @@ class LOKCharacterStatic(Static):
     c_gold: reactive[int | None] = reactive[int | None](None)
     c_gold_bank: reactive[int | None] = reactive[int | None](None)
 
-    # TODO this could be cleaner, and potentially one-shot msdp reactives
     def on_mount(self):
         # Register our listener until we have a RegisterableObject to descend from
         self.screen.session.listener(self.update_reactives)

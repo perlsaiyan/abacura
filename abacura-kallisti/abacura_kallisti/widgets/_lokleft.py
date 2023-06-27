@@ -7,7 +7,7 @@ from textual.widgets import Static, ProgressBar
 from abacura.widgets.sidebar import Sidebar
 from abacura.widgets.resizehandle import ResizeHandle
 
-from abacura_kallisti.widgets import LOKCharacter, IndeterminateProgressBar
+from abacura_kallisti.widgets import LOKCharacter, LOKExperience, IndeterminateProgressBar
 
 
 class LOKLeft(Sidebar):
@@ -16,12 +16,7 @@ class LOKLeft(Sidebar):
         yield ResizeHandle(self, "right")
         with Container(id="leftsidecontainer", classes="SidebarContainer"):
             yield LOKCharacter(id="lok_character")
-            yield Static("Affects", classes="WidgetTitle")
-            yield Static("[green]Goo [white]3   [green]Wims [white]5")
-            yield Static("Mount", classes="WidgetTitle")
-            yield Static("Bephus the Dragon [100/100/100]")
-            yield Static("Levels and Remort", classes="WidgetTitle")
-            yield Static("[green]Total: [white]20  [green]In Class: 0")
+            yield LOKExperience(id="lok_experience")
             pb = ProgressBar(total= 100, show_bar=True, show_percentage=True, show_eta=True, id="RemortProgress")
             yield IndeterminateProgressBar()
             pb.advance(50)
