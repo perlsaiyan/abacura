@@ -97,10 +97,11 @@ class NavigationHelper(LOKPlugin):
             cmd = step.get_command()
             self.session.output(f"[purple]{cmd}", markup=True)
             self.session.send(cmd)
-            self.navigation_path.steps = self.navigation_path.steps[i:]
 
             if step.open:
                 continue
+
+            self.navigation_path.steps = self.navigation_path.steps[i:]
 
             return
 
