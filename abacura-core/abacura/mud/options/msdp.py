@@ -146,6 +146,8 @@ class MSDP(TelnetOption):
                     self.initialized = True
             elif var == "GROUP":
                 self.values[var] = self.parse_group(value)
+            elif var == "REMORT_LEVELS":
+                self.values[var] = self.parse_group(value)
             elif var == "ROOM_EXITS":
                 self.values[var] = self.parse_exits(value)
             elif var == "AFFECTS":
