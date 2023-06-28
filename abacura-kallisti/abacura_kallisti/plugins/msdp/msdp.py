@@ -44,7 +44,7 @@ class LOKMSDP(LOKPlugin):
         # self.msdp.values[message.type] = message.value
         attr_name = message.type.lower()
 
-        renames = {'class': 'cls', 'str': 'strength', 'int': 'intelligence'}
+        renames = {'class': 'cls', 'str': 'str_', 'int': 'int_'}
         attr_name = renames.get(attr_name, attr_name)
 
         if attr_name == 'ranged':
