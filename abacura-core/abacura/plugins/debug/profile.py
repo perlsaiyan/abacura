@@ -62,7 +62,14 @@ class Profiler(Plugin):
 
     @command()
     def profile(self, num_functions: int = 40, disable: bool = False, callers: bool = False, _sort: str = 'time'):
-        """Use to profile CPU usage by method"""
+        """Use to profile CPU usage by method
+
+            :num_functions How many rows to display
+            :disable Disable the profiler
+            :callers Show callers
+            :_sort Sort by time, cumulative_time, or calls
+
+        """
         import cProfile
         import pstats
 
@@ -82,7 +89,7 @@ class Profiler(Plugin):
 
         stream = io.StringIO()
 
-        sort_by = [s for s in ('time', 'calls', 'cumulative') if s.startswith(_sort.lower())]
+        sort_by = [s for s in ('time', 'calls', 'cumulative_time') if s.startswith(_sort.lower())]
         if len(sort_by) == 0:
             raise ValueError("Invalid sort option.  Valid values are time, calls, cumulative")
         sort_by = sort_by[0]

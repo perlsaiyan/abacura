@@ -5,7 +5,8 @@ from itertools import groupby
 
 from abacura_kallisti.atlas.terrain import TERRAIN
 from abacura_kallisti.atlas.wilderness import WildernessGrid
-from abacura_kallisti.atlas.world import Exit, Room, World
+from abacura_kallisti.atlas.world import World
+from abacura_kallisti.atlas.room import Exit, Room
 from abacura_kallisti.mud.player import PlayerCharacter
 from itertools import chain
 
