@@ -225,8 +225,9 @@ class Session(BaseSession):
         while self.connected is True:
 
             # We read one character at a time so that we can find IAC sequences
+            # We use wait_for() so we can work with muds that don't use GA
             try:
-                data = await reader.read(1)
+                data = await asyncio.wait_for(reader.read(1), 0.1)
             except BrokenPipeError:
                 self.output("[bold red]# Lost connection to server.", markup=True)
                 self.connected = False
@@ -235,6 +236,11 @@ class Session(BaseSession):
                 self.output("[bold red]# Connection reset by peer.", markup=True)
                 self.connected = False
                 return
+            except TimeoutError:
+                if len(self.outb) > 0:
+                    self.output(self.outb.decode("UTF-8", errors="ignore"), ansi=True)
+                    self.outb = b''
+                continue
 
             # Empty string means we lost our connection
             if data == b'':
@@ -249,7 +255,7 @@ class Session(BaseSession):
             # handle IAC sequences
             elif data == b'\xff':
                 data = await reader.read(1)
-
+                log.debug(f"IAC {data}")
                 # IAC DO
                 if data == b'\xfd':
                     data = await reader.read(1)
