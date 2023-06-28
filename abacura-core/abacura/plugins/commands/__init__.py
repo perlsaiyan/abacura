@@ -116,11 +116,11 @@ class Command:
 
     def get_parameters(self) -> List[inspect.Parameter]:
         parameters = inspect.signature(self.callback).parameters.values()
-        return [p for p in parameters if p.annotation != bool and not p.name.startswith("_")]
+        return [p for p in parameters if p.annotation not in [bool, 'bool'] and not p.name.startswith("_")]
 
     def get_options(self) -> Dict[str, inspect.Parameter]:
         parameters = inspect.signature(self.callback).parameters.values()
-        return {p.name: p for p in parameters if p.annotation == bool or p.name.startswith("_")}
+        return {p.name: p for p in parameters if p.annotation in [bool, 'bool'] or p.name.startswith("_")}
 
     def get_help(self):
         help_text = []
@@ -139,7 +139,6 @@ class Command:
             help_text.append(doc + "\n")
 
         help_text.append(f"  Usage: {self.name} {' '.join(parameter_help)}")
-        help_text.append("\nOptions:\n")
 
         option_help = []
         for name, p in self.get_options().items():
@@ -148,7 +147,9 @@ class Command:
             else:
                 option_help.append(f"  --{name.lstrip('_')}=<{p.annotation.__name__}> ")
 
-        help_text += sorted(option_help)
+        if len(option_help):
+            help_text.append("\nOptions:\n")
+            help_text += sorted(option_help)
 
         return "\n".join(help_text)
 
