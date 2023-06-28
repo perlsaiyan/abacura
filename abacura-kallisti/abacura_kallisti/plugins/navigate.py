@@ -1,7 +1,6 @@
 from abacura.plugins import command
 from abacura_kallisti.atlas.navigator import Navigator, NavigationPath
-from abacura_kallisti.atlas.world import Room
-from abacura_kallisti.atlas.room import RoomMessage
+from abacura_kallisti.atlas.room import RoomMessage, Room
 from abacura_kallisti.plugins import LOKPlugin
 from abacura.plugins.events import event
 from typing import Optional

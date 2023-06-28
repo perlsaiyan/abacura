@@ -1,11 +1,11 @@
 import re
 import sqlite3
-from dataclasses import dataclass, field, fields, astuple
+from dataclasses import fields, astuple
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict
 
-from .room import ScannedRoom
+from .room import ScannedRoom, Exit, Room, RoomTracking
 from .wilderness import WildernessGrid
 
 
@@ -21,55 +21,6 @@ def strip_ansi_codes(s: str) -> str:
     """
     # ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
     return ansi_escape.sub('', s)
-
-
-@dataclass(slots=True)
-class Exit:
-    from_vnum: str = ''
-    direction: str = ''
-    to_vnum: str = ''
-    portal: str = ''
-    portal_method: str = ''
-    door: str = ''
-    closes: bool = False
-    locks: bool = False
-    key_name: str = ''
-    weight: int = 0
-    max_level: int = 100
-    min_level: int = 0
-    deathtrap: bool = False
-
-
-@dataclass(slots=True)
-class Room:
-    vnum: str = ""
-    name: str = ""
-    terrain: str = ""
-    area_name: str = ""
-    regen_hp: bool = False
-    regen_mp: bool = False
-    regen_sp: bool = False
-    set_recall: bool = False
-    peaceful: bool = False
-    deathtrap: bool = False
-    silent: bool = False
-    wild_magic: bool = False
-    bank: bool = False
-    narrow: bool = False
-    no_magic: bool = False
-    no_recall: bool = False
-    navigable: bool = True
-    # exits should be last to make the simple db query work
-    exits: Dict[str, Exit] = field(default_factory=dict)
-
-
-@dataclass(slots=True)
-class RoomTracking:
-    vnum: str = ""
-    last_harvested: Optional[datetime] = None
-    last_visited: Optional[datetime] = None
-    last_searched: Optional[datetime] = None
-    kills: int = 0
 
 
 class World:

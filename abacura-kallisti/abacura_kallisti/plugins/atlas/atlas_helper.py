@@ -48,7 +48,11 @@ class WorldPlugin(LOKPlugin):
 
     @command()
     def room(self, location: Room = None, delete: bool = False):
-        """Display information about a room"""
+        """Display information about a room
+
+        :location A room vnum or location name
+        :delete Will delete the room
+        """
 
         if location is None:
             if self.msdp.room_vnum not in self.world.rooms:
