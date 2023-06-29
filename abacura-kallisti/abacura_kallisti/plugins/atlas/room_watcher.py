@@ -266,7 +266,8 @@ class RoomWatcher(LOKPlugin):
         # TODO: Make the latest available scanned room available somewhere
         # self.msdp.room = self.scanned_room
 
-        self.show_debug()
+        # TODO on next pass, make this a toggle
+        #self.show_debug()
 
         self.world.visited_room(area_name=self.msdp.area_name, name=self.msdp.room_name, vnum=self.msdp.room_vnum,
                                 terrain=self.msdp.room_terrain, room_exits=self.msdp.room_exits,
