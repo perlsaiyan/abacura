@@ -5,7 +5,7 @@ from typing import List, Optional
 from abacura.mud import OutputMessage
 from abacura.plugins.events import event, AbacuraMessage
 from abacura.plugins import action
-from abacura_kallisti.atlas import encounter
+from abacura_kallisti.atlas import encounter, item
 from abacura_kallisti.atlas.room import ScannedRoom, RoomMessage
 from abacura_kallisti.plugins import LOKPlugin
 from abacura_kallisti.atlas.world import strip_ansi_codes
@@ -13,6 +13,9 @@ from abacura_kallisti.atlas.world import strip_ansi_codes
 from rich.text import Text
 from rich.panel import Panel
 
+from textual import log
+
+item_re = re.compile(r'(\x1b\[0m)?\x1b\[0;37m[^\x1b ]')
 
 class RoomWatcher(LOKPlugin):
 
@@ -148,6 +151,10 @@ class RoomWatcher(LOKPlugin):
         # It first sends out the code, then changes it
         return s.find('\x1b[1;37m') >= 0
 
+    @staticmethod
+    def is_blue_item(s:str) -> bool:
+        return s.find('\x1b[0;36m') >= 0
+
     # @staticmethod
     # # @lru_cache(maxsize=1024)
     # def get_known_mob(area_name: str, mob_name):
@@ -215,6 +222,19 @@ class RoomWatcher(LOKPlugin):
 
         return []
 
+    def match_objects(self, line: str) -> List[item.Item]:
+        is_item = item_re.match(line)
+        stripped = strip_ansi_codes(line)
+        blue = self.is_blue_item(line)
+
+        if is_item:
+            count = self.get_mob_count(stripped)
+
+            inc = item.Item(stripped, blue=blue)
+            return [inc] * count
+
+        return []
+
     def show_debug(self):
         # TODO: hide this when finished
         text = Text()
@@ -227,6 +247,7 @@ class RoomWatcher(LOKPlugin):
         text.append(f"    charmies: {self.scanned_room.room_charmies}\n", style="white")
         text.append(f"     corpses: {self.scanned_room.room_corpses}\n", style="white")
         text.append(f"  encounters: {self.scanned_room.room_encounters}\n", style="white")
+        text.append(f"       items: {self.scanned_room.room_items}\n", style="white")
         text.append(f"       blood: {self.scanned_room.blood_trail}\n", style="bold red")
         text.append(f"      tracks: {self.scanned_room.hunt_tracks}", style="bold green")
         text.highlight_regex(r"[\w]+: ", style="bold white")
@@ -245,7 +266,7 @@ class RoomWatcher(LOKPlugin):
         # TODO: Make the latest available scanned room available somewhere
         # self.msdp.room = self.scanned_room
 
-        # self.show_debug()
+        self.show_debug()
 
         self.world.visited_room(area_name=self.msdp.area_name, name=self.msdp.room_name, vnum=self.msdp.room_vnum,
                                 terrain=self.msdp.room_terrain, room_exits=self.msdp.room_exits,
@@ -287,6 +308,7 @@ class RoomWatcher(LOKPlugin):
         # otherwise, if we are in between then check for encounters/mobs & players in the room
         self.scanned_room.room_lines.append(message.message)
         encounters = self.match_encounters(self.msdp.area_name, message.message)
+        objects = self.match_objects(message.message)
         corpses = self.get_corpses(self.msdp.area_name, message.stripped)
         # charmies = self.get_charmies(text.stripped)
 
@@ -305,6 +327,8 @@ class RoomWatcher(LOKPlugin):
             self.scanned_room.room_encounters += encounters
         elif len(corpses) > 0:
             self.scanned_room.room_corpses += corpses
+        elif len(objects) > 0:
+            self.scanned_room.room_items += objects
         else:
             if (player_name := self.get_player_name(message.message)) is not None:
                 self.scanned_room.room_players.append(player_name)

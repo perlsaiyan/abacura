@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import List, Dict, Optional
 
 from . import encounter
+from . import item
 
 from abacura.plugins.events import AbacuraMessage
 
@@ -10,6 +11,7 @@ from abacura.plugins.events import AbacuraMessage
 class ScannedRoom:
     room_vnum: str = ''
     room_header: str = ''
+    room_items: List[item.Item] = field(default_factory=list)
     room_corpses: List[str] = field(default_factory=list)
     room_encounters: List[encounter.Encounter] = field(default_factory=list)
     room_charmies: List[str] = field(default_factory=list)
