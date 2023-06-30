@@ -128,7 +128,8 @@ class Command:
         doc_lines = []
 
         parameter_doc = {}
-        for line in getattr(self.callback, '__doc__', '').split("\n"):
+        fn_doc = getattr(self.callback, '__doc__') or ''
+        for line in fn_doc.split("\n"):
             if line.strip().startswith(":") and line.strip().find(" ") >= 0:
                 s = line.lstrip(" :").split(" ")
                 name = s[0]
