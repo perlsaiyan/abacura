@@ -143,12 +143,10 @@ class Session(BaseSession):
         while 1:
             token = shl.get_token()
             if not token:
-                log(f"BREAKING ON {token}")
                 break
             elif token == ';':
-                log(f"yielding {buf} of {line}")
                 yield buf
-                buf = ""
+                buf = ''
             elif token == '--':
                 buf += token
             elif token == '#':
@@ -157,7 +155,6 @@ class Session(BaseSession):
                 buf += token + " "
 
         if len(buf):
-            log(f"yield2 {buf}")
             yield buf
 
     def player_input(self, line) -> None:
@@ -167,7 +164,7 @@ class Session(BaseSession):
             self.send("\n")
             return
         for sl in self.input_splitter(line):
-            
+            sl = sl.rstrip()
             if sl == "":
                 cmd = sl
             else:
