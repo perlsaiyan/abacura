@@ -254,6 +254,7 @@ class Session(BaseSession):
         reader, self.writer = await asyncio.open_connection(host, port)
         self.connected = True
         self.register_options()
+        self.poll_timeout = 0.001
         while self.connected is True:
 
             # We read one character at a time so that we can find IAC sequences
@@ -262,7 +263,7 @@ class Session(BaseSession):
                 if self.config.get_specific_option(self.name, "ga"):
                     data = await reader.read(1)
                 else:
-                    data = await asyncio.wait_for(reader.read(1), 0.05)
+                    data = await asyncio.wait_for(reader.read(1), self.poll_timeout)
             except BrokenPipeError:
                 self.output("[bold red]# Lost connection to server.", markup=True)
                 self.connected = False
@@ -275,6 +276,11 @@ class Session(BaseSession):
                 if len(self.outb) > 0:
                     self.output(self.outb.decode("UTF-8", errors="ignore"), ansi=True)
                     self.outb = b''
+                    self.poll_timeout = 0.001
+                else:
+                    if self.poll_timeout < 0.05:
+                        self.poll_timeout *= 2
+                        log.debug(f"timeout {self.poll_timeout}")
                 continue
 
             # Empty string means we lost our connection
