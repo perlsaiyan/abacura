@@ -55,7 +55,6 @@ class LOKComms(LOKPlugin):
     def comms_log(self, channel, speaker, msg):
         channel = channel.lower()
         speaker = speaker.lower()
-        self.session.output(f"Comms log received channel {channel} and speaker {speaker}, tog={self.comms_toggles[channel]}")
         if self.comms_toggles[channel] == 'on' and speaker not in self.comms_gag_entities:
             if self.comms_textlog is None:
                 self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
