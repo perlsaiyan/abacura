@@ -255,12 +255,14 @@ class Session(BaseSession):
         self.connected = True
         self.register_options()
         self.poll_timeout = 0.001
+        self.go_ahead = self.config.get_specific_option(self.name, "ga")
+
         while self.connected is True:
 
             # We read one character at a time so that we can find IAC sequences
             # We use wait_for() so we can work with muds that don't use GA
             try:
-                if self.config.get_specific_option(self.name, "ga"):
+                if self.go_ahead:
                     data = await reader.read(1)
                 else:
                     data = await asyncio.wait_for(reader.read(1), self.poll_timeout)
