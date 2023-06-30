@@ -44,7 +44,7 @@ class NavigationHelper(LOKPlugin):
 
         for step in nav_path.steps:
             if step.exit.to_vnum in self.world.rooms:
-                terrain = self.world.rooms[step.exit.to_vnum].terrain
+                terrain = self.world.rooms[step.exit.to_vnum].terrain_name
                 # area = self.world.rooms[step.exit.to_vnum].area_name
 
                 record = (step.vnum, step.exit.to_vnum, step.get_command(), step.exit.direction, step.exit.door,

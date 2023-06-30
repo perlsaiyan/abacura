@@ -73,16 +73,24 @@ _TERRAIN_LIST = [
 _TERRAIN: Dict[str, Terrain] = {t.name: t for t in _TERRAIN_LIST}
 
 
-@lru_cache(maxsize=500)
-def get_terrain(terrain_name: str) -> Terrain:
-    names = [name for name in terrain_name.split(" ") if name in _TERRAIN]
-    if not len(names):
-        return Terrain(name=terrain_name, symbol='?', symbol_sort=1, color='white', color_sort=1, weight=4)
+class TerrainFactory:
+    @lru_cache(maxsize=500)
+    def __getitem__(self, item) -> Terrain:
+        if type(item) not in (str, 'str'):
+            raise KeyError(item)
 
-    symbol = sorted([(_TERRAIN[name].symbol_sort, _TERRAIN[name].symbol) for name in names])[0][1]
-    color = sorted([(_TERRAIN[name].color_sort, _TERRAIN[name].color) for name in names])[0][1]
-    bg_color = sorted([(_TERRAIN[name].color_sort, _TERRAIN[name].bg_color) for name in names])[0][1]
-    impassable = any([_TERRAIN[name].impassable for name in names])
-    weight = max([_TERRAIN[name].weight for name in names])
-    return Terrain(name=terrain_name, symbol=symbol, symbol_sort=1, color=color, color_sort=1,
-                   impassable=impassable, weight=weight, bg_color=bg_color)
+        terrain_name: str = item
+        names = [name for name in terrain_name.split(" ") if name in _TERRAIN]
+        if not len(names):
+            return Terrain(name=terrain_name, symbol='?', symbol_sort=1, color='white', color_sort=1, weight=4)
+
+        symbol = sorted([(_TERRAIN[name].symbol_sort, _TERRAIN[name].symbol) for name in names])[0][1]
+        color = sorted([(_TERRAIN[name].color_sort, _TERRAIN[name].color) for name in names])[0][1]
+        bg_color = sorted([(_TERRAIN[name].color_sort, _TERRAIN[name].bg_color) for name in names])[0][1]
+        impassable = any([_TERRAIN[name].impassable for name in names])
+        weight = max([_TERRAIN[name].weight for name in names])
+        return Terrain(name=terrain_name, symbol=symbol, symbol_sort=1, color=color, color_sort=1,
+                       impassable=impassable, weight=weight, bg_color=bg_color)
+
+
+TERRAIN = TerrainFactory()

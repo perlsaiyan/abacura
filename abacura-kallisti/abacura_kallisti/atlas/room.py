@@ -4,8 +4,10 @@ from typing import List, Dict, Optional
 
 from . import encounter
 from . import item
+from .terrain import TERRAIN, Terrain
 
 from abacura.plugins.events import AbacuraMessage
+
 
 @dataclass
 class ScannedRoom:
@@ -58,7 +60,7 @@ class Exit:
 class Room:
     vnum: str = ""
     name: str = ""
-    terrain: str = ""
+    terrain_name: str = ""
     area_name: str = ""
     regen_hp: bool = False
     regen_mp: bool = False
@@ -75,6 +77,10 @@ class Room:
     navigable: bool = True
     # exits should be last to make the simple db query work
     exits: Dict[str, Exit] = field(default_factory=dict)
+
+    @property
+    def terrain(self) -> Terrain:
+        return TERRAIN[self.terrain_name]
 
 
 @dataclass(slots=True)

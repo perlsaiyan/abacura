@@ -187,7 +187,7 @@ class World:
         terrain = strip_ansi_codes(terrain)
 
         # TODO: Should we really be creating a new room, or just updating the existing one with new values
-        new_room = Room(area_name=area_name, vnum=vnum, name=name, terrain=terrain,
+        new_room = Room(area_name=area_name, vnum=vnum, name=name, terrain_name=terrain,
                         exits=new_exits, bank=bank,
                         regen_hp=regen_hp, regen_mp=regen_mp, regen_sp=regen_sp, wild_magic=wild_magic,
                         silent=existing_room.silent, no_magic=existing_room.no_magic or no_magic,

@@ -151,7 +151,7 @@ class LOKMap(Container):
                     continue
                     
                 room = self.world.rooms[xp]
-                t_icon = self.get_terrain_icon(room.terrain)
+                t_icon = self.get_terrain_icon(room.terrain_name)
                 if room.vnum == self.START_ROOM:
                     a_map[y][x] = "[bold red]@[/bold red]"
                 

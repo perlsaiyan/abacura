@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import Dict, Set, List, Generator
 from itertools import groupby
 
-from abacura_kallisti.atlas.terrain import get_terrain
 from abacura_kallisti.atlas.wilderness import WildernessGrid
 from abacura_kallisti.atlas.world import World
 from abacura_kallisti.atlas.room import Exit, Room
@@ -181,15 +180,14 @@ class Navigator:
 
         to_room = self.world.rooms[room_exit.to_vnum]
 
-        terrain = get_terrain(to_room.terrain)
-        if terrain.impassable:
+        if to_room.terrain.impassable:
             return -1
 
         if to_room.deathtrap:
             return -1
 
         # prefer not to open doors since it takes another command
-        return terrain.weight + room_exit.weight + room_exit.closes
+        return to_room.terrain.weight + room_exit.weight + room_exit.closes
 
     def _get_special_exits(self, room_vnum: str) -> Generator:
         current_room = self.world.rooms[room_vnum]
@@ -219,25 +217,25 @@ class Navigator:
         #         e = Exit(from_vnum=current_room.vnum, to_vnum=vnum, direction='bifrost %d' % i, weight=30)
         #         # there is a 6 second delay on bifrost, so make it more expensive
         #         yield e
-
-    def _get_area_cost(self, start_vnum: str, room_exit: Exit, goal_vnums: set) -> int:
-        if len(goal_vnums) != 1:
-            return 0
-
-        start_room = self.world.rooms.get(start_vnum, None)
-        exit_room = self.world.rooms.get(room_exit.to_vnum, None)
-        goal_room = self.world.rooms.get(list(goal_vnums)[0], None)
-
-        if not start_room or not exit_room or not goal_room:
-            return 0
-
-        egress_room = self.world.rooms.get(self.pc.egress_vnum, None)
-        egress_area = egress_room.area_name if egress_room else ''
-
-        if exit_room.area_name in [HOMETOWN, HOME_AREA_NAME, egress_area]:
-            return 0
-
-        return 20
+    #
+    # def _get_area_cost(self, start_vnum: str, room_exit: Exit, goal_vnums: set) -> int:
+    #     if len(goal_vnums) != 1:
+    #         return 0
+    #
+    #     start_room = self.world.rooms.get(start_vnum, None)
+    #     exit_room = self.world.rooms.get(room_exit.to_vnum, None)
+    #     goal_room = self.world.rooms.get(list(goal_vnums)[0], None)
+    #
+    #     if not start_room or not exit_room or not goal_room:
+    #         return 0
+    #
+    #     egress_room = self.world.rooms.get(self.pc.egress_vnum, None)
+    #     egress_area = egress_room.area_name if egress_room else ''
+    #
+    #     if exit_room.area_name in [HOMETOWN, HOME_AREA_NAME, egress_area]:
+    #         return 0
+    #
+    #     return 0
 
     def _get_wilderness_cost(self, current_room: Room, room_exit: Exit, goal_vnums: set) -> int:
         cost = 0
@@ -303,8 +301,10 @@ class Navigator:
 
                 if current_room.area_name == 'The Wilderness':
                     new_cost += self._get_wilderness_cost(current_room, room_exit, goal_vnums)
-                elif len(goal_vnums) == 1:
-                    new_cost += self._get_area_cost(start_vnum, room_exit, goal_vnums)
+
+                # TODO: Make it optional to try and stay within the area
+                # elif len(goal_vnums) == 1:
+                #    new_cost += self._get_area_cost(start_vnum, room_exit, goal_vnums)
 
                 # prefer going in the same direction if we are looking for one goal room
                 # just because this gives a shorter "speedwalk" view
