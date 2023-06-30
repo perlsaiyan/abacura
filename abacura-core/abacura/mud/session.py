@@ -6,7 +6,7 @@ import re
 import shlex
 import time
 from importlib import import_module
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, List
 
 from rich.text import Text
 from serum import inject, Context
