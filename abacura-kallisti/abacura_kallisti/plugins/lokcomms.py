@@ -7,11 +7,47 @@ import re
 from textual.widgets import TextLog
 
 from abacura.mud import OutputMessage
-from abacura.plugins import action
+from abacura.plugins import action, command
 from abacura_kallisti.plugins import LOKPlugin
 
 class LOKComms(LOKPlugin):
     comms_textlog: Optional[TextLog] = None
+
+    #valid channels in LOK
+    channels = [
+        'gossip',
+        'barter',
+        'market',
+        'market-info',
+        'group',
+        'clan',
+        'gemote',
+        'request',
+        'imm',
+        'request',
+        'respond',
+        'world',
+        'whisper',
+        'say',
+        'yell',
+        'shout',
+        'tell'
+    ]
+    #comms toggle for comms log (not mud output window)
+    comms_toggles = {}
+    comms_gag_entities = []
+    
+    for channel in channels:
+        comms_toggles[channel] = 'on'
+
+    def comms_log(self, channel, speaker, msg):
+        channel = channel.lower()
+        speaker = speaker.lower()
+        self.session.output(f"Comms log received channel {channel} and speaker {speaker}, tog={self.comms_toggles[channel]}")
+        if self.comms_toggles[channel] == 'on' and speaker not in self.comms_gag_entities:
+            if self.comms_textlog is None:
+                self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
+            self.comms_textlog.write(Text.from_ansi(msg.message))
 
     #<Gossip: Taszlehoff (Shade)> 'morning'
     @action(r"^<(\w+): (\w+)( \(.*\))?> '(.*)'", color=False)
@@ -19,9 +55,7 @@ class LOKComms(LOKPlugin):
         """Send common pattern comms to the commslog, including clan chat"""
         if account == None:
             account = 'None'
-        if self.comms_textlog is None:
-            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
-        self.comms_textlog.write(Text.from_ansi(msg.message))
+        self.comms_log(channel, speaker, msg)
     
     #<Market: the MGSE supervisor> 'Lapis Lazuli stocks went up 10.  Trading at 130 now.'
     # Market info is a different pattern and gets different channel assignment
@@ -37,18 +71,14 @@ class LOKComms(LOKPlugin):
     @action (r"(^\*\*(\w+): '(.*'))", color=False)
     def comms_group_other(self, speaker: str, message: str, msg: OutputMessage):
         channel = 'group'
-        if self.comms_textlog is None:
-            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
-        self.comms_textlog.write(Text.from_ansi(msg.message))
+        self.comms_log(channel, speaker, msg)
 
     #You grouptell: huehuehue
     @action (r"You grouptell: (.*)$", color=False)
     def comms_group_self(self, message: str, msg: OutputMessage):
         channel = 'group'
         speaker = 'You'
-        if self.comms_textlog is None:
-            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
-        self.comms_textlog.write(Text.from_ansi(msg.message))
+        self.comms_log(channel, speaker, msg)
 
     """
     This case: <Clan: Atropa> 'huehue' is caught by comms_common
@@ -57,41 +87,32 @@ class LOKComms(LOKPlugin):
     @action(r"^(You) cchat, '(.*)'", color=False)
     def comms_clan_self(self, speaker: str, message: str, msg: OutputMessage):
         channel = 'clan'
-        if self.comms_textlog is None:
-            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
-        self.comms_textlog.write(Text.from_ansi(msg.message)) 
+        self.comms_log(channel, speaker, msg) 
 
     @action(r"^{RolePlay: (\w+)} '(.*)'", color=False)
     def comms_roleplay(self, speaker: str, message: str, msg: OutputMessage):
         channel = 'roleplay'
-        if self.comms_textlog is None:
-            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
-        self.comms_textlog.write(Text.from_ansi(msg.message)) 
+        self.comms_log(channel, speaker, msg) 
 
     @action(r"^<Gemote> '(.*)'", color=False)
     def comms_gemote(self, msg: OutputMessage):
         """Gemote speaker is indeterminate"""
         channel = 'gemote'
-        if self.comms_textlog is None:
-            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
-        self.comms_textlog.write(Text.from_ansi(msg.message)) 
+        speaker = ''
+        self.comms_log(channel, speaker, msg) 
     
     #You shout, 'huehue'
     #Whitechain shouts, 'huehue'
     @action(r"^(\w+) (shout|shouts), '(.*)'", color=False)
     def comms_shout(self, speaker: str, verb: str, message: str, msg: OutputMessage):
         channel = 'shout'
-        if self.comms_textlog is None:
-            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
-        self.comms_textlog.write(Text.from_ansi(msg.message))
+        self.comms_log(channel, speaker, msg)
 
     #yell has a comma when others yell, not when self yells
     @action(r"^(\w+) (yell|yells,) '(.*)'", color=False)
     def comms_yell(self, speaker: str, verb: str, message: str, msg: OutputMessage):
         channel = 'yell'
-        if self.comms_textlog is None:
-            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
-        self.comms_textlog.write(Text.from_ansi(msg.message))
+        self.comms_log(channel, speaker, msg)
 
     """
     immchat, imms only
@@ -101,42 +122,33 @@ class LOKComms(LOKPlugin):
     """
     @action(r"^\[(\w+):(\(.*\)+)?] '(.*)'", color=False)
     def comms_immchat(self, speaker: str, account: str, message: str, msg: OutputMessage):
-        channel = 'immchat'
-        if self.comms_textlog is None:
-            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
-        self.comms_textlog.write(Text.from_ansi(msg.message))
+        channel = 'imm'
+        self.comms_log(channel, speaker, msg)
     
     #imms see requests this way
     #[Whitechain (Goliath) Requests:] 'huehue'
     @action(r"^\[(\w+) (\(.*\)) Requests:] ('.*)'", color=False)
     def comms_request_other(self, speaker: str, account: str, message: str, msg:OutputMessage):
         channel = 'request'
-        if self.comms_textlog is None:
-            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
-        self.comms_textlog.write(Text.from_ansi(msg.message))
+        self.comms_log(channel, speaker, msg)
 
     #only requesting player and imms can see
     @action(r"^(You) request, '(.*)'", color=False)
     def comms_request_self(self, speaker: str, message: str, msg: OutputMessage):
         channel = 'request'
-        if self.comms_textlog is None:
-            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
-        self.comms_textlog.write(Text.from_ansi(msg.message))
+        self.comms_log(channel, speaker, msg)
 
     #imm only, all imms can see and listener can see
     @action(r"^\[(\w+) responds to (\w+) \((.*)\):] '(.*)'", color=False)
     def comms_respond(self, speaker: str, listener: str, listener_acct: str, msg:OutputMessage):
         channel = 'respond'
-        if self.comms_textlog is None:
-            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
-        self.comms_textlog.write(Text.from_ansi(msg.message))
+        self.comms_log(channel, speaker, msg)
 
     @action(r"^The winds whisper, (.*)", color=False)
     def comms_world(self, message: str, msg: OutputMessage):
         channel = 'world'
-        if self.comms_textlog is None:
-            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
-        self.comms_textlog.write(Text.from_ansi(msg.message))
+        speaker = 'world'
+        self.comms_log(channel, speaker, msg)
 
     """
     Whitechain says, 'huehue'
@@ -145,17 +157,14 @@ class LOKComms(LOKPlugin):
     @action(r"^(\w+) say[s]?, '(.*)'", color=False)
     def comms_say(self, speaker: str, message: str, msg: OutputMessage):
         channel = 'say'
-        if self.comms_textlog is None:
-            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
-        self.comms_textlog.write(Text.from_ansi(msg.message))
+        self.comms_log(channel, speaker, msg)
 
     #Vajra whispers to you, 'huehue'
     @action(r"(\w+) whispers to you, '(.*)'", color=False)
     def comms_whisper(self, speaker: str, message: str, msg: OutputMessage):
+        channel = 'whisper'
         listener = 'You'
-        if self.comms_textlog is None:
-            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
-        self.comms_textlog.write(Text.from_ansi(msg.message)) 
+        self.comms_log(channel, speaker, msg) 
 
     """
     You tell Vajra (Anicca){Rp}, 'huehue'
@@ -163,15 +172,14 @@ class LOKComms(LOKPlugin):
     """
     @action(r"You tell (.*){Rp}, '(.*)'", color=False)
     def comms_tell_self(self, listener: str, message: str, msg: OutputMessage):
+        channel = 'tell'
         speaker = 'You'
         _listener = listener.split()
         if len(_listener) > 1:
             acct = _listener[1]
             acct = re.sub("\(|\)", '', acct)
             listener = _listener[0]
-        if self.comms_textlog is None:
-            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
-        self.comms_textlog.write(Text.from_ansi(msg.message))  
+        self.comms_log(channel, speaker, msg)  
 
     """
     Vajra tells you, 'huehue'
@@ -179,19 +187,50 @@ class LOKComms(LOKPlugin):
     """
     @action(r"^(.*) tells you, '(.*)'", color=False)
     def comms_tell_other(self, speaker: str, message: str, msg: OutputMessage):
+        channel = 'tell'
         listener = 'You'
         _speaker = speaker.split()
         if len(_speaker) > 1:
             acct  = speaker[1]
             acct = re.sub("\(|\)", '', acct)
             speaker = _speaker[0]
-        if self.comms_textlog is None:
-            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
-        self.comms_textlog.write(Text.from_ansi(msg.message))  
+        self.comms_log(channel, speaker, msg)  
     
     @action (r"^The winds whisper, '(.*)'", color=False)
     def comms_world(self, message: str, msg: OutputMessage):
+        channel = 'world'
         speaker = 'world'
-        if self.comms_textlog is None:
-            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
-        self.comms_textlog.write(Text.from_ansi(msg.message))
+        self.comms_log(channel, speaker, msg)
+
+    #commsgag <channel/speaker> <arg> <on/off>
+    @command(name='commstog')
+    def comms_toggle(self, channel_or_speaker: str=None, name: str=None, on_off: str=""):
+        
+        if channel_or_speaker is None:
+            raise ValueError("Must give channel or speaker.")
+        
+        if name is None:
+            raise ValueError("Must provide a channel or speaker.")
+        
+        name = name.lower()
+        if on_off in ["on", "off"]:
+            if channel_or_speaker == "channel":
+                name = name.lower()
+                if name in self.channels:
+                    self.comms_toggles[name] = on_off
+                    self.session.output(f"Comms window output for channel: {name} is {on_off}.")
+                else:
+                    raise ValueError(f"'{name}' not in list of valid channels.")
+            elif channel_or_speaker == "speaker":
+                if name in self.comms_gag_entities and on_off == 'on':
+                    self.comms_gag_entities.remove(name)
+                elif name not in self.comms_gag_entities and on_off == 'off':
+                    self.comms_gag_entities.append(name)
+
+                self.session.output(f"Comms window output for speaker: {name} is {on_off}.")
+
+            else:
+                raise ValueError("Valid options are 'channel' or 'speaker'.")
+        else:
+            raise ValueError("Valid options are 'on' or 'off'.")
+        
