@@ -3,7 +3,7 @@ from datetime import datetime
 from functools import lru_cache
 from typing import List, Dict
 
-from .terrain import TERRAIN, SKILL_TERRAIN
+from .terrain import get_terrain, SKILL_TERRAIN
 from .wilderness import WildernessGrid
 from .world import World
 
@@ -160,7 +160,7 @@ class WildernessMap:
                     map_line += bg
                     last_bg = bg
 
-                symbol = symbol_overrides.get(vnum, TERRAIN[terrain].symbol)
+                symbol = symbol_overrides.get(vnum, get_terrain(terrain).symbol)
                 # print('map: [%s] %d,%d %s' % (vnum, delta_x, delta_y, symbol))
                 # row.append(symbol_overrides.get(vnum, TERRAIN[terrain].symbol))
                 map_line += symbol
@@ -206,15 +206,15 @@ class WildernessMap:
             for x in range(len(scaled_map[0])):
                 terrain_name, harvestable = scaled_map[y][x]
 
-                if terrain_name not in TERRAIN:
-                    terrain_name = '?'
+                # if terrain_name not in TERRAIN:
+                #     terrain_name = '?'
 
                 bg_color_override = ''
                 if skill != '' and harvestable and terrain_name in SKILL_TERRAIN[skill]:
                     bg_color_override = 'magenta'
 
                 fg, bg = self.get_terrain_color_codes(terrain_name, bg_color_override)
-                s += fg + bg + TERRAIN[terrain_name].symbol
+                s += fg + bg + get_terrain(terrain_name).symbol
 
             map_lines.append(s)
 
@@ -223,7 +223,7 @@ class WildernessMap:
     @lru_cache(100)
     def get_terrain_color_codes(self, terrain_name: str, bg_color_override: str = '') -> (str, str):
 
-        terrain = TERRAIN[terrain_name]
+        terrain = get_terrain(terrain_name)
         fg_color = terrain.color
         bg_color = fg_color if terrain.bg_color == '' else terrain.bg_color
 
