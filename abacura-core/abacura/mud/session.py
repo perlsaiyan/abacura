@@ -259,7 +259,10 @@ class Session(BaseSession):
             # We read one character at a time so that we can find IAC sequences
             # We use wait_for() so we can work with muds that don't use GA
             try:
-                data = await asyncio.wait_for(reader.read(1), 0.05)
+                if self.config.get_specific_option(self.name, "ga"):
+                    data = await reader.read(1)
+                else:
+                    data = await asyncio.wait_for(reader.read(1), 0.05)
             except BrokenPipeError:
                 self.output("[bold red]# Lost connection to server.", markup=True)
                 self.connected = False
