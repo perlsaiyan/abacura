@@ -128,7 +128,8 @@ class Command:
         doc_lines = []
 
         parameter_doc = {}
-        for line in getattr(self.callback, '__doc__', '').split("\n"):
+        fn_doc = getattr(self.callback, '__doc__') or ''
+        for line in fn_doc.split("\n"):
             if line.strip().startswith(":") and line.strip().find(" ") >= 0:
                 s = line.lstrip(" :").split(" ")
                 name = s[0]
@@ -193,6 +194,10 @@ class CommandManager:
             return False
 
         # remove leading @
+        if command_line.startswith("##") and len(command_line) > 2:
+            # TODO: This is a bugfix for the input splitter removing a space
+            command_line = "## " + command_line[2:]
+
         s = command_line[1:].rstrip("\n").split(" ")
         submitted_command = s[0]
         submitted_args = "" if len(s) == 1 else " ".join(s[1:])

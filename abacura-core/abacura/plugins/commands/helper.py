@@ -17,7 +17,7 @@ class CommandHelper(Plugin):
 
         for c in sorted(commands, key=lambda c: c.name):
             doc = getattr(c.callback, '__doc__', None)
-            doc = "" if doc is None else ": " + doc
+            doc = "" if doc is None else ": " + doc.split("\n")[0]
             help_text.append(f"  {c.name:10s} {doc}")
 
         help_text.append("")

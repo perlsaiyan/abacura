@@ -1,5 +1,5 @@
 from abacura.plugins import command
-from abacura_kallisti.atlas.terrain import TERRAIN
+from abacura_kallisti.atlas.terrain import get_terrain
 from abacura_kallisti.plugins import LOKPlugin
 from abacura_kallisti.atlas.world import Room, Exit
 from abacura_kallisti.atlas.navigator import Navigator
@@ -79,7 +79,7 @@ class WorldPlugin(LOKPlugin):
         text.append(f"[{location.vnum}] {location.name}\n\n", style="bold magenta")
         text.append(f"     Area: {location.area_name}\n")
 
-        terrain = TERRAIN.get(location.terrain, None)
+        terrain = get_terrain(location.terrain)
         terrain_weight = terrain.weight if terrain else -1
         text.append(f"  Terrain: {location.terrain} [{terrain_weight}]\n")
         text.append(f"    Flags: {self.get_room_flags(location)}\n")
