@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+import shlex
 import time
 from importlib import import_module
 from typing import TYPE_CHECKING, Optional
@@ -13,7 +14,8 @@ from textual import log
 from textual.screen import Screen
 from textual.widgets import TextLog
 
-from abacura import SessionScreen, AbacuraFooter, Input
+from abacura.widgets import InputBar
+from abacura.screens import SessionScreen
 from abacura.config import Config
 from abacura.mud import BaseSession, OutputMessage
 from abacura.mud.options import GA
@@ -23,6 +25,7 @@ from abacura.plugins.director import Director
 from abacura.plugins.events import AbacuraMessage
 from abacura.plugins.loader import PluginLoader
 from abacura.utils.ring_buffer import RingBufferLogSql
+from abacura.widgets.footer import AbacuraFooter
 
 if TYPE_CHECKING:
     from abacura.abacura import Abacura
@@ -130,37 +133,69 @@ class Session(BaseSession):
         # TODO swap to context?
         self.options[self.core_msdp.code] = self.core_msdp
 
+    def input_splitter(self, line) -> List[str]:
+        buf = ""
+        shl = shlex.shlex(line, punctuation_chars='-', posix=False)
+        shl.commenters = ""
+        #shl = list(shlex.shlex(line, punctuation_chars="-"))
+        
+        #for token in shl:
+        while 1:
+            token = shl.get_token()
+            if not token:
+                log(f"BREAKING ON {token}")
+                break
+            elif token == ';':
+                log(f"yielding {buf} of {line}")
+                yield buf
+                buf = ""
+            elif token == '--':
+                buf += token
+            elif token == '#':
+                buf += token
+            else:
+                buf += token + " "
+
+        if len(buf):
+            log(f"yield2 {buf}")
+            yield buf
+
     def player_input(self, line) -> None:
         """This is entry point of the inputbar on the screen"""        
         sl = line.lstrip()
         if sl == "":
-            cmd = sl
-        else:
-            cmd = sl.split()[0]
-
-        if cmd.startswith(self.command_char) and self.director.command_manager.execute_command(line):
+            self.send("\n")
             return
+        for sl in self.input_splitter(line):
+            
+            if sl == "":
+                cmd = sl
+            else:
+                cmd = sl.split()[0]
 
-        if self.speedwalk_re.match(sl) and self.connected:
-            for walk in self.speedwalk_step_re.findall(sl):
-                # We're keeping delimiters so without a preceding number, first part is ''
-                parts = re.split('([neswud])', walk)
-                if parts[0] == '':
-                    self.send(parts[1] + "\n")
-                else:
-                    for _ in range(int(parts[0])):
+            log(f"Yo do {cmd} from {sl} from {line}")
+            if cmd.startswith(self.command_char) and self.director.command_manager.execute_command(sl):
+                continue
+
+            if self.speedwalk_re.match(sl) and self.connected:
+                for walk in self.speedwalk_step_re.findall(sl):
+                    # We're keeping delimiters so without a preceding number, first part is ''
+                    parts = re.split('([neswud])', walk)
+                    if parts[0] == '':
                         self.send(parts[1] + "\n")
-            return
+                    else:
+                        for _ in range(int(parts[0])):
+                            self.send(parts[1] + "\n")
+                continue
 
-        if self.director.alias_manager.handle(cmd, sl):
-            return
+            if self.director.alias_manager.handle(cmd, sl):
+                continue
 
-        if self.connected:
-            self.send(line + "\n")
-            return
+            if self.connected:
+                self.send(sl + "\n")
+                continue
 
-        self.output("[bold red]# NO SESSION CONNECTED", markup=True)
-
+            self.output(f"[bold red]# NO SESSION CONNECTED - pi {sl}", markup=True)
 
     def send(self, msg: str, raw: bool = False) -> None:
         """Send to writer (socket), raw will send the message without byte translation"""
@@ -236,7 +271,8 @@ class Session(BaseSession):
                 self.output("[bold red]# Connection reset by peer.", markup=True)
                 self.connected = False
                 return
-            except TimeoutError:
+
+            except asyncio.TimeoutError:
                 if len(self.outb) > 0:
                     self.output(self.outb.decode("UTF-8", errors="ignore"), ansi=True)
                     self.outb = b''
@@ -287,7 +323,7 @@ class Session(BaseSession):
                     if ord(data) in self.options:
                         self.options[ord(data)].will()
                     elif ord(data) == 1:
-                        ibar = self.screen.query_one("#playerinput", expect_type=Input)
+                        ibar = self.screen.query_one("#playerinput", expect_type=InputBar)
                         ibar.password = True
                         
                     else:
@@ -299,7 +335,7 @@ class Session(BaseSession):
                     data = await reader.read(1)
                     #self.output(f"IAC WONT {data}")
                     if ord(data) == 1:
-                        ibar = self.screen.query_one("#playerinput", expect_type=Input)
+                        ibar = self.screen.query_one("#playerinput", expect_type=InputBar)
                         ibar.password = False
                 # SB
                 elif data == b'\xfa':
@@ -364,6 +400,7 @@ class Session(BaseSession):
             if host and port:
                 self.abacura.run_worker(self.abacura.sessions[name].telnet_client(host, port),
                                         name=f"socket-{name}", group=name,
+                                        #exit_on_error=False,
                                         description=f"Mud connection for {name} ({host}:{port})")
             else:
                 log(f"Session: {name} created in disconnected state due to no host or port")

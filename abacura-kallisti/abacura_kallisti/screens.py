@@ -16,7 +16,7 @@ from textual.widgets import Header, TextLog, Button
 
 from abacura_kallisti.widgets import LOKLeft, LOKRight, LOKMap
 
-from abacura import InputBar
+from abacura.widgets import InputBar
 from abacura.config import Config
 from abacura.widgets import CommsLog
 from abacura.widgets.footer import AbacuraFooter
