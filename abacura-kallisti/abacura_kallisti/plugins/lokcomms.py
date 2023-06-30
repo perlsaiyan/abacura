@@ -22,7 +22,6 @@ class LOKComms(LOKPlugin):
         'group',
         'clan',
         'gemote',
-        'request',
         'imm',
         'request',
         'respond',
@@ -31,7 +30,20 @@ class LOKComms(LOKPlugin):
         'say',
         'yell',
         'shout',
-        'tell'
+        'tell',
+        'arena',
+        'advice',
+        'rude',
+        'obscene',
+        'music',
+        'politics',
+        'sports',
+        'hero',
+        'development',
+        'roleplay',
+        'pk',
+        'veteran',
+
     ]
     #comms toggle for comms log (not mud output window)
     comms_toggles = {}
