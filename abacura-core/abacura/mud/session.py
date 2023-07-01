@@ -135,10 +135,9 @@ class Session(BaseSession):
 
     def input_splitter(self, line) -> List[str]:
         buf = ""
-        shl = shlex.shlex(line, punctuation_chars='-,', posix=False)
+        shl = shlex.shlex(line, punctuation_chars='', posix=False)
         shl.commenters = ""
-        shl.wordchars += ","
-        #shl = list(shlex.shlex(line, punctuation_chars="-"))
+        shl.whitespace_split = True
         
         #for token in shl:
         while 1:
