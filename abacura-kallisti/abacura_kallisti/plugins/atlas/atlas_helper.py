@@ -1,8 +1,7 @@
 from abacura.plugins import command
-from abacura_kallisti.atlas.terrain import get_terrain
 from abacura_kallisti.plugins import LOKPlugin
 from abacura_kallisti.atlas.world import Room, Exit
-from abacura_kallisti.atlas.navigator import Navigator
+from abacura_kallisti.atlas.wilderness import WildernessGrid
 from rich.table import Table
 from rich.panel import Panel
 from rich.text import Text
@@ -11,15 +10,19 @@ from rich.console import Group
 
 class WorldPlugin(LOKPlugin):
 
+    def __init__(self):
+        super().__init__()
+        self.wild_grid = WildernessGrid()
+
     def get_table_of_exits(self, vnum: str):
         exits = []
-        for e in self.world.get_exits(vnum).values():
+        for e in self.world.rooms[vnum].exits.values():
             known = e.to_vnum in self.world.rooms
             visited = False
             terrain = ""
             if known:
                 visited = self.world.get_tracking(e.to_vnum).last_visited is not None
-                terrain = self.world.rooms[e.to_vnum].terrain
+                terrain = self.world.rooms[e.to_vnum].terrain_name
 
             exits.append((e.direction, e.to_vnum, e.door, e.portal, e.portal_method,
                           bool(e.closes), bool(e.locks), known, visited, terrain, bool(e.deathtrap)))
@@ -79,9 +82,8 @@ class WorldPlugin(LOKPlugin):
         text.append(f"[{location.vnum}] {location.name}\n\n", style="bold magenta")
         text.append(f"     Area: {location.area_name}\n")
 
-        terrain = get_terrain(location.terrain)
-        terrain_weight = terrain.weight if terrain else -1
-        text.append(f"  Terrain: {location.terrain} [{terrain_weight}]\n")
+        terrain = location.terrain
+        text.append(f"  Terrain: {location.terrain_name} [{terrain.weight}]\n")
         text.append(f"    Flags: {self.get_room_flags(location)}\n")
         text.append(f"  Visited: {tr.last_visited}\n")
 

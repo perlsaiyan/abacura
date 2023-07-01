@@ -69,12 +69,12 @@ class WildernessRoom:
         self.material: str = SURVEY_MATERIALS.get(symbol, '')
 
     def __str__(self):
-        return '{%2d,%2d %5s: %1s %5.5s}' % (self.delta_x, self.delta_y, self.vnum, self.symbol, self.get_terrain())
+        return '{%2d,%2d %5s: %1s %5.5s}' % (self.delta_x, self.delta_y, self.vnum, self.symbol, self.get_terrain_name())
 
     def __repr__(self):
         return self.__str__()
 
-    def get_terrain(self) -> str:
+    def get_terrain_name(self) -> str:
         # figure out the terrain based on what we saw in the survey
         if self.symbol == ' ':
             return 'empty'
@@ -84,7 +84,7 @@ class WildernessRoom:
 
     def get_name(self) -> str:
         name_map = {'Mountains': 'Mountain', 'Water': 'Shallow Water', 'Path': 'Trail'}
-        t = self.get_terrain()
+        t = self.get_terrain_name()
         return name_map.get(t, t)
 
 
@@ -119,7 +119,7 @@ class WildernessGrid:
                 else:
                     for x in match:
                         cell = WildernessRoom(x, cur_color, cur_bright)
-                        if cell.get_terrain() == 'You':
+                        if cell.get_terrain_name() == 'You':
                             you_row = len(rows)
                             you_col = len(row)
                         row.append(cell)
@@ -130,7 +130,7 @@ class WildernessGrid:
             for x, cell in enumerate(row):
                 cell.delta_y = y - you_row
                 cell.delta_x = x - you_col
-                if you_vnum is not None and cell.get_terrain() != 'empty':
+                if you_vnum is not None and cell.get_terrain_name() != 'empty':
                     cell.vnum = self.get_vnum(you_vnum, cell.delta_x, cell.delta_y)
 
         return rows

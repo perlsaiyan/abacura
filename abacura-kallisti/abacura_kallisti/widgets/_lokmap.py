@@ -85,29 +85,30 @@ class LOKMap(Container):
 
             visited[here.room] = 1
             room = self.world.rooms[here.room]
+            room_exits = room.exits  # get this once to improve wilderness performance
             if Matrix[here.y][here.x] == '':
                 Matrix[here.y][here.x] = here.room
 
                 # Add exits to BFS
-                if (here.y-1) >= 0 and "north" in room.exits:
+                if (here.y-1) >= 0 and "north" in room_exits:
                     if not room.exits["north"].to_vnum in visited:
-                        log(f"appending {room.exits['north']}")
-                        BFS.append(MapPoint(room.exits["north"].to_vnum, here.x, here.y -1))
+                        log(f"appending {room_exits['north']}")
+                        BFS.append(MapPoint(room_exits["north"].to_vnum, here.x, here.y -1))
 
-                if (here.y +1) < len(Matrix) and "south" in room.exits:
-                    if not room.exits["south"].to_vnum in visited:
-                        log(f"appending {room.exits['south']}")
-                        BFS.append(MapPoint(room.exits["south"].to_vnum, here.x, here.y+1))
+                if (here.y +1) < len(Matrix) and "south" in room_exits:
+                    if not room_exits["south"].to_vnum in visited:
+                        log(f"appending {room_exits['south']}")
+                        BFS.append(MapPoint(room_exits["south"].to_vnum, here.x, here.y+1))
 
-                if (here.x +1) < len(Matrix[here.y]) and "east" in room.exits:
-                    if not room.exits["east"].to_vnum in visited:
-                        log(f"appending {room.exits['east']}")
-                        BFS.append(MapPoint(room.exits["east"].to_vnum, here.x+1, here.y))
+                if (here.x +1) < len(Matrix[here.y]) and "east" in room_exits:
+                    if not room_exits["east"].to_vnum in visited:
+                        log(f"appending {room_exits['east']}")
+                        BFS.append(MapPoint(room_exits["east"].to_vnum, here.x+1, here.y))
 
-                if (here.x -1) >= 0 and "west" in room.exits:
-                    if not room.exits["west"].to_vnum in visited:
-                        log(f"appending {room.exits['west']}")
-                        BFS.append(MapPoint(room.exits["west"].to_vnum, here.x-1, here.y))        
+                if (here.x -1) >= 0 and "west" in room_exits:
+                    if not room_exits["west"].to_vnum in visited:
+                        log(f"appending {room_exits['west']}")
+                        BFS.append(MapPoint(room_exits["west"].to_vnum, here.x-1, here.y))        
 
         # draw the map with Matrix of size Viewport
         buf = self.draw_map(Matrix, self.content_size.width, self.content_size.height-1)
@@ -151,7 +152,7 @@ class LOKMap(Container):
                     continue
                     
                 room = self.world.rooms[xp]
-                t_icon = self.get_terrain_icon(room.terrain)
+                t_icon = self.get_terrain_icon(room.terrain_name)
                 if room.vnum == self.START_ROOM:
                     a_map[y][x] = "[bold red]@[/bold red]"
                 
