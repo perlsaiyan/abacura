@@ -1,19 +1,18 @@
 import re
+import dataclasses
 from typing import List, Optional
+
+from rich.panel import Panel
+from rich.text import Text
 
 # from atlas.known_areas import KNOWN_AREAS
 from abacura.mud import OutputMessage
-from abacura.plugins.events import event, AbacuraMessage
 from abacura.plugins import action
+from abacura.plugins.events import event, AbacuraMessage
 from abacura_kallisti.atlas import encounter, item
 from abacura_kallisti.atlas.room import ScannedRoom, RoomMessage
-from abacura_kallisti.plugins import LOKPlugin
 from abacura_kallisti.atlas.world import strip_ansi_codes
-
-from rich.text import Text
-from rich.panel import Panel
-
-from textual import log
+from abacura_kallisti.plugins import LOKPlugin
 
 item_re = re.compile(r'(\x1b\[0m)?\x1b\[0;37m[^\x1b ]')
 
@@ -24,7 +23,6 @@ class RoomWatcher(LOKPlugin):
         super().__init__()
 
         self.scanned_room: Optional[ScannedRoom] = None
-        self.last_room: Optional[ScannedRoom] = None
 
         self.re_room_nocompass = re.compile(r"^.* (\[ [ NSWEUD<>v^\|\(\)\[\]]* \] *$)")
         self.re_room_compass = re.compile(r".* \|")
@@ -155,7 +153,7 @@ class RoomWatcher(LOKPlugin):
         return s.find('\x1b[1;37m') >= 0
 
     @staticmethod
-    def is_blue_item(s:str) -> bool:
+    def is_blue_item(s: str) -> bool:
         return s.find('\x1b[0;36m') >= 0
 
     # @staticmethod
@@ -284,7 +282,8 @@ class RoomWatcher(LOKPlugin):
             if missing_msdp_exits or extra_room_exits:
                 self.session.output(Text(f"\nROOM WATCHER: Mismatch between MSDP and Room exits\n", style="purple"))
 
-        self.last_room = self.scanned_room
+        for f in dataclasses.fields(self.room):
+            setattr(self.room, f.name, getattr(self.scanned_room, f.name))
         self.scanned_room = None
 
     @action(r".*")
@@ -302,6 +301,14 @@ class RoomWatcher(LOKPlugin):
 
             if matched:
                 self.scanned_room = ScannedRoom(room_header=message.stripped, vnum=self.msdp.room_vnum)
+
+                if self.msdp.area_name == 'The Wilderness':
+                    self.world.load_wilderness()
+
+                if self.msdp.room_vnum in self.world.rooms:
+                    room = self.world.rooms[self.msdp.room_vnum]
+                    for f in dataclasses.fields(room):
+                        setattr(self.scanned_room, f.name, getattr(room, f.name))
 
             return
 
