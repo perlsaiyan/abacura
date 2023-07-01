@@ -257,8 +257,13 @@ class Session(BaseSession):
             await asyncio.sleep(0.1)
 
         log.info(f"Session {self.name} connecting to {host} {port}")
-        reader, self.writer = await asyncio.open_connection(host, port)
-        self.connected = True
+        try:
+            reader, self.writer = await asyncio.open_connection(host, port)
+            self.connected = True
+        except ConnectionRefusedError:
+            self.loklog.warn(f"Connection refused from {host}:{port}")
+            self.output(f"[bold red]# Connection refused {host}:{port}", markup=True)
+
         self.register_options()
         self.poll_timeout = 0.001
         self.go_ahead = self.config.get_specific_option(self.name, "ga")
