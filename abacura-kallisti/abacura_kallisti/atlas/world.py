@@ -102,7 +102,7 @@ class World:
 
     def visited_room(self, area_name: str, name: str, vnum: str, terrain: str,
                      room_exits: Dict, scan_room: ScannedRoom):
-        if not self.wilderness_loaded and area_name == 'The Wilderness':
+        if area_name == 'The Wilderness':
             self.load_wilderness()
 
         # can't do much with a '?' vnum for now
@@ -255,5 +255,6 @@ class World:
         # print(len(rows), "exits loaded from db")
 
     def load_wilderness(self):
-        self.load("where area_name = 'The Wilderness'")
-        self.wilderness_loaded = True
+        if not self.wilderness_loaded:
+            self.load("where area_name = 'The Wilderness'")
+            self.wilderness_loaded = True

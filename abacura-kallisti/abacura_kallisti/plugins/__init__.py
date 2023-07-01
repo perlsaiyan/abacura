@@ -11,6 +11,7 @@ from textual.widget import Widget
 
 from abacura.plugins import Plugin
 from abacura_kallisti.atlas.world import World
+from abacura_kallisti.atlas.room import ScannedRoom
 from abacura_kallisti.plugins.msdp import TypedMSDP
 from abacura_kallisti.atlas.location import LocationList
 from abacura_kallisti.mud.player import PlayerCharacter
@@ -39,6 +40,8 @@ class LOKPlugin(Plugin):
     cq: QueueManager
     pc: PlayerCharacter
     locations: LocationList
+    room: ScannedRoom
+
 
     def __init__(self):
         super().__init__()

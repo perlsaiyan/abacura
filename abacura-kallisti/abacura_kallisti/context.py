@@ -7,6 +7,7 @@ from abacura_kallisti.plugins.queue import QueueManager
 from abacura.config import Config
 from abacura_kallisti.mud.player import PlayerCharacter
 from abacura_kallisti.atlas.location import LocationList
+from abacura_kallisti.atlas.room import ScannedRoom
 
 
 class LOKContextProvider(ContextProvider):
@@ -18,8 +19,10 @@ class LOKContextProvider(ContextProvider):
         self.cq: QueueManager = QueueManager()
         self.pc: PlayerCharacter = PlayerCharacter()
         self.locations: LocationList = LocationList(os.path.join(data_dir, "locations.toml"))
+        self.room: ScannedRoom = ScannedRoom()
 
     def get_injections(self) -> dict:
         lok_context = {"world": self.world, "msdp": self.msdp, "cq": self.cq, "pc": self.pc, 
-                       "locations": self.locations}
+                       "locations": self.locations, "room": self.room}
+
         return lok_context
