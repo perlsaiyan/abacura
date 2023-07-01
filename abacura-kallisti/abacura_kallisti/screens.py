@@ -16,8 +16,9 @@ from textual.widgets import Header, TextLog, Button
 
 from abacura_kallisti.widgets import LOKLeft, LOKRight, LOKMap
 
-from abacura.widgets import InputBar
 from abacura.config import Config
+from abacura.widgets import InputBar
+from abacura.screens import SessionScreen
 from abacura.widgets import CommsLog
 from abacura.widgets.footer import AbacuraFooter
 from abacura.widgets.debug import DebugDock
@@ -33,17 +34,12 @@ if TYPE_CHECKING:
 
 
 @inject
-class KallistiScreen(Screen):
+class KallistiScreen(SessionScreen):
     """Default Screen for sessions"""
-    config: Config
-    session: Session
     world: World
 
     BINDINGS = [
-        ("pageup", "pageup", "PageUp"),
-        ("pagedown", "pagedown", "PageDown"),
-        ("shift+end", "scroll_end", ""),
-        ("shift+home", "scroll_home", ""),
+
         ("f2", "toggle_left_sidebar", "F2"),
         ("f3", "toggle_right_sidebar", "F3"),
         ("f4", "toggle_commslog", "F4"),
@@ -52,13 +48,12 @@ class KallistiScreen(Screen):
     ]
 
     AUTO_FOCUS = "InputBar"
+    CSS_PATH="css/kallisti.css"
+    DEFAULT_CLASSES = "BKS"
 
     def __init__(self, name: str):
 
-        super().__init__()
-        self.id = f"screen-{name}"
-        self.tl = None
-        self.tlid = f"output-{name}"
+        super().__init__(name)
         self._map_overlay = False
 
     def compose(self) -> ComposeResult:
@@ -75,41 +70,20 @@ class KallistiScreen(Screen):
             
             with Container(id="mudoutputs"):
                 # TODO: wrap should be a config file field option
-                yield TextLog(highlight=False, markup=False, wrap=True,
-                              name=self.tlid, classes="mudoutput", id=self.tlid)
+                #yield TextLog(highlight=False, markup=False, wrap=True,
+                #              name=self.tlid, classes="mudoutput", id=self.tlid)
+                yield self.tl
             yield InputBar(id="playerinput")
         yield AbacuraFooter()
         if self.session.abacura.inspector:
-            from abacura.widgets import Inspector
+            from abacura.widgets._inspector import Inspector
             inspector = Inspector()
             inspector.display = False
             yield inspector
         debugger = DebugDock(id="debugger")
         debugger.display = False
         yield debugger
-
-    def on_mount(self) -> None:
-        """Screen is mounted, launch it"""
-        self.tl = self.query_one(f"#{self.tlid}", expect_type=TextLog)
-        self.session.launch_screen()
-        cl = self.query_one("#commslog")
-        self.session.director.register_object(cl)
-
-    async def on_input_bar_user_command(self, command: InputBar.UserCommand) -> None:
-        """Handle user input from InputBar"""
-        list = csv.reader(io.StringIO(command.command), delimiter=';', escapechar='\\')
-        command.stop()
-        try:
-            lines = list.__next__()
-            for line in lines:
-                self.session.player_input(line)
-
-        except StopIteration:
-            self.session.player_input("")
-
-    def action_toggle_dark(self) -> None:
-        """Dark mode"""
-        self.dark = not self.dark
+        debugger.tl.write(f"DEBUG: {self.action_pageup}")
 
     def action_toggle_left_sidebar(self) -> None:
         sidebar = self.query_one("#leftsidebar")
@@ -127,23 +101,6 @@ class KallistiScreen(Screen):
         debugger = self.query_one("#debugger")
         debugger.display = not debugger.display
 
-    def action_scroll_home(self) -> None:
-        self.tl.auto_scroll = False
-        self.tl.action_scroll_home()
-    
-    def action_scroll_end(self) -> None:
-        self.tl.auto_scroll = True
-        self.tl.action_scroll_end()
-
-    def action_pageup(self) -> None:
-        self.tl.auto_scroll = False
-        self.tl.action_page_up()
-
-    def action_pagedown(self) -> None:
-        self.tl.action_page_down()
-        if self.tl.scroll_offset.x == 0:
-            self.tl.auto_scroll = True
-    
     def action_toggle_map(self) -> None:
         def reset_mapkey():
             self._map_overlay = False
@@ -156,7 +113,6 @@ class BetterKallistiScreen(KallistiScreen):
     """
     This will eventually be the standard screen for the abacura-kallisti module
     """
-    CSS_PATH="css/kallisti.css"
     DEFAULT_CLASSES = "BKS"
 
 class MapScreen(ModalScreen[bool]):  

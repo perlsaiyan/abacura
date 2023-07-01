@@ -68,7 +68,7 @@ class Abacura(App):
 
     def action_toggle_inspector(self) -> None:
         if self.inspector:
-            from abacura import Inspector
+            from abacura.widgets._inspector import Inspector
             insp = self.query_one(Inspector)
             insp.display = not insp.display
             if not insp.display:

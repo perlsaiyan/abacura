@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
+from pathlib import Path
 import re
 import shlex
 import time
@@ -19,6 +21,7 @@ from abacura.screens import SessionScreen
 from abacura.config import Config
 from abacura.mud import BaseSession, OutputMessage
 from abacura.mud.options import GA
+from abacura.mud.logger import LOKLogger
 from abacura.mud.options.msdp import MSDP
 from abacura.plugins import command, ContextProvider
 from abacura.plugins.director import Director
@@ -78,6 +81,8 @@ class Session(BaseSession):
         self.speedwalk_re = re.compile(speedwalk_pattern)
         self.speedwalk_step_re = re.compile(speedwalk_step_pattern)
 
+        self.loklog = LOKLogger(self.name, self.config)
+
         with Context(session=self):
             self.director: Director = Director()
             self.director.register_object(self)
@@ -135,9 +140,9 @@ class Session(BaseSession):
 
     def input_splitter(self, line) -> List[str]:
         buf = ""
-        shl = shlex.shlex(line, punctuation_chars='-', posix=False)
+        shl = shlex.shlex(line, punctuation_chars='', posix=False)
         shl.commenters = ""
-        #shl = list(shlex.shlex(line, punctuation_chars="-"))
+        shl.whitespace_split = True
         
         #for token in shl:
         while 1:
@@ -233,6 +238,7 @@ class Session(BaseSession):
                 self.tl.write(Text.from_ansi(message.message))
             else:
                 self.tl.write(message.message)
+            self.loklog.info(message.message)
 
             # TODO: Add location / vnum and any other context to the log
             if self.ring_buffer and loggable:
@@ -251,18 +257,26 @@ class Session(BaseSession):
             await asyncio.sleep(0.1)
 
         log.info(f"Session {self.name} connecting to {host} {port}")
-        reader, self.writer = await asyncio.open_connection(host, port)
-        self.connected = True
+        try:
+            reader, self.writer = await asyncio.open_connection(host, port)
+            self.connected = True
+        except ConnectionRefusedError:
+            self.loklog.warn(f"Connection refused from {host}:{port}")
+            self.output(f"[bold red]# Connection refused {host}:{port}", markup=True)
+
         self.register_options()
+        self.poll_timeout = 0.001
+        self.go_ahead = self.config.get_specific_option(self.name, "ga")
+
         while self.connected is True:
 
             # We read one character at a time so that we can find IAC sequences
             # We use wait_for() so we can work with muds that don't use GA
             try:
-                if self.config.get_specific_option(self.name, "ga"):
+                if self.go_ahead:
                     data = await reader.read(1)
                 else:
-                    data = await asyncio.wait_for(reader.read(1), 0.05)
+                    data = await asyncio.wait_for(reader.read(1), self.poll_timeout)
             except BrokenPipeError:
                 self.output("[bold red]# Lost connection to server.", markup=True)
                 self.connected = False
@@ -275,6 +289,11 @@ class Session(BaseSession):
                 if len(self.outb) > 0:
                     self.output(self.outb.decode("UTF-8", errors="ignore"), ansi=True)
                     self.outb = b''
+                    self.poll_timeout = 0.001
+                else:
+                    if self.poll_timeout < 0.05:
+                        self.poll_timeout *= 2
+                        log.debug(f"timeout {self.poll_timeout}")
                 continue
 
             # Empty string means we lost our connection
