@@ -280,7 +280,7 @@ class Navigator:
             # if self.check_specials:
             # exits += self.get_special_exits(current_room.vnum)
 
-            for room_exit in chain(self.world.get_exits(current_room.vnum).values(),
+            for room_exit in chain(current_room.exits.values(),
                                    self._get_special_exits(current_room.vnum)):
 
                 exit_cost = self._get_exit_cost(room_exit)

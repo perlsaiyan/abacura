@@ -17,6 +17,7 @@ from textual import log
 
 item_re = re.compile(r'(\x1b\[0m)?\x1b\[0;37m[^\x1b ]')
 
+
 class RoomWatcher(LOKPlugin):
 
     def __init__(self):
@@ -40,6 +41,8 @@ class RoomWatcher(LOKPlugin):
                       'fireshield', 'acidshield', 'iceshield', 'shockshield', 'blur', 'wraith', 'sanc']
         self.flag_checks = [" %s " % f for f in self.flags]
         self.flag_checks += [" %s." % f for f in self.flags]
+        # TODO: Move this into config
+        self.debug = False
 
     @action("^Not here!")
     def no_magic(self):
@@ -236,11 +239,10 @@ class RoomWatcher(LOKPlugin):
         return []
 
     def show_debug(self):
-        # TODO: hide this when finished
         text = Text()
         text.append(f"ROOM_WATCHER ", style="purple")
         text.append("[")
-        text.append(self.scanned_room.room_vnum, style="bright_cyan")
+        text.append(self.scanned_room.vnum, style="bright_cyan")
         text.append("]")
         text.append(f" {self.scanned_room.room_header}\n\n")
         text.append(f"     players: {self.scanned_room.room_players}\n", style="bright_yellow")
@@ -266,17 +268,17 @@ class RoomWatcher(LOKPlugin):
         # TODO: Make the latest available scanned room available somewhere
         # self.msdp.room = self.scanned_room
 
-        # TODO on next pass, make this a toggle
-        #self.show_debug()
+        if self.debug:
+            self.show_debug()
 
         self.world.visited_room(area_name=self.msdp.area_name, name=self.msdp.room_name, vnum=self.msdp.room_vnum,
                                 terrain=self.msdp.room_terrain, room_exits=self.msdp.room_exits,
                                 scan_room=self.scanned_room)
 
-        self.dispatcher("room", RoomMessage(self.scanned_room.room_vnum, self.scanned_room))
+        self.dispatcher("room", RoomMessage(self.scanned_room.vnum, self.scanned_room))
 
-        if self.scanned_room.room_vnum in self.world.rooms:
-            room = self.world.rooms[self.scanned_room.room_vnum]
+        if self.scanned_room.vnum in self.world.rooms:
+            room = self.world.rooms[self.scanned_room.vnum]
             missing_msdp_exits = any([d for d in self.msdp.room_exits if d not in room.exits])
             extra_room_exits = any([d for d in room.exits if d not in self.msdp.room_exits])
             if missing_msdp_exits or extra_room_exits:
@@ -299,7 +301,7 @@ class RoomWatcher(LOKPlugin):
                 matched = self.match_room(message.message, message.stripped)
 
             if matched:
-                self.scanned_room = ScannedRoom(room_header=message.stripped, room_vnum=self.msdp.room_vnum)
+                self.scanned_room = ScannedRoom(room_header=message.stripped, vnum=self.msdp.room_vnum)
 
             return
 

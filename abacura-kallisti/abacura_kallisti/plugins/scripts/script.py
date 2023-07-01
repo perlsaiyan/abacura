@@ -1,10 +1,14 @@
-import uuid
 import ast
+import uuid
+
+from rich.panel import Panel
+from rich.pretty import Pretty
 
 from abacura.plugins import command
 from abacura_kallisti.plugins import LOKPlugin
-from rich.pretty import Pretty
-from rich.panel import Panel
+from .ScriptRunner import ScriptRunner
+from typing import Optional
+from textual.worker import Worker, WorkerState
 
 
 class Script(LOKPlugin):
@@ -13,6 +17,9 @@ class Script(LOKPlugin):
     def __init__(self):
         super().__init__()
         self.exec_locals = {}
+        self.fn = None
+        self.runner: Optional[ScriptRunner] = None
+        self.worker: Optional[Worker] = None
 
     def add_response(self, pattern: str, message: str, flags: int = 0):
         name = str(uuid.uuid4())
@@ -45,18 +52,30 @@ class Script(LOKPlugin):
 
             self.session.output(f"# Running script {filename}", actionable=False)
 
-            source = open(filename, "r").read()
-            ast.parse(source)
-            result = exec(source, exec_globals, self.exec_locals)
+            source_code = open(filename, "r").read()
+            ast.parse(source_code)
 
-            if result is not None:
-                pretty = Pretty(result, max_length=20, max_depth=4)
-                panel = Panel(pretty)
-                self.session.output(panel)
+            # result = exec(source, exec_globals, self.exec_locals)
+            # self.fn = self.exec_locals['_fn']
+            self.runner = ScriptRunner(source_code, exec_globals, self.exec_locals)
+            self.worker = self.session.abacura.run_worker(self.runner.run, group=self.session.name, name="fn test", exit_on_error=False)
+            self.add_ticker(0.1, self.check_runner, repeats=-1, name="check_runner")
+            #
+            # if result is not None:
+            #     pretty = Pretty(result, max_length=20, max_depth=4)
+            #     panel = Panel(pretty)
+            #     self.session.output(panel)
 
         except Exception as ex:
             self.session.show_exception(f"[bold red] # ERROR: {repr(ex)}", ex)
             return False
+
+    def check_runner(self):
+        # self.output("check_runner")
+        if self.worker and self.worker.state not in (WorkerState.RUNNING, WorkerState.PENDING):
+            result = self.worker._error or self.worker.result
+            self.output(f"Worker {self.worker.name}: {self.worker.state} - {result}")
+            self.remove_ticker("check_runner")
 
     @command(name="#")
     def exec_python(self, text: str, reset_locals: bool = False):

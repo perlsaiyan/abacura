@@ -1,6 +1,7 @@
 from abacura.plugins import command
 from abacura_kallisti.plugins import LOKPlugin
 from abacura_kallisti.atlas.world import Room, Exit
+from abacura_kallisti.atlas.wilderness import WildernessGrid
 from rich.table import Table
 from rich.panel import Panel
 from rich.text import Text
@@ -9,9 +10,13 @@ from rich.console import Group
 
 class WorldPlugin(LOKPlugin):
 
+    def __init__(self):
+        super().__init__()
+        self.wild_grid = WildernessGrid()
+
     def get_table_of_exits(self, vnum: str):
         exits = []
-        for e in self.world.get_exits(vnum).values():
+        for e in self.world.rooms[vnum].exits.values():
             known = e.to_vnum in self.world.rooms
             visited = False
             terrain = ""

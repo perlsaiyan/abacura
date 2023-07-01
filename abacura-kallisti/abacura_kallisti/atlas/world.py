@@ -1,6 +1,6 @@
 import re
 import sqlite3
-from dataclasses import fields, astuple
+from dataclasses import fields
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict
@@ -32,7 +32,6 @@ class World:
         self.wilderness_loaded: bool = False
 
         # temporary portals do not get persisted
-        self.temporary_portals: Dict[str, Dict[str, Exit]] = {}
         self.grid = WildernessGrid()
         self.db_conn = sqlite3.connect(db_path)
         self.db_conn.execute("PRAGMA journal_mode=WAL")
@@ -42,29 +41,6 @@ class World:
         start_time = datetime.utcnow()
         self.load()
         self.load_time = (datetime.utcnow() - start_time).total_seconds()
-
-    def get_exits(self, vnum: str, exclude_temporary: bool = False) -> Dict[str, Exit]:
-        if vnum not in self.rooms:
-            return {}
-
-        if vnum in ['?', '']: 
-            return {}
-
-        exits = self.rooms[vnum].exits.copy()
-        if vnum in self.temporary_portals and not exclude_temporary:
-            exits.update(self.temporary_portals[vnum])
-
-        v = int(vnum)
-        if v < 70000:
-            return exits
-
-        wilderness_exits = {}
-        for direction, to_vnum in self.grid.get_exits(vnum).items():
-            e = Exit(direction=direction, from_vnum=vnum, to_vnum=to_vnum)
-            wilderness_exits[direction] = e
- 
-        wilderness_exits.update(exits)
-        return wilderness_exits
 
     def del_exit(self, vnum: str, direction: str):
         if vnum not in self.rooms:
@@ -112,14 +88,6 @@ class World:
 
         self._save_room(vnum)
 
-    def add_temp_exit(self, vnum: str, name: str, method: str, to_vnum: str):
-        if vnum not in self.temporary_portals:
-            self.temporary_portals[vnum] = {}
-
-        temp_portals = self.temporary_portals[vnum]
-        if name not in temp_portals:
-            temp_portals[name] = Exit(name, vnum, to_vnum, name, method)
-
     def search(self, word: str) -> List[Room]:
         word = word.lower()
         result = []
@@ -141,11 +109,12 @@ class World:
         if vnum == '?':
             return
 
-        self.get_tracking(scan_room.room_vnum).last_visited = datetime.utcnow()
+        self.get_tracking(scan_room.vnum).last_visited = datetime.utcnow()
 
         if vnum in self.rooms:
             existing_room = self.rooms[vnum]
-            existing_exits = self.get_exits(vnum, exclude_temporary=True)
+            existing_exits = {k: v for k, v in existing_room.exits.items() if not v.temporary}
+
         else:
             existing_room = Room()
             existing_exits = {}
@@ -188,7 +157,7 @@ class World:
 
         # TODO: Should we really be creating a new room, or just updating the existing one with new values
         new_room = Room(area_name=area_name, vnum=vnum, name=name, terrain_name=terrain,
-                        exits=new_exits, bank=bank,
+                        _exits=new_exits, bank=bank,
                         regen_hp=regen_hp, regen_mp=regen_mp, regen_sp=regen_sp, wild_magic=wild_magic,
                         silent=existing_room.silent, no_magic=existing_room.no_magic or no_magic,
                         no_recall=existing_room.no_recall or no_recall, set_recall=set_recall,
@@ -229,7 +198,7 @@ class World:
             return
 
         room = self.rooms[vnum]
-        room_fields = [v for v in astuple(room) if type(v) != dict]
+        room_fields = [getattr(room, pf) for pf in room.persistent_fields()]
         
         room_binds = ",".join("?" * len(room_fields))
 
@@ -238,7 +207,7 @@ class World:
 
         if vnum in self.tracking:
             trk = self.tracking[vnum]
-            trk_fields = astuple(trk)
+            trk_fields = [getattr(trk, pf) for pf in trk.persistent_fields()]
             trk_binds = ",".join("?" * len(trk_fields))
 
             self.db_conn.execute(f"INSERT OR REPLACE INTO room_tracking VALUES({trk_binds})", trk_fields)
@@ -246,8 +215,10 @@ class World:
         self.db_conn.execute(f"DELETE FROM exits WHERE from_vnum = ?", (vnum,))
 
         for room_exit in room.exits.values():
-            exit_fields = astuple(room_exit)
-            exit_binds = ",".join("?" * len(exit_fields))
+            if room_exit.temporary:
+                continue
+            exit_fields = [getattr(room_exit, pf) for pf in room_exit.persistent_fields()]
+            exit_binds = ','.join('?' * len(exit_fields))
             self.db_conn.execute(f"INSERT INTO exits VALUES({exit_binds})", exit_fields)
 
         self.db_conn.commit()
