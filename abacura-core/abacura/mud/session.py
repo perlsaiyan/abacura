@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
+from pathlib import Path
 import re
 import shlex
 import time
@@ -19,6 +21,7 @@ from abacura.screens import SessionScreen
 from abacura.config import Config
 from abacura.mud import BaseSession, OutputMessage
 from abacura.mud.options import GA
+from abacura.mud.logger import LOKLogger
 from abacura.mud.options.msdp import MSDP
 from abacura.plugins import command, ContextProvider
 from abacura.plugins.director import Director
@@ -77,6 +80,8 @@ class Session(BaseSession):
 
         self.speedwalk_re = re.compile(speedwalk_pattern)
         self.speedwalk_step_re = re.compile(speedwalk_step_pattern)
+
+        self.loklog = LOKLogger(self.name, self.config)
 
         with Context(session=self):
             self.director: Director = Director()
@@ -233,6 +238,7 @@ class Session(BaseSession):
                 self.tl.write(Text.from_ansi(message.message))
             else:
                 self.tl.write(message.message)
+            self.loklog.info(message.message + '\033[0m')
 
             # TODO: Add location / vnum and any other context to the log
             if self.ring_buffer and loggable:
