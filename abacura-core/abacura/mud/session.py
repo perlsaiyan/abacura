@@ -238,7 +238,7 @@ class Session(BaseSession):
                 self.tl.write(Text.from_ansi(message.message))
             else:
                 self.tl.write(message.message)
-            self.loklog.info(message.message + '\033[0m')
+            self.loklog.info(message.message)
 
             # TODO: Add location / vnum and any other context to the log
             if self.ring_buffer and loggable:
