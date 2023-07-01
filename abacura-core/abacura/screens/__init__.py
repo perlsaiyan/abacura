@@ -36,6 +36,8 @@ class SessionScreen(Screen):
     BINDINGS = [
         ("pageup", "pageup", "PageUp"),
         ("pagedown", "pagedown", "PageDown"),
+        ("shift+end", "scroll_end", ""),
+        ("shift+home", "scroll_home", ""),
         ("f2", "toggle_sidebar", "F2"),
         ("f3", "toggle_commslog", "F3")
     ]
@@ -43,8 +45,6 @@ class SessionScreen(Screen):
     AUTO_FOCUS = "InputBar"
 
     def __init__(self, name: str):
-        # TODO The 0.28.0 release of textual let us assign CSS_PATH at the screen level
-        self.CSS_PATH = self.config.get_specific_option(self.session.name, "css_path")
         super().__init__()
 
         self.id = f"screen-{name}"
@@ -67,7 +67,7 @@ class SessionScreen(Screen):
             yield InputBar(id="playerinput")
         yield AbacuraFooter()
         if self.session.abacura.inspector:
-            from abacura import Inspector
+            from abacura.widgets._inspector import Inspector
             inspector = Inspector()
             inspector.display = False
             yield inspector
@@ -109,3 +109,11 @@ class SessionScreen(Screen):
         self.tl.action_page_down()
         if self.tl.scroll_offset.x == 0:
             self.tl.auto_scroll = True
+
+    def action_scroll_home(self) -> None:
+        self.tl.auto_scroll = False
+        self.tl.action_scroll_home()
+
+    def action_scroll_end(self) -> None:
+        self.tl.auto_scroll = True
+        self.tl.action_scroll_end()
