@@ -128,7 +128,7 @@ class MapScreen(ModalScreen[bool]):
     def compose(self) -> ComposeResult:
         
         bigmap = LOKMap(id="bigmap", resizer=False)
-        bigmap.START_ROOM = str(self.session.core_msdp.values["ROOM_VNUM"])
+        bigmap.START_ROOM = str(self.session.core_msdp.values.get("ROOM_VNUM", ""))
         yield Grid(
                 bigmap, 
                 id="MapGrid"
