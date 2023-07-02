@@ -1,4 +1,4 @@
-from abacura.utils.meval import meval
+# from abacura.utils.meval import meval
 from datetime import datetime
 import asyncio
 
@@ -28,4 +28,5 @@ class ScriptRunner:
             await asyncio.sleep(tick)
 
     async def run(self):
-        return await meval(self.code, self.exec_globals, self.exec_locals)
+        pass
+        # return await meval(self.code, self.exec_globals, self.exec_locals)
