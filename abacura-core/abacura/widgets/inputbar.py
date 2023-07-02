@@ -7,8 +7,8 @@ import io
 from typing import TYPE_CHECKING, Coroutine, Any
 
 from textual import log, on
+from textual.binding import Binding
 from textual.message import Message
-
 from textual.suggester import Suggester
 from textual.widgets import Input
 
@@ -21,6 +21,7 @@ class InputBar(Input):
         ("up", "history_scrollback", None),
         ("down", "history_scrollforward", None),
         ("tab", "cursor_right", None),
+        Binding("ctrl+c", "clear", None),
     ]
 
     """player input line"""
@@ -78,6 +79,9 @@ class InputBar(Input):
         self.history_ptr = None
         self.post_message(self.UserCommand(message.value))
         self.value = ""
+    
+    def action_clear(self) -> None:
+        self.value=""
 
 class AbacuraSuggester(Suggester):
     def __init__(self, session):
