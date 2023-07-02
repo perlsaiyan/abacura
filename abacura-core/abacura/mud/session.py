@@ -8,7 +8,7 @@ import re
 import shlex
 import time
 from importlib import import_module
-from typing import TYPE_CHECKING, Optional, List
+from typing import TYPE_CHECKING, Optional, List, Any, AnyStr, Generator
 
 from rich.text import Text
 from serum import inject, Context
@@ -138,28 +138,24 @@ class Session(BaseSession):
         # TODO swap to context?
         self.options[self.core_msdp.code] = self.core_msdp
 
-    def input_splitter(self, line) -> List[str]:
-        buf = ""
-        shl = shlex.shlex(line, punctuation_chars='', posix=False)
-        shl.commenters = ""
-        shl.whitespace_split = True
-        
-        #for token in shl:
-        while 1:
-            token = shl.get_token()
-            if not token:
-                break
+    def input_splitter(self, line) -> Generator[str, Any, Any]:
+        buf: str = ""
+
+        while line:
+            token: str = line[0]
+            line = line[1:]
+
+            if token == '\\':
+                if len(line) > 0:
+                    buf += str(line[0])
+                    line = line[1:]
             elif token == ';':
                 yield buf
-                buf = ''
-            elif token == '--':
-                buf += token
-            elif token == '#':
-                buf += token
+                buf = ""
             else:
-                buf += token + " "
+                buf += token
 
-        if len(buf):
+        if len(buf) > 0:
             yield buf
 
     def player_input(self, line) -> None:
