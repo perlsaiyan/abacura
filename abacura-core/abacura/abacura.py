@@ -32,7 +32,7 @@ class Abacura(App):
     BINDINGS = [
         Binding("ctrl+d", "toggle_dark", "Toggle dark mode"),
         Binding("ctrl+q", "quit", "Quit", priority=True),
-        Binding("ctrl+c", "toggle_dark", "Toggle Dark Mode"),
+        Binding("ctrl+c", "null", "Toggle Dark Mode"),
         Binding("f3", "reload_config", "f3"),
         Binding("f12", "toggle_inspector", ("Toggle Inspector")),
     ]
