@@ -30,14 +30,16 @@ class Abacura(App):
     SCREENS = {}
     START_SESSION: Optional[str] = None
     BINDINGS = [
-        ("ctrl+d", "toggle_dark", "Toggle dark mode"),
-        ("ctrl+q", "quit", "Quit"),
-        ("f3", "reload_config", "f3"),
+        Binding("ctrl+d", "toggle_dark", "Toggle dark mode"),
+        Binding("ctrl+q", "quit", "Quit", priority=True),
+        Binding("ctrl+c", "toggle_dark", "Toggle Dark Mode"),
+        Binding("f3", "reload_config", "f3"),
         Binding("f12", "toggle_inspector", ("Toggle Inspector")),
-                ]
+    ]
 
     def __init__(self):
         super().__init__()
+        # App.BINDINGS = []
         self.sessions: OrderedDict[str, Session] = OrderedDict()
         self.session = "null"
 
