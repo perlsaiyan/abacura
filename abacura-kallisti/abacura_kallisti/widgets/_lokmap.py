@@ -88,7 +88,8 @@ class LOKMapBlock:
                 
             if Matrix[here.y][here.x] == blank:
                 if room.vnum == self.start_room:
-                    Matrix[here.y][here.x] = Color("me",ColorType(3),None, ColorTriplet(255,255,255))
+                    me_box = self.get_terrain2_icon(room.terrain_name)
+                    Matrix[here.y][here.x] = Color("me",ColorType(3),None, me_box.triplet)
                 else:
                     Matrix[here.y][here.x] = self.get_terrain2_icon(room.terrain_name)
 
@@ -113,7 +114,7 @@ class LOKMapBlock:
         for row in Matrix:
             for color, n in [(color, len(list(g))) for color, g in groupby(row)]:
                 if color.name == "me":
-                    yield Segment("@", Style(color="red"))
+                    yield Segment("@", Style(color="red", bgcolor=color))
                 else:
                     yield Segment(" " * n, Style(bgcolor=color))
             yield Segment("\n")
