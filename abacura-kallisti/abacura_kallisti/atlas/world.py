@@ -184,6 +184,12 @@ class World:
         sql = f"create table if not exists room_tracking({','.join(field_names)}, primary key ({'vnum'}))"
         self.db_conn.execute(sql)
 
+        sql = "update rooms set terrain = 'Ocean' where vnum in ('87546', '87897', '88248', '88599', '88950', '89301')"
+        self.db_conn.execute(sql)
+
+        self.db_conn.commit()
+
+
     def delete_room(self, vnum: str):
         if vnum in self.rooms:
             del self.rooms[vnum]

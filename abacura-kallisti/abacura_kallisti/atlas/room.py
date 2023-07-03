@@ -69,11 +69,13 @@ class Room:
     def persistent_fields(cls) -> List[str]:
         return [f.name for f in fields(cls) if not f.name.startswith("_")]
 
-    def get_wilderness_temp_exits(self) -> Dict[str, Exit]:
+    @staticmethod
+    @lru_cache(maxsize=100000)
+    def get_wilderness_temp_exits(vnum: str) -> Dict[str, Exit]:
         wilderness_exits = {}
         grid = WildernessGrid()
-        for direction, to_vnum in grid.get_exits(self.vnum).items():
-            e = Exit(direction=direction, from_vnum=self.vnum, to_vnum=to_vnum, _temporary=True)
+        for direction, to_vnum in grid.get_exits(vnum).items():
+            e = Exit(direction=direction, from_vnum=vnum, to_vnum=to_vnum, _temporary=True)
             wilderness_exits[direction] = e
 
         return wilderness_exits
@@ -89,7 +91,7 @@ class Room:
             return self._exits
 
         result = self._exits.copy()
-        result.update(self.get_wilderness_temp_exits())
+        result.update(self.get_wilderness_temp_exits(self.vnum))
         return result
 
 
