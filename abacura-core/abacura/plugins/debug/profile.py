@@ -3,6 +3,7 @@ import importlib
 import io
 
 from abacura.plugins import Plugin, command
+from rich.table import Table
 
 
 class Profiler(Plugin):
@@ -51,14 +52,17 @@ class Profiler(Plugin):
         profiler.profile_off()
         stats_dict = profiler.get_profile_stats()
 
-        stats = []
-        for key, value in stats_dict.items():
-            fn, filename, linenum = key
-            calls, realtime, cputime = value
-            stats.append((fn, filename, linenum, calls, realtime, cputime))
-
-        for pfn in sorted(stats, key=lambda x: x[5], reverse=True)[:num_functions]:
-            self.output("%60s %6d %7d %6.3f" % (pfn[0], pfn[2], pfn[3], pfn[5]))
+        tbl = Table()
+        tbl.add_column("Function")
+        tbl.add_column("Calls")
+        tbl.add_column("Elapsed")
+        tbl.add_column("CPU")
+        tbl.add_column("Self Time")
+        for pfn in sorted(stats_dict.values(), key=lambda x: x.self_time, reverse=True)[:num_functions]:
+            tbl.add_row(pfn.function.get_location(), str(pfn.call_count),
+                        format(pfn.elapsed_time, "6.3f"), format(pfn.cpu_time, "6.3f"),
+                        format(pfn.self_time, '6.3f'))
+        self.output(tbl)
 
     @command()
     def profile(self, num_functions: int = 40, disable: bool = False, callers: bool = False, _sort: str = 'time'):

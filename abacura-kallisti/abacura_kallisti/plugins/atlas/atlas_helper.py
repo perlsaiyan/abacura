@@ -21,7 +21,7 @@ class WorldPlugin(LOKPlugin):
             visited = False
             terrain = ""
             if known:
-                visited = self.world.get_tracking(e.to_vnum).last_visited is not None
+                visited = self.world.get_tracking(e.to_vnum).last_visited not in ['', None]
                 terrain = self.world.rooms[e.to_vnum].terrain_name
 
             exits.append((e.direction, e.to_vnum, e.door, e.portal, e.portal_method,
@@ -171,7 +171,7 @@ class WorldPlugin(LOKPlugin):
             e: Exit
             for e in r.exits.values():
                 known: bool = e.to_vnum in self.world.rooms
-                visited = known and self.world.get_tracking(e.to_vnum).last_visited is not None
+                visited = known and self.world.get_tracking(e.to_vnum).last_visited
 
                 table.add_row(r.vnum, r.name, e.direction, e.to_vnum, str(bool(e.closes)), str(bool(e.locks)),
                               str(known), str(visited))
@@ -179,7 +179,7 @@ class WorldPlugin(LOKPlugin):
         # s = tabulate(table, headers=["Room", "Name", "Exit", "To", "Closes", "Locks", "Known", "Visited"])
         self.session.output(table, actionable=False)
 
-        num_visited = len([r for r in rooms if self.world.get_tracking(r.vnum).last_visited is not None])
+        num_visited = len([r for r in rooms if self.world.get_tracking(r.vnum).last_visited])
         num_rooms = len(rooms)
         self.session.output(f"\nArea:{area}\n\n  Known Rooms: {num_rooms:5d}\nVisited Rooms: {num_visited:5d}",
                             actionable=False)

@@ -138,7 +138,7 @@ class WildernessGrid:
     # assert(get_vnum('87523', -1, 0)=='')
     # assert(get_vnum('87523', -2, 0)=='87522')
     # assert(get_vnum('87523', 0, -1)=='87173')
-    @lru_cache(100)
+    @lru_cache(4000)
     def get_vnum(self, vnum: str, delta_x: int, delta_y: int) -> str:
         if delta_x == 0 and delta_y == 0:
             return vnum
@@ -195,6 +195,7 @@ class WildernessGrid:
         distance = abs(from_x - to_x) + abs(from_y - to_y)
         return distance
 
+    @lru_cache(5000)
     def get_exits(self, vnum: str) -> {}:
         remove_exits = {'87172': 'south', '87522': 'east',
                         '87523': 'west', '87873': 'north'}
@@ -204,16 +205,26 @@ class WildernessGrid:
         dirs = []
 
         if x > 0:
-            dirs.append(('west', -1))
-        if x < self.WIDTH:
-            dirs.append(('east', 1))
+            dirs.append(('west', self.get_vnum_at_point(x - 1, y)))
+        if x < self.WIDTH - 1:  #  use - 1 to prevent walking off right side on hole row
+            dirs.append(('east', self.get_vnum_at_point(x + 1, y)))
         if y > 0:
-            dirs.append(('north', -self.WIDTH))
+            dirs.append(('north', self.get_vnum_at_point(x, y - 1)))
         if y < self.HEIGHT:
-            dirs.append(('south', self.WIDTH))
+            dirs.append(('south', self.get_vnum_at_point(x, y + 1)))
 
-        exits = {d: str(v + delta) for d, delta in dirs if v + delta >= self.UPPER_LEFT}
+        exits = {}
+        for direction, new_vnum in dirs:
+            # check for the hole
+            if new_vnum == '':
+                continue
 
+            # check that this exit is in the same col / row
+            new_x, new_y = self.get_point(new_vnum)
+            if abs(x - new_x) < 3 and abs(y - new_y) < 3:
+                exits[direction] = new_vnum
+
+        # remove the exits that point at the hole
         if vnum in remove_exits:
             exits = {k: v for k, v in exits.items() if k not in remove_exits[vnum]}
 

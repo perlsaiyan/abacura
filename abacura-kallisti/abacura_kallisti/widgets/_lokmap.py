@@ -16,6 +16,9 @@ from textual.events import Resize
 from textual.containers import Container, Center, Middle
 from textual.widget import Widget
 from textual.widgets import Static
+from dataclasses import dataclass
+
+from functools import lru_cache
 
 from abacura.plugins.events import event
 from abacura.mud.options.msdp import MSDPMessage
@@ -33,30 +36,31 @@ class LOKMapBlock:
         'Forest': Color("Forest", ColorType(3), None, ColorTriplet(28,93,25)),
         'Path': Color("Path", ColorType(3), None, ColorTriplet(92,49,20)),
         'Hills': Color("Hills", ColorType(3), None, ColorTriplet(121,163,88)),
-        'Mountains': Color("Mountains", ColorType(3), None, ColorTriplet(181,223,88)),        
+        'Mountains': Color("Mountains", ColorType(3), None, ColorTriplet(59,38,4)),
         'Water': Color("Water", ColorType(3), None, ColorTriplet(52,124,186)),
         'Deep': Color("Deep", ColorType(3), None, ColorTriplet(52, 124,240)),
         'Air': Color("Air", ColorType(3), None, ColorTriplet(177, 177,177)),
         'Underwater': Color("Underwater", ColorType(3), None, ColorTriplet(22,94,156)),              
         'Jungle': Color("Jungle", ColorType(3), None, ColorTriplet(28,143,25)),
         'Desert': Color("Desert", ColorType(3), None, ColorTriplet(243,203,147)),
-        'Arctic': Color("Arctic", ColorType(3), None, ColorTriplet(200,200,200)),        
+        'Arctic': Color("Arctic", ColorType(3), None, ColorTriplet(200,200,214)),
         'Underground': Color("Underground", ColorType(3), None, ColorTriplet(55,55,55)),
         'Swamp': Color("Swamp", ColorType(3), None, ColorTriplet(55,85,85)),        
         'Ocean': Color("Ocean", ColorType(3), None, ColorTriplet(52, 104,250)),
         'Bridge': Color("Bridge", ColorType(3), None, ColorTriplet(122,79,50)),
-        'MountainPeak': Color("MountainPeak", ColorType(3), None, ColorTriplet(181,223,88)),
+        'Peak': Color("Peak", ColorType(3), None, ColorTriplet(201,195,185)),
         'Pasture': Color("Pasture", ColorType(3), None, ColorTriplet(91,163,88)),
         'Fence': Color("Fence", ColorType(3), None, ColorTriplet(255,255,255)),
         'Portal': Color("Portal", ColorType(3), None, ColorTriplet(255,255,255)),
         'ForestJungle': Color("ForestJungle", ColorType(3), None, ColorTriplet(28,93,25)),
-        'Beach': Color("Beach", ColorType(3), None, ColorTriplet(238,207,147)),
+        'Beach': Color("Beach", ColorType(3), None, ColorTriplet(238,223,147)),
         'Astral': Color("Astral", ColorType(3), None, ColorTriplet(177, 177,177)),
         'Planar': Color("Planar", ColorType(3), None, ColorTriplet(177, 177,177)),
-        'Lava': Color("Lava", ColorType(3), None, ColorTriplet(255,255,255)),
+        'Lava': Color("Lava", ColorType(3), None, ColorTriplet(255,0,0)),
         'Nothingness': Color("Nothingness", ColorType(3), None, ColorTriplet(255,255,255)),
         'Stairs': Color("Stairs", ColorType(3), None, ColorTriplet(255,255,255)),
         'Ice': Color("Ice", ColorType(3), None, ColorTriplet(255,255,255)),
+        'Snow': Color("Snow", ColorType(3), None, ColorTriplet(230,230,250)),
         'Shallow': Color("Shallow", ColorType(3), None, ColorTriplet(90,164,228)),
         'Tundra': Color("Tundra", ColorType(3), None, ColorTriplet(220,220,220)),
     }
@@ -67,6 +71,7 @@ class LOKMapBlock:
         self.width = width
         self.height = height
 
+    @lru_cache(maxsize=1000)
     def get_terrain2_icon(self, terrain: str) -> Color:
         """Return terrain color/icon"""
         return self.terrains.get(terrain.split()[0], Color("", ColorType(3), None, ColorTriplet(255,255,255)))
@@ -128,20 +133,26 @@ class LOKMapBlock:
                         #log(f"appending {room_exits['west']}")
                         BFS.append(MapPoint(room_exits["west"].to_vnum, here.x-1, here.y))        
 
+        @lru_cache(1000)
+        def get_style(bgcolor):
+            return Style(bgcolor=bgcolor)
+
         for row in Matrix:
             for color, n in [(color, len(list(g))) for color, g in groupby(row)]:
                 if color.name == "me":
                     yield Segment("@", Style(color="red", bgcolor=color))
                 else:
-                    yield Segment(" " * n, Style(bgcolor=color))
+                    yield Segment(" " * n, get_style(bgcolor=color))
             yield Segment("\n")
 
-class MapPoint():
+
+@dataclass(slots=True, frozen=True)
+class MapPoint:
     """Class to hold a room vnum and its location in our rooms matrix"""
-    def __init__(self, room: str, x: int, y: int):
-        self.room = room
-        self.x = x
-        self.y = y
+    room: str
+    x: int
+    y: int
+
 
 class LOKMap(Container):
     """Main map widget, used in sidebars and bigmap screen"""
