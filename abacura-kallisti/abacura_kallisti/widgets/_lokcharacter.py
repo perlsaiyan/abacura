@@ -78,7 +78,7 @@ class LOKCharacterStatic(Static):
         table2.padding = 0
         
         table2.add_row("[cyan]Heros",f"[white]{self.c_heros}","[cyan]TNL",f"[white]{self.c_heros_tnl}")
-        table2.add_row("[cyan]XP", f"[white]{human_format(self.c_xp)}", "[cyan]XPTNL", f"[white]{human_format(self.c_xp_tnl)}")
+        table2.add_row("[cyan]XP", f"[white]{human_format(self.c_xp)}", "[cyan]TNL", f"[white]{human_format(self.c_xp_tnl)}")
         table2.add_row("[cyan]Gold", f"[white]{human_format(self.c_gold)}", "[cyan]Bank", f"[white]{human_format(self.c_gold_bank)}")
         table.add_row(table2)
 
