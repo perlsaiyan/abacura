@@ -3,11 +3,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from textual import log
-from textual.app import ComposeResult
+from textual.app import ComposeResult, RenderResult
 from textual.reactive import reactive
 from textual.widgets import Static
 
+import rich.box as box
 from rich.pretty import Pretty
+from rich.table import Table
 
 from abacura.mud.options.msdp import MSDPMessage
 from abacura.plugins.events import event
@@ -17,6 +19,16 @@ if TYPE_CHECKING:
     from abacura_kallisti.screens import BetterKallistiScreen
     from textual.screen import Screen
     from typing import Self
+
+def human_format(num):
+    if isinstance(num, str):
+        num = int(num)
+    num = float('{:.3g}'.format(num))
+    magnitude = 0
+    while abs(num) >= 1000:
+        magnitude += 1
+        num /= 1000.0
+    return '{}{}'.format('{:f}'.format(num).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude])
 
 class LOKCharacter(Static):
     """Tintin-helper style character information block"""
@@ -51,14 +63,26 @@ class LOKCharacterStatic(Static):
         if self.c_name is None:
             self.display = False
 
-    def render(self) -> str:
-        buf = f"[cyan]{self.c_name}, {self.c_race} {self.c_class} [{self.c_level}]\n"
-        buf += f"\n[cyan]S:[white]{self.c_str} [cyan]I:[white]{self.c_int} [cyan]W:[white]{self.c_wis} [cyan]D:[white]{self.c_dex} [cyan]C:[white]{self.c_con} [cyan]L:[white]{self.c_luk}\n"
-        buf += f"\n[cyan]Heros: [white]{self.c_heros} [cyan]TNL: [white]{self.c_heros_tnl}"
-        buf += f"\n[cyan]XP: [white]{self.c_xp} [cyan]XPTNL: [white]{self.c_xp_tnl}"
-        buf += f"\n[cyan] Gold: [white]{self.c_gold} [cyan]Bank: [white]{self.c_gold_bank}"
+    def render(self) -> RenderResult:
+        table = Table(show_header=False,show_edge=False,show_lines=False, box=box.SIMPLE)
+        table.padding = 0
+        table2 = Table(show_header=False,show_edge=False,show_lines=False, box=box.SIMPLE, expand=True)
+        table.add_column(justify="left")
+        table.add_row(f"[cyan]{self.c_name}, {self.c_race} {self.c_class} [{self.c_level}]")
+        table.add_row(f"[cyan]S:[white]{self.c_str} [cyan]I:[white]{self.c_int} [cyan]W:[white]{self.c_wis} [cyan]D:[white]{self.c_dex} [cyan]C:[white]{self.c_con} [cyan]L:[white]{self.c_luk}\n")
+
+        table2.add_column(justify="right")
+        table2.add_column(justify="left")
+        table2.add_column(justify="right")
+        table2.add_column(justify="left")
+        table2.padding = 0
         
-        return buf
+        table2.add_row("[cyan]Heros",f"[white]{self.c_heros}","[cyan]TNL",f"[white]{self.c_heros_tnl}")
+        table2.add_row("[cyan]XP", f"[white]{human_format(self.c_xp)}", "[cyan]XPTNL", f"[white]{human_format(self.c_xp_tnl)}")
+        table2.add_row("[cyan]Gold", f"[white]{human_format(self.c_gold)}", "[cyan]Bank", f"[white]{human_format(self.c_gold_bank)}")
+        table.add_row(table2)
+
+        return table
 
     @event("msdp_value")
     def update_reactives(self, message: MSDPMessage):

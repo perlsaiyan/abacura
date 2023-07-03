@@ -10,6 +10,8 @@ from textual.widgets import Static, ProgressBar
 from abacura.mud.options.msdp import MSDPMessage
 from abacura.plugins.events import event
 
+from abacura_kallisti.mud.experience import LEVEL_VALUES
+
 if TYPE_CHECKING:
     from abacura import Session
     from abacura_kallisti.screens import KallistiScreen
@@ -75,20 +77,27 @@ class LOKExperience(Static):
                 self.pb_xpsack.remove()
                 self.pb_herp.remove()
                 self.setup_progress_bars()
-                if int(message.value) > 99:
+
+                # no need to progress
+                if self.c_level > 199:
+                    self.display = False
+                    return                
+
+                if self.c_level > 99:
                     self.query_one("#levelxplabel").display = False
                     self.pb_xp.display = False
                     self.query_one("#herplabel").display = False
                     self.pb_herp.display = False
-                if int(message.value) > 199:
-                    self.display = False
+
+                if self.c_level > 19 and self.c_level < 95:
+                    self.pb_xpsack.total = LEVEL_VALUES[self.c_level + 1].xp * 5
+                else:
+                    self.pb_xpsack.total = pow(2,32) - 1                    
                 return
-            
+
             if message.type in ["EXPERIENCE", "EXPERIENCE_TNL"]:
                 self.pb_xp.total = int(self.c_exp) + int(self.c_exp_tnl)
                 self.pb_xp.progress = self.c_exp
-        
-                self.pb_xpsack.total = 500000000
                 self.pb_xpsack.progress = self.c_exp
 
             if message.type in ["HERO_POINTS", "HERO_POINTS_TNL"]:
