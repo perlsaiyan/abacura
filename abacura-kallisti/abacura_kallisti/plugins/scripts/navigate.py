@@ -23,7 +23,7 @@ class NavigationScript(LOKPlugin):
         self.start_nav(destination, avoid_home)
         self.retries = 0
 
-    @event(trigger="room")
+    @event(trigger="lok.room")
     def got_room(self, _message: RoomMessage):
         # self.session.output(f"room event {_message.vnum} {_message.room.room_header}")
         if self.navigation_path:

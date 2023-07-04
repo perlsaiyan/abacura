@@ -59,7 +59,7 @@ class NavigationHelper(LOKPlugin):
     @command
     def go(self, destination: Room, avoid_home: bool = False):
         """Compute path to a room/location"""
-        self.scripts.navigate(self.go_done, destination, avoid_home)
+        def go_done(result: ScriptResult):
+            self.output(f"[bold purple] @Go Result {result.success} {result.result}", markup=True)
 
-    def go_done(self, result: ScriptResult):
-        self.output(f"[bold purple] @Go Result {result.success} {result.result}", markup=True)
+        self.scripts.navigate(go_done, destination, avoid_home)

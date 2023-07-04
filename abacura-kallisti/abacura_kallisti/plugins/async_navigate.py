@@ -71,7 +71,7 @@ class AsyncNavigation(LOKPlugin):
         self.output(f"[bold purple]{message}", markup=True)
         self.session.send(message)
 
-    @event(trigger="room")
+    @event(trigger="lok.room")
     def got_room(self, message: RoomMessage):
         if self.worker and self.worker.state == WorkerState.RUNNING:
             self.q.put_nowait(message)
