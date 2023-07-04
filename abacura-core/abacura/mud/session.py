@@ -92,7 +92,7 @@ class Session(BaseSession):
 
         core_injections = {"config": self.config, "session": self, "app": self.abacura,
                            "sessions": self.abacura.sessions, "core_msdp": self.core_msdp,
-                           "director": self.director}
+                           "director": self.director, "scripts": self.director.script_provider}
         self.core_plugin_context = Context(**core_injections)
 
         additional_injections = {}

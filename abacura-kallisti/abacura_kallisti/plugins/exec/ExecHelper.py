@@ -1,25 +1,20 @@
 import ast
 import uuid
+from typing import Optional
 
 from rich.panel import Panel
 from rich.pretty import Pretty
 
 from abacura.plugins import command
 from abacura_kallisti.plugins import LOKPlugin
-from .ScriptRunner import ScriptRunner
-from typing import Optional
-from textual.worker import Worker, WorkerState
 
 
-class Script(LOKPlugin):
-    """Connect to the remote pycharm debugger"""
+class ExecHelper(LOKPlugin):
+    """Run an async script"""
 
     def __init__(self):
         super().__init__()
         self.exec_locals = {}
-        self.fn = None
-        self.runner: Optional[ScriptRunner] = None
-        self.worker: Optional[Worker] = None
 
     def add_response(self, pattern: str, message: str, flags: int = 0):
         name = str(uuid.uuid4())
@@ -47,7 +42,8 @@ class Script(LOKPlugin):
                             "world": self.world,
                             "msdp": self.msdp,
                             "pc": self.pc,
-                            "locations": self.locations
+                            "locations": self.locations,
+                            "room": self.room
                             }
 
             self.session.output(f"# Running script {filename}", actionable=False)
@@ -55,27 +51,19 @@ class Script(LOKPlugin):
             source_code = open(filename, "r").read()
             ast.parse(source_code)
 
-            # result = exec(source, exec_globals, self.exec_locals)
-            # self.fn = self.exec_locals['_fn']
-            self.runner = ScriptRunner(source_code, exec_globals, self.exec_locals)
-            self.worker = self.session.abacura.run_worker(self.runner.run, group=self.session.name, name="fn test", exit_on_error=False)
-            self.add_ticker(0.1, self.check_runner, repeats=-1, name="check_runner")
-            #
-            # if result is not None:
-            #     pretty = Pretty(result, max_length=20, max_depth=4)
-            #     panel = Panel(pretty)
-            #     self.session.output(panel)
+            source = open(filename, "r").read()
+            ast.parse(source)
+
+            result = exec(source_code, exec_globals, self.exec_locals)
+
+            if result is not None:
+                pretty = Pretty(result, max_length=20, max_depth=4)
+                panel = Panel(pretty)
+                self.session.output(panel)
 
         except Exception as ex:
             self.session.show_exception(f"[bold red] # ERROR: {repr(ex)}", ex)
             return False
-
-    def check_runner(self):
-        # self.output("check_runner")
-        if self.worker and self.worker.state not in (WorkerState.RUNNING, WorkerState.PENDING):
-            result = self.worker._error or self.worker.result
-            self.output(f"Worker {self.worker.name}: {self.worker.state} - {result}")
-            self.remove_ticker("check_runner")
 
     @command(name="#")
     def exec_python(self, text: str, reset_locals: bool = False):
@@ -87,13 +75,10 @@ class Script(LOKPlugin):
 
             exec_globals = {"session": self.session, "plugins": self.session.plugin_loader.plugins,
                             "world": self.world, "msdp": self.msdp, "locations": self.locations,
-                            "pc": self.pc}
+                            "pc": self.pc, "room": self.room}
 
-            if text.strip().startswith("def "):
-                result = exec(text, exec_globals, self.exec_locals)
-            else:
-                exec("__result = " + text, exec_globals, self.exec_locals)
-                result = self.exec_locals.get('__result', None)
+            compiled = compile(text.strip(), '<string>', 'eval')
+            result = eval(compiled, exec_globals, self.exec_locals)
 
             if result is not None:
                 pretty = Pretty(result, max_length=20, max_depth=4)

@@ -19,16 +19,22 @@ class NavigationStep:
     exit: Exit
     cost: float
     open: bool = False
+    command: str = ''
 
     def get_command(self):
+        if self.command:
+            return self.command
+
         if self.exit.closes and self.open:
             return f"open {self.exit.door or 'door'} {self.exit.direction}"
-        elif self.exit.direction in ['home', 'depart', 'recall']:
+
+        if self.exit.direction in ['home', 'depart', 'recall']:
             return self.exit.direction
-        elif self.exit.portal_method:
-            return f"{self.exit.portal_method} {self.exit.direction}"
-        else:
-            return self.exit.direction[0]
+
+        if self.exit.portal_method:
+            return f"{self.exit.portal_method} {self.exit.portal}"
+
+        return self.exit.direction[0]
 
 
 class NavigationPath:
@@ -54,6 +60,11 @@ class NavigationPath:
                 return True
 
         return False
+
+    def get_steps(self, vnum: str) -> Generator[NavigationStep, None, None]:
+        for step in self.steps:
+            if step.vnum == vnum:
+                yield step
 
     def get_travel_cost(self) -> float:
         return sum(s.cost for s in self.steps)
@@ -88,6 +99,9 @@ class Navigator:
     def get_path_to_room(self, start_vnum: str, goal_vnum: str,
                          avoid_vnums: Set[str], allowed_vnums: Set[str] = None) -> NavigationPath:
         try:
+            if start_vnum not in self.world.rooms:
+                return NavigationPath()
+
             path = next(self._gen_nearest_rooms(start_vnum, {goal_vnum}, avoid_vnums, allowed_vnums))
             return path
         except StopIteration:
@@ -147,17 +161,24 @@ class Navigator:
 
         while current_vnum in came_from and came_from[current_vnum][1].to_vnum != '':
             current_vnum, room_exit, cost = came_from[current_vnum]
+
+            if room_exit.portal_method:
+                portal_cmd = room_exit.portal_method + " " + room_exit.portal
+                for cmd in reversed(portal_cmd.split(";")):
+                    path.add_step(NavigationStep(current_vnum, room_exit, cost=0, open=False, command=cmd))
+                continue
+
             path.add_step(NavigationStep(current_vnum, room_exit, cost))
             # add command to open door after the door because we will reverse below
             if room_exit.closes:
-                path.add_step(NavigationStep(current_vnum, room_exit, 0, open=True))
+                path.add_step(NavigationStep(current_vnum, room_exit, cost=0, open=True))
 
         path.reverse()
 
         # translate from running cost to actual cost per step
         last_cost = 0
         for s in path.steps:
-            if s.open:
+            if s.open or s.command:
                 s.cost = 1
             else:
                 s.cost, last_cost = s.cost - last_cost, s.cost
