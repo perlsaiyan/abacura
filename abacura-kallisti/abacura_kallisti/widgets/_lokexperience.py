@@ -64,15 +64,15 @@ class LOKExperience(Static):
         if not self.c_level:
             self.display = False
 
-    @event("msdp_value")
+    @event("core.msdp")
     def update_reactives(self, message: MSDPMessage):
         """Update reactive values for this widget"""
         
-        if message.type in self.my_reactives:
-            setattr(self, self.my_reactives[message.type], int(message.value))
+        if message.event_type in self.my_reactives:
+            setattr(self, self.my_reactives[message.subtype], int(message.value))
             self.remort_line.update(f"[cyan]Remorts: [white]{self.c_remorts} [cyan]In Class: [white]{self.c_laps_in_class}")
 
-            if message.type in ["LEVEL"]:
+            if message.subtype in ["LEVEL"]:
                 self.pb_xp.remove()
                 self.pb_xpsack.remove()
                 self.pb_herp.remove()
@@ -95,12 +95,12 @@ class LOKExperience(Static):
                     self.pb_xpsack.total = pow(2,32) - 1                    
                 return
 
-            if message.type in ["EXPERIENCE", "EXPERIENCE_TNL"]:
+            if message.subtype in ["EXPERIENCE", "EXPERIENCE_TNL"]:
                 self.pb_xp.total = int(self.c_exp) + int(self.c_exp_tnl)
                 self.pb_xp.progress = self.c_exp
                 self.pb_xpsack.progress = self.c_exp
 
-            if message.type in ["HERO_POINTS", "HERO_POINTS_TNL"]:
+            if message.subtype in ["HERO_POINTS", "HERO_POINTS_TNL"]:
                 self.pb_herp.total = self.c_hero_points + self.c_hero_points_tnl
                 self.pb_herp.progress = self.c_hero_points
 

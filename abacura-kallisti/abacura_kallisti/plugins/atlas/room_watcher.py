@@ -273,7 +273,7 @@ class RoomWatcher(LOKPlugin):
                                 terrain=self.msdp.room_terrain, room_exits=self.msdp.room_exits,
                                 scan_room=self.scanned_room)
 
-        self.dispatcher("room", RoomMessage(self.scanned_room.vnum, self.scanned_room))
+        self.dispatcher(RoomMessage(vnum=self.scanned_room.vnum, room=self.scanned_room))
 
         if self.scanned_room.vnum in self.world.rooms:
             room = self.world.rooms[self.scanned_room.vnum]

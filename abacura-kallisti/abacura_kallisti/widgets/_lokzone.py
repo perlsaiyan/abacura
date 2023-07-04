@@ -23,7 +23,7 @@ class LOKZoneHeading(Static):
     def render(self) -> str:
         return f"{self.z_name}"
 
-    @event("msdp_value_AREA_NAME")
+    @event("core.msdp.AREA_NAME")
     def update_zone_name(self, message: MSDPMessage):
         self.z_name = message.value
 
@@ -59,7 +59,7 @@ class LOKZoneInfo(Static):
     def render(self) -> str:
         return f"{self.r_icon} {self.r_name} [{self.r_vnum}]"
 
-    @event("msdp_value_ROOM_WEATHER")
+    @event("core.msdp.ROOM_WEATHER")
     def update_room_weather(self, message: MSDPMessage):
         if message.value in self.weather_icons:
             self.r_icon = self.weather_icons[message.value]
@@ -68,12 +68,12 @@ class LOKZoneInfo(Static):
 
         
 
-    @event("msdp_value_ROOM_VNUM")
+    @event("core.msdp.ROOM_VNUM")
     def update_room_vnum(self, message: MSDPMessage):
         self.r_vnum = message.value
         self.display = True
 
-    @event("msdp_value_ROOM_NAME")
+    @event("core.msdp.ROOM_NAME")
     def update_room_name(self, message: MSDPMessage):
         self.r_name = message.value
         self.display = True

@@ -418,7 +418,7 @@ class LOKMap(Container):
         #self.generate_map()
         self.map.update(LOKMapBlock(self.world, self.START_ROOM, self.content_size.height, self.content_size.width))
 
-    @event("msdp_value_ROOM_VNUM")
+    @event("core.msdp.ROOM_VNUM")
     def recenter_map(self, message: MSDPMessage):
         """Event to trigger map redraws on movement"""
         self.START_ROOM = str(message.value)

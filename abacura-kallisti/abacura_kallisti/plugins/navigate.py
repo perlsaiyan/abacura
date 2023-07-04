@@ -59,7 +59,7 @@ class NavigationHelper(LOKPlugin):
         self.navigator = Navigator(self.world, self.pc, level=self.msdp.level, avoid_home=avoid_home)
         self.start_nav(destination)
 
-    @event(trigger="room")
+    @event(trigger="lok.room")
     def got_room(self, _message: RoomMessage):
         # self.session.output(f"room event {_message.vnum} {_message.room.room_header}")
         if self.navigation_path:

@@ -28,7 +28,7 @@ class LOKGroup(Container):
         yield self.group_title
         yield self.group_block
 
-    @event("msdp_value_GROUP")
+    @event("core.msdp.GROUP")
     def update_group(self, message: MSDPMessage):
         self.group = message.value
 
@@ -44,7 +44,7 @@ class LOKGroup(Container):
         self.styles.height = len(self.group) + 1
         self.display = False
 
-    @event("msdp_value_GROUPLEVEL")
+    @event("core.msdp.GROUPLEVEL")
     def update_group_level(self, message: MSDPMessage):
         self.group_level = message.value
         self.group_title.update(f"Group - Level {self.group_level}")

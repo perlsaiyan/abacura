@@ -378,7 +378,7 @@ class Session(BaseSession):
                 # telnet GA sequence, likely end of prompt
                 elif data == GA:
                     self.output(self.outb.decode("UTF-8", errors="ignore"), ansi=True)
-                    self.dispatcher("core.prompt", AbacuraMessage("Prompt", self.outb.decode("UTF-8", errors="ignore")))
+                    self.dispatcher(AbacuraMessage("core.prompt", self.outb.decode("UTF-8", errors="ignore")))
                     self.output("")
 
                     self.outb = b''

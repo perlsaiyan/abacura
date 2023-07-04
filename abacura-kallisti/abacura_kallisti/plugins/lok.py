@@ -35,14 +35,14 @@ class LegendsOfKallisti(LOKPlugin):
         if account:
             self.session.send(account)
 
-    @event("msdp_value")
+    @event("core.msdp")
     def update_pc(self, msg: MSDPMessage):
         # PC_FIELDS = ["level"]
         # if msg.type in PC_FIELDS:
         #     setattr(self.pc, msg.type, msg.value)
         
         # reload config, we've changed people
-        if msg.type == "CHARACTER_NAME":
+        if msg.subtype == "CHARACTER_NAME":
             self.output(f"[orange1][italic]# Reloading player conf for {msg.value}", markup=True)
             self.pc.load(self.config.data_directory(self.session.name), msg.value)
             self.director.alias_manager.load(f"{self.session.name}.aliases")

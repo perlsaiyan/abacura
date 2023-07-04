@@ -3,3 +3,4 @@ aiohttp==3.8.4
 msgpack==1.0.5
 sphinx ~= 7.0.1
 sphinx-rtd-theme
+textual-dev

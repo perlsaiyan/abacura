@@ -1,6 +1,7 @@
 """MSDP telnet option processor"""
+from dataclasses import dataclass
 import re
-import time
+from typing import Any
 
 from textual import log
 
@@ -17,12 +18,20 @@ ARRAY_CLOSE= b'\x06'
 #TODO: Move ansi_escape somewhere else, we'll need it for triggers
 ansi_escape = re.compile(r'\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
+@dataclass
 class MSDPMessage(AbacuraMessage):
-    """MSDP event message"""
-    def __init__(self, name: str, value: any, oldvalue: any = "", subtype: str = ""):
-        super().__init__(name, value)
-        self.oldvalue = oldvalue
-        self.subtype = subtype
+    """
+    MSDP event message
+    :param event_type: defaults to core.msdp
+    :param subtype: specific MSDP variable changed
+    :param value: the new value of the MSDP variable
+    :param oldvalue: the original value of the MSDP variable
+    """
+    event_type:str = "core.msdp"
+    subtype: str = ""
+    value: str = ""
+    oldvalue: str = ""
+
 
 # TODO all these need to use the regular socket to trap send instead of calling writer directly
 class MSDP(TelnetOption):
@@ -159,10 +168,12 @@ class MSDP(TelnetOption):
                 #except ValueError:
                 #    pass
 
-            # Two dispatchers here, first is "all", then "name specific"
-            msg = MSDPMessage(var, self.values[var], oldvalue="", subtype = "value_change")
-            self.session.dispatcher("msdp_value", msg)
-            self.session.dispatcher(f"msdp_value_{var}", msg)
+            # Two dispatchers here, first is for all-value listeners
+            msg = MSDPMessage(subtype=var, value=self.values[var], oldvalue="")
+            self.session.dispatcher(msg)
+            # Second dispatch for variable-specific listeners
+            msg.event_type = f"core.msdp.{var}"
+            self.session.dispatcher(msg)
 
         else:
             # TODO this is a candidate for some kind of protocol.log

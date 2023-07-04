@@ -84,7 +84,7 @@ class LOKCharacterStatic(Static):
 
         return table
 
-    @event("msdp_value")
+    @event("core.msdp")
     def update_reactives(self, message: MSDPMessage):
         MY_REACTIVES = {
          "CHARACTER_NAME": "c_name",
@@ -107,8 +107,8 @@ class LOKCharacterStatic(Static):
 
         }
 
-        if message.type in MY_REACTIVES:
-            setattr(self, MY_REACTIVES[message.type], message.value)
+        if message.subtype in MY_REACTIVES:
+            setattr(self, MY_REACTIVES[message.subtype], message.value)
 
         if not self.display and self.c_name is not None:
             self.display = True

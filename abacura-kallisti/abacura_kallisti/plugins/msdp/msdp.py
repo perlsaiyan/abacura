@@ -39,10 +39,10 @@ class LOKMSDP(LOKPlugin):
 
         self.session.output(panel, highlight=True, actionable=False)
 
-    @event("msdp_value", priority=1)
+    @event("core.msdp", priority=1)
     def update_lok_msdp(self, message: MSDPMessage):
         # self.msdp.values[message.type] = message.value
-        attr_name = message.type.lower()
+        attr_name = message.subtype.lower()
 
         renames = {'class': 'cls', 'str': 'str_', 'int': 'int_'}
         attr_name = renames.get(attr_name, attr_name)
