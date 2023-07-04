@@ -1,0 +1,3 @@
+# For sound/MSP
+playsound
+PyGObject
