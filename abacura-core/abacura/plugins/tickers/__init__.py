@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from typing import List, TYPE_CHECKING, Callable
+import inspect
 
 from serum import inject
 
@@ -40,7 +41,11 @@ class TickerManager:
         self.tickers: List[Ticker] = []
 
     def register_object(self, obj: object):
-        pass
+        for name, member in inspect.getmembers(obj, callable):
+            if hasattr(member, "ticker_seconds"):
+                t = Ticker(source=obj, callback=member, seconds=getattr(member, "ticker_seconds"),
+                           repeats=getattr(member, "ticker_repeats"), name=getattr(member, "ticker_name"))
+                self.add(t)
 
     def unregister_object(self, obj: object):
         self.tickers = [t for t in self.tickers if t.source != obj]

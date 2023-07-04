@@ -9,14 +9,14 @@ from typing import Optional
 from rich.table import Table
 
 
-class NavigationHelper(LOKPlugin):
+class NavigationHelperOld(LOKPlugin):
     def __init__(self):
         super().__init__()
         self.navigation_path: Optional[NavigationPath] = None
         self.navigator: Optional[Navigator] = None
 
     @command
-    def path(self, destination: Room, detailed: bool = False):
+    def path_old(self, destination: Room, detailed: bool = False):
         """Compute path to a room/location"""
         nav = Navigator(self.world, self.pc, level=self.msdp.level, avoid_home=False)
         nav_path = nav.get_path_to_room(self.msdp.room_vnum, destination.vnum, avoid_vnums=set())
@@ -55,7 +55,7 @@ class NavigationHelper(LOKPlugin):
         self.output(tbl)
 
     @command
-    def go(self, destination: Room, avoid_home: bool = False):
+    def go_old(self, destination: Room, avoid_home: bool = False):
         """Compute path to a room/location"""
         self.navigator = Navigator(self.world, self.pc, level=self.msdp.level, avoid_home=avoid_home)
         self.start_nav(destination)

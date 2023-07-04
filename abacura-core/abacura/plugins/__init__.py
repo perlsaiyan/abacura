@@ -7,6 +7,7 @@ from serum import inject
 from abacura.plugins.actions import Action
 from abacura.plugins.director import Director
 from abacura.plugins.tickers import Ticker
+from abacura.plugins.scripts import ScriptProvider, Script
 
 if TYPE_CHECKING:
     from abacura.mud.options.msdp import MSDP
@@ -29,6 +30,7 @@ class Plugin:
     session: Session
     config: Config
     director: Director
+    scripts: ScriptProvider
     core_msdp: MSDP
 
     def __init__(self):
@@ -52,11 +54,18 @@ class Plugin:
         self.director.action_manager.remove(name)
 
     def add_ticker(self, seconds: float, callback_fn: Callable, repeats: int = -1, name: str = ''):
-        ticker = Ticker(source=self, seconds=seconds, callback=callback_fn, repeats=repeats, name=name)
-        self.director.ticker_manager.add(ticker)
+        t = Ticker(source=self, seconds=seconds, callback=callback_fn, repeats=repeats, name=name)
+        self.director.ticker_manager.add(t)
 
     def remove_ticker(self, name: str):
         self.director.ticker_manager.remove(name)
+
+    def add_script(self, script_fn: Callable, name: str = ''):
+        s = Script(source=self, script_fn=script_fn, name=name or script_fn.__name__)
+        self.director.script_manager.add(s)
+
+    def remove_script(self, name: str):
+        self.director.script_manager.remove(name)
 
     def add_substitute(self, pattern: str, repl: str, name: str = ''):
         pass
@@ -86,3 +95,24 @@ def command(function=None, name: str = '', hide: bool = False):
         return add_command(function)
 
     return add_command
+
+
+def ticker(seconds: int, repeats=-1, name=""):
+    def add_ticker(fn):
+        fn.ticker_seconds = seconds
+        fn.ticker_repeats = repeats
+        fn.ticker_name = name
+        return fn
+
+    return add_ticker
+
+
+def script(function=None, name: str = ''):
+    def add_script(fn):
+        fn.script_name = name or fn.__name__
+        return fn
+
+    if function:
+        return add_script(function)
+
+    return add_script
