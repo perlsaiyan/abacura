@@ -50,7 +50,7 @@ class AsyncNavigation(LOKPlugin):
             try:
                 e = await asyncio.wait_for(self.q.get(), timeout=timeout)
                 if any([isinstance(e, t) for t in message_types]):
-                    self.output(f"Got {e}")
+                    self.output(f"Got {e.event_type}")
                     return e
             except asyncio.TimeoutError:
                 pass
@@ -104,7 +104,7 @@ class AsyncNavigation(LOKPlugin):
                     return False
 
                 e = await self.wait_for_messages([RoomMessage], 3)
-                if e.type == 'timeout':
+                if e.event_type == 'timeout':
                     self.send("look")
                     continue
 
