@@ -43,6 +43,7 @@ class LOKComms(LOKPlugin):
         'roleplay',
         'pk',
         'veteran',
+        'code'
 
     ]
     #comms toggle for comms log (not mud output window)
@@ -55,6 +56,9 @@ class LOKComms(LOKPlugin):
     def comms_log(self, channel, speaker, msg):
         channel = channel.lower()
         speaker = speaker.lower()
+        if channel not in self.channels:
+            self.channels.append(channel)
+            self.comms_toggles[channel] = 'on'
         if self.comms_toggles[channel] == 'on' and speaker not in self.comms_gag_entities:
             if self.comms_textlog is None:
                 self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
