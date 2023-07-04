@@ -256,6 +256,9 @@ class Session(BaseSession):
         try:
             reader, self.writer = await asyncio.open_connection(host, port)
             self.connected = True
+        except TimeoutError:
+            self.loklog.warn(f"Connection timeout from {host}:{port}")
+            self.output(f"[bold red]# Connection refused {host}:{port}", markup=True)
         except ConnectionRefusedError:
             self.loklog.warn(f"Connection refused from {host}:{port}")
             self.output(f"[bold red]# Connection refused {host}:{port}", markup=True)

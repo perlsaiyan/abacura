@@ -44,7 +44,11 @@ class PluginLoader:
             module = importlib.import_module(package)
             if reload:
                 importlib.reload(module)
-
+        except ModuleNotFoundError as exc:
+            session = plugin_context['session']
+            session.show_exception(f"[bold red]# ERROR LOADING PLUGIN {package}:  {repr(exc)}", exc, show_tb=False)
+            self.failures.append(str(package))
+            return
         except Exception as exc:
             # TODO: Fix this hack to grab the session, maybe track the failed loads and return a list of failures
             session = plugin_context['session']
