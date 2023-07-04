@@ -68,7 +68,7 @@ class LOKExperience(Static):
     def update_reactives(self, message: MSDPMessage):
         """Update reactive values for this widget"""
         
-        if message.event_type in self.my_reactives:
+        if message.subtype in self.my_reactives:
             setattr(self, self.my_reactives[message.subtype], int(message.value))
             self.remort_line.update(f"[cyan]Remorts: [white]{self.c_remorts} [cyan]In Class: [white]{self.c_laps_in_class}")
 
