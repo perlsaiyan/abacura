@@ -1,4 +1,5 @@
 from abacura.plugins import command
+from abacura.plugins.events import event, AbacuraMessage
 from abacura_kallisti.atlas.navigator import Navigator, NavigationPath
 from abacura_kallisti.atlas.room import RoomMessage, Room
 from abacura_kallisti.plugins import LOKPlugin
@@ -71,17 +72,20 @@ class NavigationHelper(LOKPlugin):
             self.output(f"[orange1]Unable to compute path to {destination.vnum}", markup=True)
             return
 
+        self.session.dispatcher(AbacuraMessage(event_type="lok.navigate", value="start"))
         self.navigation_path = nav_path
         self.session.send("look")
 
     def continue_nav(self):
         if self.msdp.room_vnum == self.navigation_path.destination.vnum:
+            self.session.dispatcher(AbacuraMessage(event_type="lok.navigate", value="arrived"))
             self.session.output("[bold purple]Arrived!", markup=True)
             self.navigation_path = None
             return
 
         room = self.world.rooms.get(self.msdp.room_vnum, None)
         if not room:
+            self.session.dispatcher(AbacuraMessage(event_type="lok.navigate", value="failed"))
             self.session.output(f"unknown room {self.msdp.room_vnum}, navigation halted")
             self.navigation_path = None
             return

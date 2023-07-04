@@ -20,7 +20,7 @@ from dataclasses import dataclass
 
 from functools import lru_cache
 
-from abacura.plugins.events import event
+from abacura.plugins.events import event, AbacuraMessage
 from abacura.mud.options.msdp import MSDPMessage
 from abacura.widgets.resizehandle import ResizeHandle
 
@@ -157,6 +157,7 @@ class MapPoint:
 class LOKMap(Container):
     """Main map widget, used in sidebars and bigmap screen"""
     world: Optional[World] = None
+    map_type: str = "explore"
 
     def __init__(self, resizer: bool=True, id: str=""):
         super().__init__()
@@ -173,6 +174,7 @@ class LOKMap(Container):
     def on_mount(self) -> None:
         # Register our listener until we have a RegisterableObject to descend from
         self.screen.session.listener(self.recenter_map)
+        self.screen.session.listener(self.toggle_map_type)
         self.world = self.screen.world
 
     def generate_dense_map(self) -> None:
@@ -415,15 +417,25 @@ class LOKMap(Container):
         return "\n".join([''.join(yp) for yp in a_map])
 
     def on_resize(self, event: Resize):
-        #self.generate_map()
-        self.map.update(LOKMapBlock(self.world, self.START_ROOM, self.content_size.height, self.content_size.width))
+        self.map_generator()
+
+    def map_generator(self):
+        if self.map_type == "explore":
+            self.generate_map()
+        else:
+            self.map.update(LOKMapBlock(self.world, self.START_ROOM, self.content_size.height, self.content_size.width))
+
+    @event("lok.navigate")
+    def toggle_map_type(self, msg: AbacuraMessage):
+        if msg.value == "start":
+            self.map_type = "dense"
+            return
+        self.map_type = "explore"
+        self.map_generator()
 
     @event("core.msdp.ROOM_VNUM")
     def recenter_map(self, message: MSDPMessage):
         """Event to trigger map redraws on movement"""
         self.START_ROOM = str(message.value)
-        #self.generate_dense_map()
-
-        LMB = LOKMapBlock(self.world, self.START_ROOM, self.content_size.height, self.content_size.width)
-        self.map.update(LMB)
+        self.map_generator()
         

@@ -83,7 +83,6 @@ class KallistiScreen(SessionScreen):
         debugger = DebugDock(id="debugger")
         debugger.display = False
         yield debugger
-        debugger.tl.write(f"DEBUG: {self.action_pageup}")
 
     def action_toggle_left_sidebar(self) -> None:
         sidebar = self.query_one("#leftsidebar")
