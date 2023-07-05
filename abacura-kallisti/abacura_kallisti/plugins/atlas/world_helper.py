@@ -215,7 +215,7 @@ class WorldHelper(LOKPlugin):
             self.session.output(self.get_table_of_exits(vnum))
             return
 
-        # #exits goliath 60254 --commands="visit goliath"
+            # #exits goliath 60254 --commands="visit goliath"
 
         if _door or _commands or destination:
             to_vnum = None

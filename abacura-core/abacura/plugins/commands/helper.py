@@ -10,13 +10,14 @@ class CommandHelper(Plugin):
         super().__init__()
 
     @command(hide=True)
-    def help(self):
+    def help(self, hidden: bool=False):
+        """Show available commands"""
         help_text = ["Plugin Commands", "\nUsage: @command <arguments>", "\nAvailable Commands: "]
 
-        commands = [c for c in self.director.command_manager.commands if not c.hide_help]
+        commands = [c for c in self.director.command_manager.commands if c.hide_help == hidden]
 
         for c in sorted(commands, key=lambda c: c.name):
-            help_text.append(f"  {c.name:10s} : {c.get_description()}")
+            help_text.append(f"  {c.name:14s} : {c.get_description()}")
 
         help_text.append("")
         self.session.output("\n".join(help_text))

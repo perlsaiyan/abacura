@@ -77,7 +77,7 @@ class AsyncNavigation(LOKPlugin):
         if self.worker and self.worker.state == WorkerState.RUNNING:
             self.q.put_nowait(message)
 
-    @command
+    @command(hide=True)
     def goa(self, destination: Room, avoid_home: bool = False):
         """Compute path to a room/location"""
         if self.worker:
