@@ -31,9 +31,6 @@ class NavigationStep:
         if self.exit.direction in ['home', 'depart', 'recall']:
             return self.exit.direction
 
-        if self.exit.portal_method:
-            return f"{self.exit.portal_method} {self.exit.portal}"
-
         return self.exit.direction[0]
 
 
@@ -162,9 +159,8 @@ class Navigator:
         while current_vnum in came_from and came_from[current_vnum][1].to_vnum != '':
             current_vnum, room_exit, cost = came_from[current_vnum]
 
-            if room_exit.portal_method:
-                portal_cmd = room_exit.portal_method + " " + room_exit.portal
-                for cmd in reversed(portal_cmd.split(";")):
+            if room_exit.commands:
+                for cmd in reversed(room_exit.commands.split(";")):
                     path.add_step(NavigationStep(current_vnum, room_exit, cost=0, open=False, command=cmd))
                 continue
 

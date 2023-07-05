@@ -1,14 +1,16 @@
-from abacura.plugins import command
-from abacura_kallisti.plugins import LOKPlugin
-from abacura_kallisti.atlas.world import Room, Exit
-from abacura_kallisti.atlas.wilderness import WildernessGrid
-from rich.table import Table
-from rich.panel import Panel
-from rich.text import Text
-from rich.console import Group
-from rich.style import Style
-from rich.panel import Panel
 from collections import Counter
+
+from rich.console import Group
+from rich.panel import Panel
+from rich.style import Style
+from rich.table import Table
+from rich.text import Text
+
+from abacura.plugins import command
+from abacura_kallisti.atlas.wilderness import WildernessGrid
+from abacura_kallisti.atlas.world import Room, Exit
+from abacura_kallisti.plugins import LOKPlugin
+
 
 class WorldHelper(LOKPlugin):
 
@@ -23,10 +25,11 @@ class WorldHelper(LOKPlugin):
             visited = False
             terrain = ""
             if known:
-                visited = self.world.get_tracking(e.to_vnum).last_visited not in ['', None]
-                terrain = self.world.rooms[e.to_vnum].terrain_name
+                to_room = self.world.rooms[e.to_vnum]
+                visited = to_room.last_visited not in ['', None]
+                terrain = to_room.terrain_name
 
-            exits.append((e.direction, e.to_vnum, e.door, e.portal, e.portal_method,
+            exits.append((e.direction, e.to_vnum, e.door, e.commands,
                           bool(e.closes), bool(e.locks), known, visited, terrain, bool(e.deathtrap)))
 
         exits = sorted(exits)
@@ -38,8 +41,7 @@ class WorldHelper(LOKPlugin):
         table.add_column("Direction")
         table.add_column("To", justify="right")
         table.add_column("Door")
-        table.add_column("Portal")
-        table.add_column("Portal Method")
+        table.add_column("Commands")
         table.add_column("Closes")
         table.add_column("Locks")
         table.add_column("Known")
@@ -80,20 +82,19 @@ class WorldHelper(LOKPlugin):
 
         text = Text()
 
-        tr = self.world.get_tracking(location.vnum)
         text.append(f"[{location.vnum}] {location.name}\n\n", style="bold magenta")
         text.append(f"     Area: {location.area_name}\n")
 
         terrain = location.terrain
         text.append(f"  Terrain: {location.terrain_name} [{terrain.weight}]\n")
         text.append(f"    Flags: {self.get_room_flags(location)}\n")
-        text.append(f"  Visited: {tr.last_visited}\n")
+        text.append(f"  Visited: {location.last_visited}\n")
 
         if location.area_name == 'The Wilderness':
             x, y = self.wild_grid.get_point(location.vnum)
             ox, oy = self.wild_grid.get_orienteering_point(location.vnum)
             text.append(f"     x, y: {x}, {y} [{ox}, {oy}]\n")
-            text.append(f"Harvested: {tr.last_harvested}\n")
+            text.append(f"Harvested: {location.last_harvested}\n")
 
         location_names = [f"{a.category}.{a.name}" for a in self.locations.get_locations_for_vnum(location.vnum)]
         if len(location_names) > 0:
@@ -173,7 +174,7 @@ class WorldHelper(LOKPlugin):
             e: Exit
             for e in r.exits.values():
                 known: bool = e.to_vnum in self.world.rooms
-                visited = known and self.world.get_tracking(e.to_vnum).last_visited
+                visited = known and self.world.rooms[e.to_vnum].last_visited
 
                 table.add_row(r.vnum, r.name, e.direction, e.to_vnum, str(bool(e.closes)), str(bool(e.locks)),
                               str(known), str(visited))
@@ -181,7 +182,7 @@ class WorldHelper(LOKPlugin):
         # s = tabulate(table, headers=["Room", "Name", "Exit", "To", "Closes", "Locks", "Known", "Visited"])
         self.session.output(table, actionable=False)
 
-        num_visited = len([r for r in rooms if self.world.get_tracking(r.vnum).last_visited])
+        num_visited = len([r for r in rooms if r.last_visited])
         num_rooms = len(rooms)
         self.session.output(f"\nArea:{area}\n\n  Known Rooms: {num_rooms:5d}\nVisited Rooms: {num_visited:5d}",
                             actionable=False)
