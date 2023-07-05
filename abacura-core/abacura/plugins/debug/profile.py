@@ -7,6 +7,7 @@ from rich.table import Table
 
 
 class Profiler(Plugin):
+    """CPU and Memory Profiling"""
 
     def __init__(self):
         super().__init__()
@@ -34,7 +35,7 @@ class Profiler(Plugin):
         else:
             self.session.output(str(self.heap.heap()))
 
-    @command
+    @command(hide=True)
     def profile2(self, num_functions: int = 40, disable: bool = False):
         """Python implemented profiler"""
         from abacura.utils import profiler

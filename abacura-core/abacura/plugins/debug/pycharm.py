@@ -13,6 +13,7 @@ class PycharmDebug(Plugin):
 
     @command(hide=True)
     def pycharm_debug(self, host: str = "localhost", port=12345):
+        """Connect to the remote pycharm debugger"""
         self.debugger = PycharmDebugger()
         try:
             self.output(f"Connecting to {host}:{port}")

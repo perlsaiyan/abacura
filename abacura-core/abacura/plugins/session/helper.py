@@ -1,6 +1,10 @@
 from rich.panel import Panel
 from rich.pretty import Pretty
+from rich.table import Table
+from rich.text import Text
+
 import time
+from typing import Dict, List
 
 from abacura.plugins import Plugin, command
 
@@ -34,22 +38,85 @@ class PluginSession(Plugin):
             panel = Panel(Pretty(self.core_msdp.values.get(variable, None)), highlight=True)
         self.session.output(panel, highlight=True, actionable=False)
 
-    @command
-    def plugin(self) -> None:
-        """Get information about plugins"""
+    def show_all_plugins(self):
+        plugin_rows = []
 
-        self.session.output("Current registered global plugins:")
-
-        for plugin_name, loaded_plugin in self.session.plugin_loader.plugins.items():
+        for name, loaded_plugin in self.session.plugin_loader.plugins.items():
             plugin = loaded_plugin.plugin
-            indicator = '[bold green]✓' if plugin.plugin_enabled else '[bold red]x'
-            self.session.output(
-                f"{indicator} [white]{plugin.get_name()}" +
-                f" - {plugin.get_help()}", markup=True)
+            base = plugin.__class__.__base__.__name__
+            indicator = '✓' if plugin.plugin_enabled else 'x'
+            indicator_color = "bold green" if plugin.plugin_enabled else 'bold red'
+            plugin_rows.append((base, plugin.get_name(), plugin.get_help() or '', Text(indicator, style=indicator_color)))
+
+        tbl = Table(title=f" Currently Registered Plugins", title_justify="left")
+        tbl.add_column("Type")
+        tbl.add_column("Plugin Name")
+        tbl.add_column("Description")
+        tbl.add_column("Enabled")
+
+        for row in sorted(plugin_rows):
+            tbl.add_row(*row)
+        self.output(tbl)
+        self.output("\n")
+
+    @command
+    def plugins(self, name: str = '') -> None:
+        """Get information about plugins"""
+        if not name:
+            self.show_all_plugins()
+            return
+
+        loaded_plugins = self.session.plugin_loader.plugins
+        matches = [n for n in loaded_plugins.keys() if n.lower().startswith(name.lower())]
+        if len(matches) > 1:
+            self.output(f"[orange1] Ambigious Plugin Name: {matches}", markup=True)
+            return
+
+        if len(matches) == 0:
+            self.output(f"[orange1] No plugin by that name [{name}]", markup=True)
+            return
+
+        loaded_plugin = loaded_plugins[matches[0]]
+        plugin = loaded_plugin.plugin
+
+        registrations = []
+        for script in self.director.script_manager.scripts.values():
+            if script.source == plugin:
+                registrations.append(("script", script.name, script.script_fn.__qualname__, ""))
+
+        for act in self.director.action_manager.actions:
+            if act.source == plugin:
+                registrations.append(("action", act.name, act.callback.__qualname__, act.pattern))
+
+        for tkr in self.director.ticker_manager.tickers:
+            if tkr.source == plugin:
+                detail = f"seconds={tkr.seconds}, repeats={tkr.repeats}"
+                registrations.append(("ticker", tkr.name, tkr.callback.__qualname__, detail))
+
+        for cmd in self.director.command_manager.commands:
+            if cmd.source == plugin:
+                registrations.append(("command", cmd.name, cmd.callback.__qualname__, cmd.get_description()))
+        #
+        # for evt, pq in self.director.event_manager.events.items():
+        #     for p in pq.queue:
+        #         if p.source == plugin:
+        #             registrations.append(("event", evt, p))
+
+        tbl = Table(title=f" Details for Plugin {loaded_plugin.package}.{plugin.get_name()}", title_justify="left")
+        tbl.add_column("Base")
+        tbl.add_column("Name")
+        tbl.add_column("Callback")
+        tbl.add_column("Details")
+        for r in registrations:
+            tbl.add_row(*r)
+
+        self.output(tbl)
+
 
     @command
     def reload(self, plugin_name: str = "", auto: bool = False):
         """Reload plugins"""
+
         if not plugin_name:
             self.session.plugin_loader.autoreload_plugins()
         else:

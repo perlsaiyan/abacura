@@ -12,6 +12,7 @@ from abacura_kallisti.plugins import LOKPlugin
 
 
 class AsyncNavigation(LOKPlugin):
+    """Experimental Async Navigation Coroutine"""
     def __init__(self):
         super().__init__()
         self.q = asyncio.Queue()
@@ -76,7 +77,7 @@ class AsyncNavigation(LOKPlugin):
         if self.worker and self.worker.state == WorkerState.RUNNING:
             self.q.put_nowait(message)
 
-    @command
+    @command(hide=True)
     def goa(self, destination: Room, avoid_home: bool = False):
         """Compute path to a room/location"""
         if self.worker:
