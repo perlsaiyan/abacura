@@ -17,9 +17,11 @@ if TYPE_CHECKING:
     from ._lokmap import LOKMap
     from ._lokzone import LOKZone
     from ._lokgroup import LOKGroup
+    from ._lokaffects import LOKAffects
     
 
 __all__ = [
+    "LOKAffects",
     "LOKCharacter",
     "LOKExperience",
     "LOKLeft",

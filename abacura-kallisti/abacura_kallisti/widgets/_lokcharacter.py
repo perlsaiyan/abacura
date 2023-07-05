@@ -64,7 +64,7 @@ class LOKCharacterStatic(Static):
             self.display = False
 
     def render(self) -> RenderResult:
-        table = Table(show_header=False,show_edge=False,show_lines=False, box=box.SIMPLE)
+        table = Table(show_header=False,show_edge=False,show_lines=False, box=box.SIMPLE, expand=True)
         table.padding = 0
         table2 = Table(show_header=False,show_edge=False,show_lines=False, box=box.SIMPLE, expand=True)
         table.add_column(justify="left")

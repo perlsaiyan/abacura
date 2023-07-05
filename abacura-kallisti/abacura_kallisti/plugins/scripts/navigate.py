@@ -2,7 +2,7 @@ from functools import partial
 from typing import Optional, Callable
 
 from abacura.plugins import action, script
-from abacura.plugins.events import event
+from abacura.plugins.events import event, AbacuraMessage
 from abacura.plugins.scripts import ScriptResult
 from abacura_kallisti.atlas.navigator import Navigator, NavigationPath
 from abacura_kallisti.atlas.room import RoomMessage, Room
@@ -61,6 +61,7 @@ class NavigationScript(LOKPlugin):
             self.end_nav(False, f"Unable to compute path to {destination.vnum}")
             return
 
+        self.dispatcher(AbacuraMessage("lok.navigate", "start"))
         self.navigation_path = nav_path
         self.session.send("look")
 
@@ -68,6 +69,7 @@ class NavigationScript(LOKPlugin):
         self.output(f"> end_nav: {success} {message}")
         self.navigator = None
         self.navigation_path = None
+        self.dispatcher(AbacuraMessage("lok.navigate", success))
         self.callback_fn(ScriptResult(success=success, result=message))
 
     def continue_nav(self):
