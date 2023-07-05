@@ -63,7 +63,7 @@ class NavigationScript(LOKPlugin):
 
         self.dispatcher(AbacuraMessage("lok.navigate", "start"))
         self.navigation_path = nav_path
-        self.session.send("look")
+        self.send("look")
 
     def end_nav(self, success: bool, message: str):
         self.output(f"> end_nav: {success} {message}")
@@ -98,8 +98,7 @@ class NavigationScript(LOKPlugin):
                 continue
 
             cmd = step.get_command()
-            self.session.output(f"[purple]{cmd}", markup=True)
-            self.session.send(cmd)
+            self.send(cmd)
 
     def look_and_retry(self):
         if self.navigation_path:
@@ -109,7 +108,7 @@ class NavigationScript(LOKPlugin):
 
             wait = 3
             if self.retries == 2:
-                self.session.send("breakout")
+                self.send("breakout")
                 wait = 6
 
             self.add_ticker(wait, partial(self.session.send, "look"), repeats=1, name="retry")

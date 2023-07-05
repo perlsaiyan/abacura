@@ -73,6 +73,9 @@ class Plugin:
     def remove_substitute(self, name: str):
         pass
 
+    def send(self, message: str, raw: bool = False, echo_color: str = 'orange1'):
+        self.session.send(message, raw=raw, echo_color=echo_color)
+
 
 def action(pattern: str, flags: int = 0, color: bool = False, priority: int = 0):
     def add_action(action_fn):

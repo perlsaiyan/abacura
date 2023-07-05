@@ -17,7 +17,7 @@ class LegendsOfKallisti(LOKPlugin):
         
     def idle_check(self):
         if time.monotonic() - 300 > self.session.last_socket_write:
-            self.session.send("\n")
+            self.send("\n")
             #self.session.output(f"[red][italics]idle protection",markup=True)
 
     # @command
@@ -27,13 +27,13 @@ class LegendsOfKallisti(LOKPlugin):
     @action(r'^Please enter your account password')
     def send_password(self):
         if os.environ.get("MUD_PASSWORD") is not None:
-            self.session.send(os.environ.get("MUD_PASSWORD"))
+            self.send(os.environ.get("MUD_PASSWORD"), echo_color='')
 
     @action(r'^Enter your account name. If you do not have an account,')
     def send_account_name(self):
         account = self.config.get_specific_option(self.session.name, "account_name")
         if account:
-            self.session.send(account)
+            self.send(account, echo_color='')
 
     @event("core.msdp")
     def update_pc(self, msg: MSDPMessage):
