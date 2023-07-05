@@ -7,6 +7,7 @@ from rich.table import Table
 
 
 class Profiler(Plugin):
+    """CPU and Memory Profiling"""
 
     def __init__(self):
         super().__init__()

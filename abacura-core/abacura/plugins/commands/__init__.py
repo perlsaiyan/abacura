@@ -122,6 +122,11 @@ class Command:
         parameters = inspect.signature(self.callback).parameters.values()
         return {p.name: p for p in parameters if p.annotation in [bool, 'bool'] or p.name.startswith("_")}
 
+    def get_description(self) -> str:
+        doc = getattr(self.callback, '__doc__', None)
+        doc = "" if doc is None else doc.split("\n")[0]
+        return doc
+
     def get_help(self):
         help_text = []
 

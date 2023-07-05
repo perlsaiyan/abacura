@@ -52,38 +52,19 @@ class World:
         del room.exits[direction]
         self._save_room(vnum)
 
-    def set_exit(self, vnum: str, direction: str, door: str, to_vnum: str = None):
+    def set_exit(self, vnum: str, direction: str, door: str = '', to_vnum: str = None, commands: str = ''):
         if vnum not in self.rooms:
             return
 
         room = self.rooms[vnum]
-        if direction not in room.exits:
-            return
+        exit = room.exits.get(direction, Exit(direction=direction, from_vnum=vnum))
+        exit.door = door
+        exit.commands = commands
 
-        room.exits[direction].door = door
         if to_vnum is not None:
-            room.exits[direction].to_vnum = to_vnum
+            exit.to_vnum = to_vnum
 
-        self._save_room(vnum)
-
-    def add_portal(self, vnum: str, name: str, commands: str, to_vnum: str):
-        if vnum not in self.rooms:
-            return
-
-        room = self.rooms[vnum]
-        exits = room.exits
-        new_exit = Exit(direction=name, from_vnum=vnum, to_vnum=to_vnum, commands=commands)
-        exits[name] = new_exit
-
-        self._save_room(vnum)
-
-    def delete_portal(self, vnum: str, name: str):
-        if vnum not in self.rooms:
-            return
-
-        room = self.rooms[vnum]
-        if name in room.exits:
-            del room.exits[name]
+        room.exits[direction] = exit
 
         self._save_room(vnum)
 

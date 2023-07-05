@@ -16,9 +16,7 @@ class CommandHelper(Plugin):
         commands = [c for c in self.director.command_manager.commands if not c.hide_help]
 
         for c in sorted(commands, key=lambda c: c.name):
-            doc = getattr(c.callback, '__doc__', None)
-            doc = "" if doc is None else ": " + doc.split("\n")[0]
-            help_text.append(f"  {c.name:10s} {doc}")
+            help_text.append(f"  {c.name:10s} : {c.get_description()}")
 
         help_text.append("")
         self.session.output("\n".join(help_text))

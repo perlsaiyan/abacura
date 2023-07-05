@@ -188,8 +188,16 @@ class WorldHelper(LOKPlugin):
                             actionable=False)
 
     @command()
-    def exits(self, direction: str = '', name: str = None, destination: Room = None, delete: bool = False):
-        """Add and modify exits"""
+    def exits(self, direction: str = '', destination: Room = None, _door: str = '', _commands:str = '', delete: bool = False):
+        """View and modify exits in current room
+
+        :direction Direction of exit to view or modify
+        :delete Remove exit
+        :destination Set to_vnum of exit
+        :_door Set name of door to open/close
+        :_commands Set multiple commands to use, separated by ;
+
+        """
 
         vnum = self.msdp.room_vnum
 
@@ -201,19 +209,21 @@ class WorldHelper(LOKPlugin):
             self.session.output(self.get_table_of_exits(vnum))
             return
 
-        if name:
-            to_vnum = None
-            if destination is not None and (destination.vnum != self.msdp.room_vnum):
-                to_vnum = destination.vnum
-            self.world.set_exit(vnum, direction, name, to_vnum)
-            self.session.output(f"Set [{vnum}] {direction} name {name}", highlight=True)
-            if destination is not None:
-                self.session.output(f"Set destination {to_vnum}", highlight=True)
-            return
-
         if delete:
             self.world.del_exit(vnum, direction)
             self.session.output(f"Deleted [{vnum}] {direction}", highlight=True)
+            self.session.output(self.get_table_of_exits(vnum))
+            return
+
+        # #exits goliath 60254 --commands="visit goliath"
+
+        if _door or _commands or destination:
+            to_vnum = None
+            if destination is not None and (destination.vnum != self.msdp.room_vnum):
+                to_vnum = destination.vnum
+            self.world.set_exit(vnum, direction, door=_door, to_vnum=to_vnum, commands=_commands)
+            self.output(f"Set [{vnum}] {direction} to={to_vnum}, door={_door}, commands={_commands}", highlight=True)
+            self.session.output(self.get_table_of_exits(vnum))
             return
 
         room = self.world.rooms[vnum]
@@ -232,6 +242,7 @@ class WorldHelper(LOKPlugin):
 
     @command
     def sql(self, sql: str, _max_rows: int = 100):
+        """Run a sql query against the world database"""
         try:
             cursor = self.world.db_conn.execute(sql)
         except Exception as e:

@@ -12,6 +12,7 @@ from abacura_kallisti.plugins import LOKPlugin
 
 
 class AsyncNavigation(LOKPlugin):
+    """Experimental Async Navigation Coroutine"""
     def __init__(self):
         super().__init__()
         self.q = asyncio.Queue()
