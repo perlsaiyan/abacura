@@ -20,7 +20,7 @@ class ExecHelper(LOKPlugin):
         name = str(uuid.uuid4())
 
         def do_response():
-            self.session.send(message)
+            self.send(message)
             self.remove_action(name)
         self.add_action(pattern, do_response, flags=flags, name=name)
 
@@ -37,7 +37,7 @@ class ExecHelper(LOKPlugin):
                             "action": self.add_action,
                             "ticker": self.add_ticker,
                             "output": self.output,
-                            "send": self.session.send,
+                            "send": self.send,
                             "input": self.session.player_input,
                             "world": self.world,
                             "msdp": self.msdp,

@@ -127,12 +127,12 @@ class MSDP(TelnetOption):
         buf = IAC + SB + self.hexcode + VAR + bytes("REPORT", "UTF-8") + VAL
         msdp_vals = [VAL + bytes(f, "UTF-8") for f in self.values["REPORTABLE_VARIABLES"]]
         buf += VAL.join(msdp_vals) + IAC + SE
-        self.writer(buf, raw=True)
+        self.writer(buf, raw=True, echo_color='')
 
     def will(self):
-        self.writer(b"\xff\xfd\x45", raw=True)
+        self.writer(b"\xff\xfd\x45", raw=True, echo_color='')
         response = [IAC,SB,self.hexcode,VAR,b"LIST",VAL,b"REPORTABLE_VARIABLES",IAC,SE]
-        self.writer(b''.join(response), raw=True)
+        self.writer(b''.join(response), raw=True, echo_color='')
 
     def sb(self, sb):
         log.debug("MSDP SB parsing")

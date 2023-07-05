@@ -11,9 +11,12 @@ from importlib import import_module
 from typing import TYPE_CHECKING, Optional, List, Any, AnyStr, Generator
 
 from rich.text import Text
+from rich.segment import Segment, Segments
+from rich.style import Style
 from serum import inject, Context
 from textual import log
 from textual.screen import Screen
+from textual.strip import Strip
 from textual.widgets import TextLog
 
 from abacura.widgets import InputBar
@@ -158,8 +161,9 @@ class Session(BaseSession):
         if len(buf) > 0:
             yield buf
 
-    def player_input(self, line) -> None:
+    def player_input(self, line, gag: bool = False) -> None:
         """This is entry point of the inputbar on the screen"""        
+        echo_color = "" if gag else "white"
         sl = line.lstrip()
         if sl == "":
             self.send("\n")
@@ -180,22 +184,22 @@ class Session(BaseSession):
                     # We're keeping delimiters so without a preceding number, first part is ''
                     parts = re.split('([neswud])', walk)
                     if parts[0] == '':
-                        self.send(parts[1] + "\n")
+                        self.send(parts[1] + "\n", echo_color=echo_color)
                     else:
                         for _ in range(int(parts[0])):
-                            self.send(parts[1] + "\n")
+                            self.send(parts[1] + "\n", echo_color='')
                 continue
 
             if self.director.alias_manager.handle(cmd, sl):
                 continue
 
             if self.connected:
-                self.send(sl + "\n")
+                self.send(sl + "\n", echo_color=echo_color)
                 continue
 
             self.output(f"[bold red]# NO SESSION CONNECTED - pi {sl}", markup=True)
 
-    def send(self, msg: str, raw: bool = False) -> None:
+    def send(self, msg: str, raw: bool = False, echo_color: str = "orange1") -> None:
         """Send to writer (socket), raw will send the message without byte translation"""
         if self.writer is not None:
             try:
@@ -205,11 +209,31 @@ class Session(BaseSession):
                     self.writer.write(bytes(msg + "\n", "UTF-8"))
                 self.last_socket_write = time.monotonic()
 
+                if echo_color:
+                    self.echo_command(msg.rstrip("\n"), echo_color)
+
             except BrokenPipeError:
                 self.connected = False
                 self.output(f"[bold red]# Lost connection to server.", markup=True)
         else:
             self.output(f"[bold red]# NO-SESSION SEND: {msg}", markup=True, highlight=True)
+
+    def echo_command(self, cmd, color="white"):
+        if not self.tl or not len(self.tl.lines):
+            return
+
+        strip = self.tl.lines[-1]
+        line_text = "".join([segment.text for segment in strip._segments])
+        cmd_segment = Segment(cmd, Style(color=color))
+        if not line_text.rstrip().endswith(">"):
+            self.output(Segments([cmd_segment]))
+            return
+
+        new_segments = strip._segments + [cmd_segment]
+        new_strip = Strip(segments=new_segments)
+        self.tl.lines[-1] = new_strip
+        self.tl._line_cache.clear()
+        self.tl.render()
 
     def output(self, msg,
                markup: bool = False, highlight: bool = False, ansi: bool = False, actionable: bool = True,

@@ -69,7 +69,7 @@ class AsyncNavigation(LOKPlugin):
 
     def send(self, message: str):
         self.output(f"[bold purple]{message}", markup=True)
-        self.session.send(message)
+        self.send(message)
 
     @event(trigger="lok.room")
     def got_room(self, message: RoomMessage):
