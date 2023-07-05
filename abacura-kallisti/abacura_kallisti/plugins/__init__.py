@@ -42,7 +42,6 @@ class LOKPlugin(Plugin):
     locations: LocationList
     room: ScannedRoom
 
-
     def __init__(self):
         super().__init__()
 

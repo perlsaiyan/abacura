@@ -9,6 +9,7 @@ from .terrain import TERRAIN, Terrain
 
 from abacura.plugins.events import AbacuraMessage
 from abacura_kallisti.atlas.wilderness import WildernessGrid
+from abacura_kallisti.mud.area import Area
 
 
 @dataclass(slots=True)
@@ -97,6 +98,7 @@ class Room:
 
 @dataclass
 class ScannedRoom(Room):
+    area: Area = field(default_factory=Area)
     room_header: str = ''
     room_items: List[item.Item] = field(default_factory=list)
     room_corpses: List[str] = field(default_factory=list)
@@ -122,4 +124,3 @@ class RoomMessage(AbacuraMessage):
     vnum: str = ""
     room: ScannedRoom = None
     event_type: str = "lok.room"
-
