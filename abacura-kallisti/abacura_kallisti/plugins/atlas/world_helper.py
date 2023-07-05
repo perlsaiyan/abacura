@@ -238,6 +238,10 @@ class WorldHelper(LOKPlugin):
             self.session.show_exception(str(e), e)
             return
 
+        if not cursor.description:
+            self.output("executed")
+            return
+
         title_style = Style(bgcolor="#000040", color="bright_white", bold=True)
         caption_style = Style(bgcolor="#000040", color="white")
         header_style = Style(bgcolor="#000040", color="bright_white")
