@@ -78,7 +78,7 @@ class SessionScreen(Screen):
 
     async def on_input_bar_user_command(self, command: InputBar.UserCommand) -> None:
         """Handle user input from InputBar"""
-        self.session.player_input(command.command)
+        self.session.player_input(command.command, gag=command.password)
         #list = csv.reader(io.StringIO(command.command), delimiter=';', escapechar='\\')
 
         #try:

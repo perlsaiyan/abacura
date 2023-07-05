@@ -364,9 +364,7 @@ class Session(BaseSession):
                     if ord(data) in self.options:
                         self.options[ord(data)].will()
                     elif ord(data) == 1:
-                        ibar = self.screen.query_one("#playerinput", expect_type=InputBar)
-                        ibar.password = True
-                        
+                        self.dispatcher(AbacuraMessage(event_type="core.password_mode", value="on"))
                     else:
                         pass
                         #self.output(f"IAC WILL {ord(data)}")
@@ -376,8 +374,7 @@ class Session(BaseSession):
                     data = await reader.read(1)
                     #self.output(f"IAC WONT {data}")
                     if ord(data) == 1:
-                        ibar = self.screen.query_one("#playerinput", expect_type=InputBar)
-                        ibar.password = False
+                        self.dispatcher(AbacuraMessage(event_type="core.password_mode", value="off"))
                 # SB
                 elif data == b'\xfa':
                     c = await reader.read(1)
