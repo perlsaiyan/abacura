@@ -161,8 +161,9 @@ class Session(BaseSession):
         if len(buf) > 0:
             yield buf
 
-    def player_input(self, line) -> None:
+    def player_input(self, line, gag: bool = False) -> None:
         """This is entry point of the inputbar on the screen"""        
+        echo_color = "" if gag else "white"
         sl = line.lstrip()
         if sl == "":
             self.send("\n")
@@ -183,7 +184,7 @@ class Session(BaseSession):
                     # We're keeping delimiters so without a preceding number, first part is ''
                     parts = re.split('([neswud])', walk)
                     if parts[0] == '':
-                        self.send(parts[1] + "\n", echo_color="white")
+                        self.send(parts[1] + "\n", echo_color=echo_color)
                     else:
                         for _ in range(int(parts[0])):
                             self.send(parts[1] + "\n", echo_color='')
@@ -193,7 +194,7 @@ class Session(BaseSession):
                 continue
 
             if self.connected:
-                self.send(sl + "\n", echo_color="white")
+                self.send(sl + "\n", echo_color=echo_color)
                 continue
 
             self.output(f"[bold red]# NO SESSION CONNECTED - pi {sl}", markup=True)

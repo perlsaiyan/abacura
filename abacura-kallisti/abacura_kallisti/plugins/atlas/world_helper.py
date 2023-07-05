@@ -6,7 +6,9 @@ from rich.table import Table
 from rich.panel import Panel
 from rich.text import Text
 from rich.console import Group
-
+from rich.style import Style
+from rich.panel import Panel
+from collections import Counter
 
 class WorldHelper(LOKPlugin):
 
@@ -235,12 +237,36 @@ class WorldHelper(LOKPlugin):
             self.session.show_exception(str(e), e)
             return
 
-        tbl = Table(caption=f"showing first {_max_rows} rows", caption_justify="left",
-                    title=sql, title_justify="left")
-        for column in cursor.description:
-            tbl.add_column(column[0])
+        title_style = Style(bgcolor="#000040", color="bright_white", bold=True)
+        caption_style = Style(bgcolor="#000040", color="white")
+        header_style = Style(bgcolor="#000040", color="bright_white")
+        border_style = Style(bgcolor="#000040", color="#CCCCCC")
+        s1 = Style(bgcolor="#101020", color="white")
+        s2 = Style(bgcolor="#202040", color="white")
+        tbl = Table(title=f"SQL: {sql}", title_justify="left", title_style=title_style,
+                    caption=f" Showing first {_max_rows} rows", caption_justify="left", caption_style=caption_style,
+                    row_styles=[s1, s2], header_style=header_style, border_style=border_style)
 
-        for row in list(cursor.fetchmany(_max_rows)):
-            tbl.add_row(*map(str, row))
+        rows = list(cursor.fetchmany(_max_rows))
 
-        self.output(tbl)
+        column_types = []
+
+        for i, column in enumerate(cursor.description):
+            c = Counter([type(row[i]) for row in rows])
+            column_types.append(c.most_common(1)[0][0])
+            justify = "left"
+            if column_types[i] in (int, 'int', float, 'float'):
+                justify = "right"
+            tbl.add_column(column[0], justify=justify)
+
+        for row in rows:
+            new_row = []
+            for i, v in enumerate(row):
+                if column_types[i] in (float, 'float'):
+                    new_row.append(format(v, "6.3f"))
+                else:
+                    new_row.append(str(v))
+
+            tbl.add_row(*new_row)
+
+        self.output(Panel(tbl, style=border_style))
