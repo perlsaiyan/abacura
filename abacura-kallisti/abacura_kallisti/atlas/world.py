@@ -165,48 +165,54 @@ class World:
         self._save_room(vnum)
 
     def create_tables(self):
-        field_names = [f.name for f in fields(Exit)]
-        sql = f"create table if not exists exits({','.join(field_names)}, PRIMARY KEY ({'from_vnum, direction'}))"
-        self.db_conn.execute(sql)
 
-        field_names = [f.name for f in fields(Room) if f.name != "exits"]
-        sql = f"create table if not exists rooms({','.join(field_names)}, primary key ({'vnum'}))"
-        self.db_conn.execute(sql)
+        sql_updates = [
+            (1, "alter table exits add column commands"),
+            (1, "update exits set commands = portal_method where portal_method != ''"),
+            (1, """update exits set commands = portal_method || ' ' || portal where portal_method != ''
+                               and portal_method not like '%down' and portal_method not like '%up'
+                               and portal_method not like '%east' and portal_method not like '%west'
+                               and portal_method not like '%north' and portal_method not like '%south'"""),
+            (1, "alter table exits drop column portal"),
+            (1, "alter table exits drop column portal_method"),
+            (1, "create index exits_n1 on exits(to_vnum)"),
+            (1, "alter table rooms drop column navigable"),
+            (1, "alter table rooms add column last_visited"),
+            (1, "alter table rooms add column last_harvested"),
+            (1, "update rooms set last_visited = (select last_visited from room_tracking where room_tracking.vnum = rooms.vnum)"),
+            (1, "update rooms set last_harvested = (select last_harvested from room_tracking where room_tracking.vnum = rooms.vnum)"),
+            (2, "alter table rooms rename column terrain to terrain_name"),
+            (2, "update rooms set terrain_name = 'Ocean' where vnum in ('87546', '87897', '88248', '88599', '88950', '89301')")
+        ]
 
-        # field_names = [f.name for f in fields(RoomTracking)]
-        # sql = f"create table if not exists room_tracking({','.join(field_names)}, primary key ({'vnum'}))"
-        # self.db_conn.execute(sql)
+        max_sql_version = max([version for version, sql in sql_updates])
+        schema_version = self.db_conn.execute("pragma schema_version").fetchall()[0][0]
 
-        sql = "update rooms set terrain = 'Ocean' where vnum in ('87546', '87897', '88248', '88599', '88950', '89301')"
-        self.db_conn.execute(sql)
-        self.db_conn.commit()
+        if schema_version == 0:
+            # brand new db
+            field_names = [f.name for f in fields(Exit) if not f.name.startswith("_")]
+            sql = f"create table if not exists exits({','.join(field_names)}, PRIMARY KEY ({'from_vnum, direction'}))"
+            self.db_conn.execute(sql)
 
+            field_names = [f.name for f in fields(Room) if not f.name.startswith("_")]
+            sql = f"create table if not exists rooms({','.join(field_names)}, primary key ({'vnum'}))"
+            self.db_conn.execute(sql)
+
+            self.db_conn.execute(f"pragma user_version={max_sql_version}")
+
+            self.db_conn.commit()
+
+        # Check if we need to run any sql updates to the db
         user_version_current = self.db_conn.execute("pragma user_version").fetchall()[0][0]
-        user_version_new = user_version_current
+        if user_version_current >= max_sql_version:
+            return
 
-        for sql_version, sql in [
-                (1, "alter table exits add column commands"),
-                (1, "update exits set commands = portal_method where portal_method != ''"),
-                (1, """update exits set commands = portal_method || ' ' || portal where portal_method != ''
-                       and portal_method not like '%down' and portal_method not like '%up'
-                       and portal_method not like '%east' and portal_method not like '%west'
-                       and portal_method not like '%north' and portal_method not like '%south'"""),
-                (1, "alter table exits drop column portal"),
-                (1, "alter table exits drop column portal_method"),
-                (1, "create index exits_n1 on exits(to_vnum)"),
-                (1, "alter table rooms drop column navigable"),
-                (1, "alter table rooms add column last_visited"),
-                (1, "alter table rooms add column last_harvested"),
-                (1, "update rooms set last_visited = (select last_visited from room_tracking where room_tracking.vnum = rooms.vnum)"),
-                (1, "update rooms set last_harvested = (select last_harvested from room_tracking where room_tracking.vnum = rooms.vnum)")]:
-
+        for sql_version, sql in sql_updates:
             if sql_version > user_version_current:
                 self.db_conn.execute(sql)
                 user_version_new = sql_version
 
-        if user_version_new > user_version_current:
-            self.db_conn.execute(f"pragma user_version = {user_version_new}")
-
+        self.db_conn.execute(f"pragma user_version = {max_sql_version}")
         self.db_conn.commit()
 
     def delete_room(self, vnum: str):
