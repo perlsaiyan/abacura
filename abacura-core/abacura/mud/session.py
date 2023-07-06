@@ -15,6 +15,7 @@ from rich.segment import Segment, Segments
 from rich.style import Style
 from serum import inject, Context
 from textual import log
+from textual.css.query import NoMatches
 from textual.screen import Screen
 from textual.strip import Strip
 from textual.widgets import TextLog
@@ -69,6 +70,8 @@ class Session(BaseSession):
         self.host = None
         self.port = None
         self.tl: Optional[TextLog] = None
+        self.debugtl: Optional[TextLog] = None
+
         self.core_msdp: MSDP = MSDP(self.output, self.send, self)
         self.options = {}
 
@@ -127,6 +130,10 @@ class Session(BaseSession):
         """Fired on screen mounting, so our Footer is updated and Session gets a TextLog handle"""
         self.screen.query_one(AbacuraFooter).session = self.name
         self.tl = self.screen.query_one(f"#output-{self.name}", expect_type=TextLog)
+        try:
+            self.debugtl = self.screen.query_one("#debug", expect_type=TextLog)
+        except NoMatches:
+            pass
 
         self.plugin_loader = PluginLoader()
         self.plugin_loader.load_plugins(modules=["abacura"], plugin_context=self.core_plugin_context)
@@ -234,6 +241,15 @@ class Session(BaseSession):
         self.tl.lines[-1] = new_strip
         self.tl._line_cache.clear()
         self.tl.render()
+
+    @command(name="debuglog")
+    def debug(self, facility: str = "", msg: str= "", markup: bool = True, highlight: bool=True):
+        """Send output to debug window"""
+        if self.debugtl:
+            date_time = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+            self.debugtl.markup = markup
+            self.debugtl.highlight = highlight
+            self.debugtl.write(f"{date_time} \[{facility}]: {msg}")
 
     def output(self, msg,
                markup: bool = False, highlight: bool = False, ansi: bool = False, actionable: bool = True,

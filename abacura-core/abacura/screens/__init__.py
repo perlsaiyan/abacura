@@ -16,6 +16,7 @@ from textual.message import Message
 
 from textual.screen import Screen
 from textual.widgets import Header, TextLog
+from abacura.widgets.debug import DebugDock
 
 from abacura.config import Config
 from abacura.widgets import CommsLog, InputBar
@@ -71,6 +72,9 @@ class SessionScreen(Screen):
             inspector = Inspector()
             inspector.display = False
             yield inspector
+        debugger = DebugDock(id="debugger")
+        debugger.display = False
+        yield debugger
 
     def on_mount(self) -> None:
         """Screen is mounted, launch it"""
