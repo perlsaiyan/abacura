@@ -1,10 +1,10 @@
+import inspect
+import time
+
 from rich.panel import Panel
 from rich.pretty import Pretty
 from rich.table import Table
 from rich.text import Text
-
-import time
-from typing import Dict, List
 
 from abacura.plugins import Plugin, command, CommandError
 
@@ -96,14 +96,16 @@ class PluginSession(Plugin):
         for cmd in self.director.command_manager.commands:
             if cmd.source == plugin:
                 registrations.append(("command", cmd.name, cmd.callback.__qualname__, cmd.get_description()))
-        #
-        # for evt, pq in self.director.event_manager.events.items():
-        #     for p in pq.queue:
-        #         if p.source == plugin:
-        #             registrations.append(("event", evt, p))
+
+        # Create lookup of members
+        plugin_members = set(v for n, v in inspect.getmembers(plugin, callable))
+        for evt, pq in self.director.event_manager.events.items():
+            for q in pq.queue:
+                if q.handler in plugin_members:
+                    registrations.append(("event", evt, q.handler.__qualname__, ""))
 
         tbl = Table(title=f" Details for Plugin {loaded_plugin.package}.{plugin.get_name()}", title_justify="left")
-        tbl.add_column("Base")
+        tbl.add_column("Type")
         tbl.add_column("Name")
         tbl.add_column("Callback")
         tbl.add_column("Details")
@@ -111,7 +113,6 @@ class PluginSession(Plugin):
             tbl.add_row(*r)
 
         self.output(tbl)
-
 
     @command
     def reload(self, plugin_name: str = "", auto: bool = False):

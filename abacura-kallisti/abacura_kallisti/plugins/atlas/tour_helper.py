@@ -26,16 +26,19 @@ class TourHelper(LOKPlugin):
 
     @command
     def tour(self, start: bool = False, stop: bool = False):
-        """Tour current area"""
+        """Visit rooms in current area according to area .toml file"""
         if stop:
             self.touring = False
             return
 
         if start:
             self.start_tour()
+            return
+
+        raise CommandError("Please specify --start of --stop")
 
     @event("lok.room")
-    def got_room(self, message: RoomMessage):
+    def got_room(self, _message: RoomMessage):
         if not self.touring:
             return
 
@@ -59,10 +62,15 @@ class TourHelper(LOKPlugin):
             self.advance_tour()
 
     def advance_tour(self):
+        visited = len(self.last_response.visited_rooms)
+        reachable = len(self.last_response.reachable_rooms)
+        self.debuglog(f"> TOUR: Visited {visited}/{reachable} [{self.steps_taken} steps taken]")
+
+        if self.last_response.completed_tour:
+            self.output("TOUR COMPLETE!")
+            return
+
         for cmd in self.last_response.exit.get_commands():
             self.send(cmd)
 
         self.steps_taken += 1
-        visited = len(self.last_response.visited_rooms)
-        reachable = len(self.last_response.reachable_rooms)
-        self.output(f"> TOUR: Visited {visited}/{reachable} [{self.steps_taken} steps taken]")

@@ -29,6 +29,8 @@ class TourGuideRequest(AbacuraMessage):
 
 
 class TourGuide(LOKPlugin):
+    """Visit rooms in an area using parameters specified in <area>.toml file"""
+
     def __init__(self):
         super().__init__()
         self.area: Area = self.room.area
@@ -50,19 +52,24 @@ class TourGuide(LOKPlugin):
         if message.start_tour:
             self.start_tour()
 
-        message.response = self.get_next_step(message.follow_blood)
-        self.visited_rooms.add(self.msdp.room_vnum)
         if self.msdp.room_vnum in self.unvisited_rooms:
             self.unvisited_rooms.remove(self.msdp.room_vnum)
+
+        message.response = self.get_next_step(message.follow_blood)
+        self.visited_rooms.add(self.msdp.room_vnum)
         message.response.visited_rooms = self.visited_rooms
         message.response.unvisited_rooms = self.unvisited_rooms
         message.response.reachable_rooms = self.reachable_rooms
 
     def start_tour(self):
+        # if self.area.name == '':
+        #     return TourGuideResponse(error="Tour: Unknown area")
+
         self.visited_rooms = set()
         self.area = self.room.area
         self.telluria_region = 'start'
         self.telluria_moves = ''
+
         self.reachable_rooms = self.navigator.get_reachable_rooms_in_known_area(self.msdp.room_vnum, self.area)
 
         if len(self.area.rooms_to_scout):
@@ -84,6 +91,9 @@ class TourGuide(LOKPlugin):
             trail_step = self.follow_trail(self.room.blood_trail)
             if trail_step.exit:
                 return trail_step
+
+        if len(self.unvisited_rooms) == 0:
+            return TourGuideResponse(completed_tour=True)
 
         if self.area.route == 'NU':
             return self.next_step_nu()

@@ -9,7 +9,7 @@ class Area:
     name: str = ""
     include_areas: Optional[List] = field(default_factory=list)
     route: str = 'LRV'
-    room_range: str = ''
+    room_range: str = '-'
     room_min_level: Dict[str, int] = field(default_factory=dict)
     room_max_level: Dict[str, int] = field(default_factory=dict)
     rooms_to_scout: Set[str] = field(default_factory=set)
@@ -39,16 +39,21 @@ class Area:
         # print('Exclude rooms %s ' % exclude)
         return exclude
 
-    def get_allowed_ranges(self) -> List[Tuple[str]]:
-        ranges = [tuple(r.split("-")) for r in self.room_range.split(",")]
-        return ranges
+    def get_allowed_ranges(self):
+        for r in self.room_range.split(","):
+            s = r.split("-")
+            if len(s) == 2:
+                yield s[0], s[1]
 
     def is_allowed_vnum(self, vnum: str, char_level: int) -> bool:
         if vnum in ['L', 'C', '?', ''] or not vnum.isnumeric():
             return False
 
         ranges = self.get_allowed_ranges()
-        in_range = any(int(rmin) <= int(vnum) <= int(rmax) for rmin, rmax in ranges)
+        try:
+            in_range = any(int(rmin) <= int(vnum) <= int(rmax) for rmin, rmax in ranges)
+        except ValueError:
+            in_range = False
 
         avoid = vnum in self.get_excluded_room_vnums(char_level)
 
