@@ -43,6 +43,6 @@ class LegendsOfKallisti(LOKPlugin):
         
         # reload config, we've changed people
         if msg.subtype == "CHARACTER_NAME":
-            self.output(f"[orange1][italic]# Reloading player conf for {msg.value}", markup=True)
+            self.debuglog(facility="info", msg=f"Reloading player conf for '{msg.value}'")
             self.pc.load(self.config.data_directory(self.session.name), msg.value)
             self.director.alias_manager.load(f"{self.session.name}.aliases")

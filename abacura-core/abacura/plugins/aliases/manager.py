@@ -94,7 +94,7 @@ class AliasManager:
             self.alias_filepath.touch()
 
         if os.path.isfile(self.alias_filepath):
-            self.session.output(f"[bold red]# Import aliases : {self.alias_filepath}", markup=True)
+            self.session.debuglog(msg=f"Import aliases from '{self.alias_filepath}'")
             with open(self.alias_filepath, 'r') as f:
                 toml_structure = tomlkit.load(f)
             aliases: List[Alias] = []

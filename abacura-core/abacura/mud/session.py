@@ -242,8 +242,8 @@ class Session(BaseSession):
         self.tl._line_cache.clear()
         self.tl.render()
 
-    @command()
-    def debuglog(self, _facility: str = "info", msg: str = "", markup: bool = True, highlight: bool=True):
+    @command(name="debuglog")
+    def debuglog_command(self, _facility: str = "info", msg: str = "", markup: bool = True, highlight: bool=True):
         """
         Send output to debug window
 
@@ -252,9 +252,9 @@ class Session(BaseSession):
         :highlight use rich highlighting
         :param msg message to log
         """
-        self.debug(facility=_facility, msg=msg, markup=markup, highlight=highlight)
+        self.debuglog(facility=_facility, msg=msg, markup=markup, highlight=highlight)
 
-    def debug(self, facility: str = "info", msg: str= "", markup: bool = True, highlight: bool=True):
+    def debuglog(self, facility: str = "info", msg: str= "", markup: bool = True, highlight: bool=True):
         if self.debugtl:
             date_time = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
             self.debugtl.markup = markup

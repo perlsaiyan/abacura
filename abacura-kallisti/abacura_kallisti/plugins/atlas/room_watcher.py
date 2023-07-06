@@ -391,5 +391,5 @@ class RoomWatcher(LOKPlugin):
                     setattr(mob, attribute, value)
             new_area.mobs.append(mob)
 
-        self.session.output(f"Loaded {filename}")
+        self.debuglog(msg=f"Loaded area file '{filename}'")
         return new_area
