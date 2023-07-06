@@ -5,7 +5,7 @@ from abacura_kallisti.plugins import LOKPlugin
 from abacura_kallisti.plugins.scripts.tourguide import TourGuideResponse, TourGuideRequest
 
 
-class TourHelper(LOKPlugin):
+class TourDemo(LOKPlugin):
 
     def __init__(self):
         super().__init__()
