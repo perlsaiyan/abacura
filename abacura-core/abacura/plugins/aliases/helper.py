@@ -4,7 +4,7 @@ from rich.panel import Panel
 from rich.pretty import Pretty
 from rich.table import Table
 
-from abacura.plugins import Plugin, command
+from abacura.plugins import Plugin, command, CommandError
 
 
 class AliasCommand(Plugin):
@@ -23,19 +23,19 @@ class AliasCommand(Plugin):
 
         s = alias.split(".")
         if len(s) > 2:
-            raise ValueError('Alias should be of the format <category>.<name>')
+            raise CommandError('Alias should be of the format <category>.<name>')
 
         if _add and _delete:
-            raise ValueError('Cannot specify both add and delete')        
+            raise CommandError('Cannot specify both add and delete')
 
         category = s[0]
 
         if len(s) == 1:
             if _add or _delete:
-                raise ValueError('Cannot add or delete category directly, use <category>.<name>')
+                raise CommandError('Cannot add or delete category directly, use <category>.<name>')
 
             if category not in self.director.alias_manager.get_categories():
-                raise ValueError(f'Unknown category {category}')
+                raise CommandError(f'Unknown category {category}')
 
             aliases = []
 
@@ -55,7 +55,7 @@ class AliasCommand(Plugin):
 
         if _delete:
             if existing_alias is None:
-                raise ValueError(f"Unknown alias {alias}")
+                raise CommandError(f"Unknown alias {alias}")
 
             self.director.alias_manager.delete_alias(alias)
             self.session.output("Alias %s deleted" % alias)
@@ -63,10 +63,10 @@ class AliasCommand(Plugin):
 
         if _add:
             if existing_alias is not None:
-                raise ValueError(f"Alias %s already exists {alias}")
+                raise CommandError(f"Alias %s already exists {alias}")
 
             if value is None:
-                raise ValueError("The alias must have a definition")
+                raise CommandError("The alias must have a definition")
 
             self.director.alias_manager.add_alias(alias, value, _temporary)
             self.session.output("Alias %s added for [%s]" % (alias, value))

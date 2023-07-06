@@ -6,7 +6,7 @@ from rich.style import Style
 from rich.table import Table
 from rich.text import Text
 
-from abacura.plugins import command
+from abacura.plugins import command, CommandError
 from abacura_kallisti.atlas.wilderness import WildernessGrid
 from abacura_kallisti.atlas.world import Room, Exit
 from abacura_kallisti.plugins import LOKPlugin
@@ -124,7 +124,7 @@ class WorldHelper(LOKPlugin):
     #               narrow: bool = False):
     #     """Display flags for a room"""
     #     if self.msdp.room_vnum not in self.world.rooms:
-    #         raise ValueError('Unknown room [%s]' % self.msdp.room_vnum)
+    #         raise CommandError('Unknown room [%s]' % self.msdp.room_vnum)
     #
     #     room = self.world.rooms[self.msdp.room_vnum]
     #     # If the parameter is true, toggle the room value.  ^ is an XOR operation for the toggle.
@@ -146,13 +146,13 @@ class WorldHelper(LOKPlugin):
             if self.msdp.room_vnum in self.world.rooms:
                 area = self.world.rooms[self.msdp.room_vnum].area_name
             else:
-                raise ValueError('Unknown area')
+                raise CommandError('Unknown area')
         else:
             areas = {r.area_name: True for r in self.world.rooms.values()}
             match_areas = [a for a in areas.keys() if a.lower().startswith(area.lower())]
             match_areas.sort(key=lambda a: 100 - abs(len(a) - len(area)))
             if len(match_areas) == 0:
-                raise ValueError('Unknown area %s' % area)
+                raise CommandError('Unknown area %s' % area)
             area = match_areas[0]
 
         rooms = [r for r in self.world.rooms.values() if r.area_name == area]

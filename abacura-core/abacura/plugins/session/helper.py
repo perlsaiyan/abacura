@@ -6,7 +6,7 @@ from rich.text import Text
 import time
 from typing import Dict, List
 
-from abacura.plugins import Plugin, command
+from abacura.plugins import Plugin, command, CommandError
 
 
 class PluginSession(Plugin):
@@ -164,5 +164,5 @@ class PluginSession(Plugin):
     def log(self, like: str = "%", limit: int = 40, minutes_ago: int = 30):
         """Search output log """
         if self.session.ring_buffer is None:
-            raise ValueError("No output log ring buffer configured")
+            raise CommandError("No output log ring buffer configured")
         self.ring_log_query(like, limit, hide_msdp=False, minutes_ago=minutes_ago)

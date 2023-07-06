@@ -8,6 +8,7 @@ from abacura.plugins.actions import Action
 from abacura.plugins.director import Director
 from abacura.plugins.tickers import Ticker
 from abacura.plugins.scripts import ScriptProvider, Script
+from abacura.plugins.commands import CommandError
 
 if TYPE_CHECKING:
     from abacura.mud.options.msdp import MSDP

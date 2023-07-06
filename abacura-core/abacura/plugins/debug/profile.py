@@ -2,7 +2,7 @@
 import importlib
 import io
 
-from abacura.plugins import Plugin, command
+from abacura.plugins import Plugin, command, CommandError
 from rich.table import Table
 
 
@@ -96,7 +96,7 @@ class Profiler(Plugin):
 
         sort_by = [s for s in ('time', 'calls', 'cumulative_time') if s.startswith(_sort.lower())]
         if len(sort_by) == 0:
-            raise ValueError("Invalid sort option.  Valid values are time, calls, cumulative")
+            raise CommandError("Invalid sort option.  Valid values are time, calls, cumulative")
         sort_by = sort_by[0]
 
         # ps = eval("pstats.Stats(self.profiler, stream=s).sort_stats(sort_by)")

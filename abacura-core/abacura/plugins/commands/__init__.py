@@ -6,7 +6,12 @@ from typing import List, Dict, TYPE_CHECKING, Callable
 
 from rich.markup import escape
 from serum import inject
+
 from textual import log
+
+class CommandError(Exception):
+    pass
+
 
 if TYPE_CHECKING:
     from abacura.mud.session import Session
@@ -90,10 +95,10 @@ class Command:
             matched_options = [k for k in command_options.keys() if k.lstrip("_").startswith(so_name.lower())]
 
             if len(matched_options) == 0:
-                raise NameError(f"Invalid option: {so_name}")
+                raise CommandError(f"Invalid option: {so_name}")
 
             if len(matched_options) > 1:
-                raise NameError(f"Ambiguous option: {so_name}")
+                raise CommandError(f"Ambiguous option: {so_name}")
 
             option_name = matched_options[0]
 
@@ -102,7 +107,7 @@ class Command:
                 continue
 
             if so.find("=") < 0:
-                raise ValueError(f"Please specify value for --{option_name.lstrip('_')}")
+                raise CommandError(f"Please specify value for --{option_name.lstrip('_')}")
 
             submitted_value = so.split("=")[1]
 
@@ -167,10 +172,9 @@ class Command:
         for name, p in self.get_options().items():
             if p.annotation in (bool, 'bool'):
                 option_help.append(f"  --{name.lstrip('_'):30s} : {parameter_doc.get(name, '')}")
-            elif p.annotation in ('str'):
-                option_help.append(f"  --{name.lstrip('_'):30s} : {parameter_doc.get(name.lstrip('_'), '')}")
             else:
-                pname = f"{name.lstrip('_') + '=<' + p.annotation.__name__ + '>'}"
+                ptype = getattr(p.annotation, '__name__', p.annotation)
+                pname = f"{name.lstrip('_') + '=<' + ptype + '>'}"
                 option_help.append(f"  --{pname:30s} : {parameter_doc.get(name, '')}")
 
         if len(option_help):
@@ -243,7 +247,7 @@ class CommandManager:
             self.session.output(f"[gray][italic]> {escape(command.get_help())}", markup=True, highlight=True)
             return True
 
-        except (ValueError, NameError) as e:
+        except CommandError as e:
             self.session.show_exception(f"[bold red]# ERROR: {command.name}: {repr(e)}", e, show_tb=False)
             return True
 

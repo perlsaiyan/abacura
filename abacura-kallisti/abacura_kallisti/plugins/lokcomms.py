@@ -7,7 +7,7 @@ import re
 from textual.widgets import TextLog
 
 from abacura.mud import OutputMessage
-from abacura.plugins import action, command
+from abacura.plugins import action, command, CommandError
 from abacura_kallisti.plugins import LOKPlugin
 
 class LOKComms(LOKPlugin):
@@ -222,10 +222,10 @@ class LOKComms(LOKPlugin):
     def comms_toggle(self, channel_or_speaker: str=None, name: str=None, on_off: str=""):
         
         if channel_or_speaker is None:
-            raise ValueError("Must give channel or speaker.")
+            raise CommandError("Must give channel or speaker.")
         
         if name is None:
-            raise ValueError("Must provide a channel or speaker.")
+            raise CommandError("Must provide a channel or speaker.")
         
         name = name.lower()
         if on_off in ["on", "off"]:
@@ -235,7 +235,7 @@ class LOKComms(LOKPlugin):
                     self.comms_toggles[name] = on_off
                     self.session.output(f"Comms window output for channel: {name} is {on_off}.")
                 else:
-                    raise ValueError(f"'{name}' not in list of valid channels.")
+                    raise CommandError(f"'{name}' not in list of valid channels.")
             elif channel_or_speaker == "speaker":
                 if name in self.comms_gag_entities and on_off == 'on':
                     self.comms_gag_entities.remove(name)
@@ -245,7 +245,7 @@ class LOKComms(LOKPlugin):
                 self.session.output(f"Comms window output for speaker: {name} is {on_off}.")
 
             else:
-                raise ValueError("Valid options are 'channel' or 'speaker'.")
+                raise CommandError("Valid options are 'channel' or 'speaker'.")
         else:
-            raise ValueError("Valid options are 'on' or 'off'.")
+            raise CommandError("Valid options are 'on' or 'off'.")
         
