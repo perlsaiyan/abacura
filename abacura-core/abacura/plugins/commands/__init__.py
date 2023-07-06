@@ -167,6 +167,8 @@ class Command:
         for name, p in self.get_options().items():
             if p.annotation in (bool, 'bool'):
                 option_help.append(f"  --{name.lstrip('_'):30s} : {parameter_doc.get(name, '')}")
+            elif p.annotation in ('str'):
+                option_help.append(f"  --{name.lstrip('_'):30s} : {parameter_doc.get(name.lstrip('_'), '')}")
             else:
                 pname = f"{name.lstrip('_') + '=<' + p.annotation.__name__ + '>'}"
                 option_help.append(f"  --{pname:30s} : {parameter_doc.get(name, '')}")
