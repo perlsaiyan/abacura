@@ -9,7 +9,7 @@ from serum import inject
 from textual import log
 from textual.widget import Widget
 
-from abacura.plugins import Plugin
+from abacura.plugins import Plugin, CommandError
 from abacura_kallisti.atlas.world import World
 from abacura_kallisti.atlas.room import ScannedRoom
 from abacura_kallisti.plugins.msdp import TypedMSDP
@@ -49,16 +49,16 @@ class LOKPlugin(Plugin):
     # def parse_direction(direction: str):
     #     matches = [s for s in CARDINAL_DIRECTIONS if s.startswith(direction.lower())]
     #     if len(matches) == 0:
-    #         raise ValueError("Invalid direction %s" % direction)
+    #         raise CommandError("Invalid direction %s" % direction)
     #     elif len(matches) > 1:
-    #         raise ValueError("Ambiguous direction %s" % direction)
+    #         raise CommandError("Ambiguous direction %s" % direction)
     #     return matches[0]
     #
     # def parse_destination(self, destination: str):
     #
     # def parse_vnum(self, vnum: str):
     #     if vnum not in self.world.rooms:
-    #         raise ValueError('Unknown room [%s]' % vnum)
+    #         raise CommandError('Unknown room [%s]' % vnum)
     #
     #     return self.world.rooms[vnum]
 
@@ -71,7 +71,7 @@ class LOKPlugin(Plugin):
             vnum = self.msdp.room_vnum
         # elif submitted_value.lower() == 'guild':
         #     if self.msdp.cls not in GUILDS:
-        #         raise ValueError("Guild unknown for class %s" % self.msdp.cls)
+        #         raise CommandError("Guild unknown for class %s" % self.msdp.cls)
         #     vnum = GUILDS[self.msdp.cls]
         else:
             location = self.locations.get_location(submitted_value)
@@ -83,7 +83,7 @@ class LOKPlugin(Plugin):
         if vnum in self.world.rooms:
             return self.world.rooms[vnum]
 
-        raise ValueError(f'Unknown room [{submitted_value}]')
+        raise CommandError(f'Unknown room [{submitted_value}]')
 
 
 _WIDGETS_LAZY_LOADING_CACHE: dict[str, type[Widget]] = {}

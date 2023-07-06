@@ -36,7 +36,7 @@ class NavigationHelper(LOKPlugin):
 
         tbl.add_column("Vnum", justify="right")
         tbl.add_column("To Vnum", justify="right")
-        tbl.add_column("Command")
+        tbl.add_column("Commands")
         tbl.add_column("Direction")
         tbl.add_column("Door")
         tbl.add_column("Closes")
@@ -49,7 +49,7 @@ class NavigationHelper(LOKPlugin):
                 terrain = self.world.rooms[step.exit.to_vnum].terrain_name
                 # area = self.world.rooms[step.exit.to_vnum].area_name
 
-                record = (step.vnum, step.exit.to_vnum, step.get_command(), step.exit.direction, step.exit.door,
+                record = (step.vnum, step.exit.to_vnum, step.exit.get_commands(), step.exit.direction, step.exit.door,
                           bool(step.exit.closes), bool(step.exit.locks), step.cost, terrain)
                 tbl.add_row(*map(str, record))
 

@@ -94,11 +94,11 @@ class NavigationScript(LOKPlugin):
             if step.vnum != self.msdp.room_vnum:
                 continue
 
-            if step.open and self.msdp.room_exits.get(step.exit.direction) != 'C':
-                continue
+            for cmd in step.exit.get_commands():
+                if cmd.startswith("open") and self.msdp.room_exits.get(step.exit.direction) != 'C':
+                    continue
 
-            cmd = step.get_command()
-            self.send(cmd)
+                self.send(cmd)
 
     def look_and_retry(self):
         if self.navigation_path:

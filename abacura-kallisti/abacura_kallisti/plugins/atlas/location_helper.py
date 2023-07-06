@@ -1,6 +1,6 @@
 from rich.table import Table
 
-from abacura.plugins import command
+from abacura.plugins import command, CommandError
 from abacura_kallisti.atlas.world import Room
 from abacura_kallisti.plugins import LOKPlugin
 
@@ -23,19 +23,19 @@ class LocationHelper(LOKPlugin):
 
         s = location.split(".")
         if len(s) > 2:
-            raise ValueError('Location should be of the format <category>.<name>')
+            raise CommandError('Location should be of the format <category>.<name>')
 
         if add and delete:
-            raise ValueError('Cannot specify both add and delete')
+            raise CommandError('Cannot specify both add and delete')
 
         category = s[0]
 
         if len(s) == 1:
             if add or delete:
-                raise ValueError('Cannot add or delete category directly, use <category>.<name>')
+                raise CommandError('Cannot add or delete category directly, use <category>.<name>')
 
             if category not in self.locations.get_categories():
-                raise ValueError(f'Unknown category {category}')
+                raise CommandError(f'Unknown category {category}')
 
             rooms = []
 
@@ -68,7 +68,7 @@ class LocationHelper(LOKPlugin):
 
         if delete:
             if existing_location is None:
-                raise ValueError(f"Unknown location {location}")
+                raise CommandError(f"Unknown location {location}")
 
             self.locations.delete_location(location)
             self.session.output("Alias %s deleted" % location)
@@ -77,7 +77,7 @@ class LocationHelper(LOKPlugin):
 
         if add:
             if existing_location is not None:
-                raise ValueError(f"Alias %s already exists {location}")
+                raise CommandError(f"Alias %s already exists {location}")
 
             if destination is None:
                 destination = self.world.rooms[self.msdp.room_vnum]
@@ -87,10 +87,10 @@ class LocationHelper(LOKPlugin):
             return
 
         if existing_location is None:
-            raise ValueError(f"Unknown location '{location}'")
+            raise CommandError(f"Unknown location '{location}'")
 
         if existing_location.vnum not in self.world.rooms:
-            raise ValueError(f'Alias {location} points to missing room {existing_location.vnum}')
+            raise CommandError(f'Alias {location} points to missing room {existing_location.vnum}')
 
         location_room = self.world.rooms[existing_location.vnum]
         self.session.output(f"{location} points to {existing_location.vnum} in {location_room.area_name}")

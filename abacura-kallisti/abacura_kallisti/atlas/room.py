@@ -37,6 +37,18 @@ class Exit:
     def temporary(self) -> bool:
         return self._temporary
 
+    def get_commands(self) -> List[str]:
+        if self.commands:
+            return self.commands.split(";")
+
+        if self.closes:
+            return [f"open {self.door or 'door'} {self.direction}", self.direction]
+
+        if self.direction in ['home', 'depart', 'recall']:
+            return [self.direction]
+
+        return [self.direction[0]]
+
 
 @dataclass(slots=True)
 class Room:
