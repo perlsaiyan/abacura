@@ -83,7 +83,7 @@ class LOKPlugin(Plugin):
         if vnum in self.world.rooms:
             return self.world.rooms[vnum]
 
-        raise CommandError(f'Unknown room [{submitted_value}]')
+        raise CommandError(f"Unknown room '{submitted_value}'")
 
 
 _WIDGETS_LAZY_LOADING_CACHE: dict[str, type[Widget]] = {}

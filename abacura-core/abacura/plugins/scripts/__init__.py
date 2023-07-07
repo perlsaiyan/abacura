@@ -40,7 +40,7 @@ class ScriptManager:
         self.scripts: Dict[str, Script] = {}
 
     def register_object(self, obj: object):
-        self.unregister_object(obj)  # prevent duplicates
+        # self.unregister_object(obj)  # prevent duplicates
         for name, member in inspect.getmembers(obj, callable):
             if hasattr(member, "script_name"):
                 s = Script(source=obj, script_fn=member, name=getattr(member, "script_name"), session=self.session)

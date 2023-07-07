@@ -9,6 +9,10 @@ from serum import inject
 
 from textual import log
 
+class CommandArgumentError(Exception):
+    pass
+
+
 class CommandError(Exception):
     pass
 
@@ -62,7 +66,7 @@ class Command:
 
         for parameter in command_parameters:
             if parameter.default is inspect.Parameter.empty and len(submitted_arguments) == 0:
-                raise AttributeError(f"Missing argument {parameter.name}")
+                raise CommandArgumentError(f"Missing argument {parameter.name}")
 
             if len(submitted_arguments) > 0:
                 if parameter.name.lower() == 'text':
@@ -95,10 +99,10 @@ class Command:
             matched_options = [k for k in command_options.keys() if k.lstrip("_").startswith(so_name.lower())]
 
             if len(matched_options) == 0:
-                raise CommandError(f"Invalid option: {so_name}")
+                raise CommandArgumentError(f"Invalid option: {so_name}")
 
             if len(matched_options) > 1:
-                raise CommandError(f"Ambiguous option: {so_name}")
+                raise CommandArgumentError(f"Ambiguous option: {so_name}")
 
             option_name = matched_options[0]
 
@@ -107,7 +111,7 @@ class Command:
                 continue
 
             if so.find("=") < 0:
-                raise CommandError(f"Please specify value for --{option_name.lstrip('_')}")
+                raise CommandArgumentError(f"Please specify value for --{option_name.lstrip('_')}")
 
             submitted_value = so.split("=")[1]
 
@@ -192,7 +196,7 @@ class CommandManager:
         self.commands: List[Command] = []
 
     def register_object(self, obj: object):
-        self.unregister_object(obj)  #  prevent duplicates
+        # self.unregister_object(obj)  #  prevent duplicates
         for name, member in inspect.getmembers(obj, callable):
             if hasattr(member, "command_name"):
                 log(f"Appending command function '{member.command_name}'")
@@ -243,7 +247,7 @@ class CommandManager:
             if message:
                 self.session.output(message)
 
-        except AttributeError as e:
+        except CommandArgumentError as e:
             self.session.show_exception(f"[bold red]# ERROR: {command.name}: {repr(e)}", e, show_tb=False)
             self.session.output(f"[gray][italic]> {escape(command.get_help())}", markup=True, highlight=True)
             return True

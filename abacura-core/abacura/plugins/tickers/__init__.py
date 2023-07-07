@@ -41,7 +41,7 @@ class TickerManager:
         self.tickers: List[Ticker] = []
 
     def register_object(self, obj: object):
-        self.unregister_object(obj)  # prevent duplicates
+        # self.unregister_object(obj)  # prevent duplicates
         for name, member in inspect.getmembers(obj, callable):
             if hasattr(member, "ticker_seconds"):
                 t = Ticker(source=obj, callback=member, seconds=getattr(member, "ticker_seconds"),
