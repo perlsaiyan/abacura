@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import inspect
 import shlex
-from typing import List, Dict, TYPE_CHECKING, Callable
+from typing import List, Dict, TYPE_CHECKING, Callable, Tuple
 
 from rich.markup import escape
 from serum import inject
@@ -205,9 +205,7 @@ class CommandManager:
     def unregister_object(self, obj: object):
         self.commands = [a for a in self.commands if a.source != obj]
 
-    def execute_command(self, command_line: str) -> bool:
-        if not len(command_line):
-            return False
+    def parse_command_line(self, command_line: str) -> Tuple[Command, List[str]]:
 
         # remove leading @
         if command_line.startswith("##") and len(command_line) > 2:
@@ -232,28 +230,32 @@ class CommandManager:
             # use the partial match if there is only 1
             command = starts[0]
         elif len(starts) == 0:
-            error_msg = f"Unknown Command {submitted_command}"
-            self.session.output(f"[orange1][italic]> {escape(error_msg)}", markup=True, highlight=True)
-            return False
+            raise CommandError(f"Unknown Command {submitted_command}")
         else:
             matches = ", ".join([cmd.name for cmd in starts])
-            error_msg = f"Ambiguous command '{submitted_command}' [{matches}]"
-            self.session.output(f"[orange1][italic]> {escape(error_msg)}", markup=True, highlight=True)
+            raise CommandError(escape(f"Ambiguous command '{submitted_command}' [{matches}]"))
+
+        return command, submitted_args
+
+    def execute_command(self, command_line: str) -> bool:
+        if not len(command_line):
             return False
 
         try:
+            command, submitted_args = self.parse_command_line(command_line)
             self.session.output(f"[green][italic]> {escape(command_line)}", markup=True, highlight=True)
             message = command.execute(submitted_args)
             if message:
                 self.session.output(message)
 
-        except CommandArgumentError as e:
-            self.session.show_exception(f"[bold red]# ERROR: {command.name}: {repr(e)}", e, show_tb=False)
+        except CommandArgumentError as exc:
+            self.session.show_exception(f"[bold red]# ERROR: {command.name}: {repr(exc)}", exc, show_tb=False)
             self.session.output(f"[gray][italic]> {escape(command.get_help())}", markup=True, highlight=True)
-            return True
 
-        except CommandError as e:
-            self.session.show_exception(f"[bold red]# ERROR: {command.name}: {repr(e)}", e, show_tb=False)
-            return True
+        except CommandError as exc:
+            self.session.show_exception(f"[bold red]# ERROR: {command.name}: {repr(exc)}", exc, show_tb=False)
+
+        except Exception as exc:
+            self.session.show_exception(str(exc), exc, show_tb=True)
 
         return True
