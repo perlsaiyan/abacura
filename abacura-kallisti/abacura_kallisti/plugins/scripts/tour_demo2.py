@@ -74,6 +74,7 @@ class TourDemo2(LOKPlugin):
     def advance_tour(self):
         response = self.tour_guide.get_next_step(self.room)
 
+
         if response.error:
             self.output(f"> TOUR ERROR {response.error}")
             self.tour_guide = None

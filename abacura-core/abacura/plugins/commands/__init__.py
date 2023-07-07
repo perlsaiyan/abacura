@@ -192,6 +192,7 @@ class CommandManager:
         self.commands: List[Command] = []
 
     def register_object(self, obj: object):
+        self.unregister_object(obj)  #  prevent duplicates
         for name, member in inspect.getmembers(obj, callable):
             if hasattr(member, "command_name"):
                 log(f"Appending command function '{member.command_name}'")

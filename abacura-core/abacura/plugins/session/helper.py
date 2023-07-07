@@ -44,15 +44,15 @@ class PluginSession(Plugin):
         for name, loaded_plugin in self.session.plugin_loader.plugins.items():
             plugin = loaded_plugin.plugin
             base = plugin.__class__.__base__.__name__
-            indicator = '✓' if plugin.plugin_enabled else 'x'
-            indicator_color = "bold green" if plugin.plugin_enabled else 'bold red'
+            indicator = '✓' if plugin.register_actions else 'x'
+            indicator_color = "bold green" if plugin.register_actions else 'bold red'
             plugin_rows.append((base, plugin.get_name(), plugin.get_help() or '', Text(indicator, style=indicator_color)))
 
         tbl = Table(title=f" Currently Registered Plugins", title_justify="left")
         tbl.add_column("Type")
         tbl.add_column("Plugin Name")
         tbl.add_column("Description")
-        tbl.add_column("Enabled")
+        tbl.add_column("Register Actions")
 
         for row in sorted(plugin_rows):
             tbl.add_row(*row)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable
 
-from serum import inject
+from serum import Context
 
 from abacura.plugins.actions import Action
 from abacura.plugins.director import Director
@@ -25,18 +25,18 @@ class ContextProvider:
         return {}
 
 
-@inject
 class Plugin:
     """Generic Plugin Class"""
-    session: Session
-    config: Config
-    director: Director
-    scripts: ScriptProvider
-    core_msdp: MSDP
+    _context: Context
 
     def __init__(self):
         # super().__init__()
-        self.plugin_enabled = True
+        self.session: Session = self._context['session']
+        self.config: Config = self._context['config']
+        self.director: Director = self._context['director']
+        self.scripts: ScriptProvider = self._context['scripts']
+        self.core_msdp: MSDP = self._context['core_msdp']
+        self.register_actions = True
         self.output = self.session.output
         self.debuglog = self.session.debuglog
         self.dispatcher = self.director.event_manager.dispatcher

@@ -32,7 +32,9 @@ class Director:
         self.script_provider = ScriptProvider(self.script_manager)
 
     def register_object(self, obj: object):
-        self.action_manager.register_object(obj)
+        if getattr(obj, "register_actions", True):
+            self.action_manager.register_object(obj)
+
         self.ticker_manager.register_object(obj)
         self.command_manager.register_object(obj)
         self.event_manager.register_object(obj)

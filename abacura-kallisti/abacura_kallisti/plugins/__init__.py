@@ -32,18 +32,18 @@ __all__ = [
 __LOCAL_CLASSES__ = ["LOKPlugin"]
 
 
-@inject
 class LOKPlugin(Plugin):
-    """Subclass of standard Plugin to allow insertion of Kallisti """
-    msdp: TypedMSDP
-    world: World
-    cq: QueueManager
-    pc: PlayerCharacter
-    locations: LocationList
-    room: ScannedRoom
+    """Subclass of standard Plugin with additional Kallisti Specifics """
 
     def __init__(self):
         super().__init__()
+
+        self.msdp: TypedMSDP = self._context['msdp']
+        self.world: World = self._context['world']
+        self.cq: QueueManager = self._context['cq']
+        self.pc: PlayerCharacter = self._context['pc']
+        self.locations: LocationList = self._context['locations']
+        self.room: ScannedRoom = self._context['room']
 
     # @staticmethod
     # def parse_direction(direction: str):

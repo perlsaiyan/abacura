@@ -59,8 +59,8 @@ class PluginLoader:
         # Look for plugins subclasses within the module we just loaded and create a PluginHandler for each
         for name, cls in inspect.getmembers(module, inspect.isclass):
             if cls.__module__ == module.__name__ and inspect.isclass(cls) and issubclass(cls, Plugin):
-                with plugin_context:
-                    plugin_instance: Plugin = cls()
+                cls._context = plugin_context
+                plugin_instance: Plugin = cls()
 
                 plugin_name = plugin_instance.get_name()
                 if plugin_name not in self.plugins:
