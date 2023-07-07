@@ -270,6 +270,7 @@ class RoomWatcher(LOKPlugin):
 
         # TODO: Make the latest available scanned room available somewhere
         # self.msdp.room = self.scanned_room
+        self.scanned_room.msdp_exits = self.msdp.room_exits
 
         if self.debug:
             self.show_debug()
@@ -277,8 +278,6 @@ class RoomWatcher(LOKPlugin):
         self.world.visited_room(area_name=self.msdp.area_name, name=self.msdp.room_name, vnum=self.msdp.room_vnum,
                                 terrain=self.msdp.room_terrain, room_exits=self.msdp.room_exits,
                                 scan_room=self.scanned_room)
-
-        self.dispatcher(RoomMessage(vnum=self.scanned_room.vnum, room=self.scanned_room))
 
         if self.scanned_room.vnum in self.world.rooms:
             room = self.world.rooms[self.scanned_room.vnum]
@@ -292,9 +291,12 @@ class RoomWatcher(LOKPlugin):
         if self.scanned_room.area.name != self.msdp.area_name:
             self.scanned_room.area = self.load_area(self.msdp.area_name)
 
+
         # Do not create a new instance of self.room since a reference is held by all plugins
         for f in dataclasses.fields(ScannedRoom):
             setattr(self.room, f.name, getattr(self.scanned_room, f.name))
+
+        self.dispatcher(RoomMessage(vnum=self.scanned_room.vnum, room=self.scanned_room))
 
         self.scanned_room = None
 

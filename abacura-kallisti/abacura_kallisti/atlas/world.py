@@ -140,7 +140,7 @@ class World:
                         silent=existing_room.silent, no_magic=existing_room.no_magic or no_magic,
                         no_recall=existing_room.no_recall or no_recall, set_recall=set_recall,
                         deathtrap=existing_room.deathtrap, peaceful=existing_room.peaceful,
-                        last_visited=datetime.utcnow(), last_harvested=existing_room.last_harvested)
+                        last_visited=str(datetime.utcnow()), last_harvested=existing_room.last_harvested)
 
         self.rooms[vnum] = new_room
         self._save_room(vnum)
