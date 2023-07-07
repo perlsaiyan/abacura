@@ -55,8 +55,8 @@ class Plugin:
     def remove_action(self, name: str):
         self.director.action_manager.remove(name)
 
-    def add_ticker(self, seconds: float, callback_fn: Callable, repeats: int = -1, name: str = ''):
-        t = Ticker(source=self, seconds=seconds, callback=callback_fn, repeats=repeats, name=name)
+    def add_ticker(self, seconds: float, callback_fn: Callable, repeats: int = -1, name: str = '', commands: str = ''):
+        t = Ticker(source=self, seconds=seconds, callback=callback_fn, repeats=repeats, name=name, commands=commands)
         self.director.ticker_manager.add(t)
 
     def remove_ticker(self, name: str):
