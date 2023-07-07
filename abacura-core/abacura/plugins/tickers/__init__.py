@@ -11,9 +11,11 @@ if TYPE_CHECKING:
 
 
 class Ticker:
-    def __init__(self, source: object, callback: Callable, seconds: float, repeats: int = -1, name: str = ''):
+    def __init__(self, source: object, callback: Callable, seconds: float, repeats: int = -1,
+                 name: str = '', commands: str = ''):
         self.source: object = source
         self.callback: Callable = callback
+        self.commands: str = commands
         self.seconds: float = seconds
         self.repeats: int = repeats
         self.name: str = name
