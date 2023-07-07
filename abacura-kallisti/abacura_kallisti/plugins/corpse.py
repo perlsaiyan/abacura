@@ -18,6 +18,8 @@ class CorpseMessage(AbacuraMessage):
 
 
 class CorpseScanner(LOKPlugin):
+    """Send an event after looking at a corpse"""
+
     def __init__(self):
         super().__init__()
         self.last_size = ''

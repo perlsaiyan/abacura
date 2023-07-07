@@ -26,6 +26,13 @@ class LoadedPlugin:
     context: Context
 
 
+@dataclass
+class Failure:
+    package: str
+    context: Context
+    error: str
+
+
 class PluginLoader:
     """Loads all plugins and registers them"""
 
@@ -47,20 +54,25 @@ class PluginLoader:
         except ModuleNotFoundError as exc:
             session = plugin_context['session']
             session.show_exception(f"[bold red]# ERROR LOADING PLUGIN {package}:  {repr(exc)}", exc, show_tb=False)
-            self.failures.append(str(package))
+            self.failures.append(Failure(package, plugin_context, str(exc)))
             return
         except Exception as exc:
-            # TODO: Fix this hack to grab the session, maybe track the failed loads and return a list of failures
             session = plugin_context['session']
             session.show_exception(f"[bold red]# ERROR LOADING PLUGIN {package}:  {repr(exc)}", exc)
-            self.failures.append(str(package))
+            self.failures.append(Failure(package, plugin_context, str(exc)))
             return
 
         # Look for plugins subclasses within the module we just loaded and create a PluginHandler for each
         for name, cls in inspect.getmembers(module, inspect.isclass):
             if cls.__module__ == module.__name__ and inspect.isclass(cls) and issubclass(cls, Plugin):
                 cls._context = plugin_context
-                plugin_instance: Plugin = cls()
+                try:
+                    plugin_instance: Plugin = cls()
+                except Exception as exc:
+                    session = plugin_context['session']
+                    session.show_exception(f"[bold red]# ERROR LOADING PLUGIN {package}:  {repr(exc)}", exc)
+                    self.failures.append(Failure(package, plugin_context, str(exc)))
+                    continue
 
                 plugin_name = plugin_instance.get_name()
                 if plugin_name not in self.plugins:
@@ -146,3 +158,13 @@ class PluginLoader:
 
         for pf in reloads:
             self.reload_package_file(pf)
+
+        retries = self.failures
+        self.failures = []
+
+        for failure in retries:
+            session = failure.context['session']
+            if session:
+                session.output(f"[orange1][italic]> reloading failed {failure.package}", markup=True)
+
+            self.load_package(failure.package, failure.context, reload=True)
