@@ -13,7 +13,7 @@ class PluginSession(Plugin):
     def __init__(self):
         super().__init__()
         if self.session.ring_buffer:
-            self.add_ticker(1, self.session.ring_buffer.commit)
+            self.add_ticker(1, self.session.ring_buffer.commit, name="ring-autocommit")
 
     """Session specific commands"""
     @command(name="echo")

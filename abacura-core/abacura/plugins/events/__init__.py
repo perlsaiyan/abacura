@@ -45,7 +45,7 @@ class EventManager:
         self.events: Dict[str, PriorityQueue] = {}
 
     def register_object(self, obj: object):
-        self.unregister_object(obj)  # prevent duplicates
+        # self.unregister_object(obj)  # prevent duplicates
 
         # Look for listeners in the plugin
         for member_name, member in inspect.getmembers(obj, callable):
