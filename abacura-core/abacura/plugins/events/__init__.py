@@ -1,12 +1,13 @@
 """Common stuff for mud.events module"""
-from dataclasses import dataclass
 import inspect
+from dataclasses import dataclass, field
 from queue import PriorityQueue
-from typing import Dict
+from typing import Dict, Callable
 
 from textual import log
 
 from abacura import Config
+
 
 @dataclass
 class AbacuraMessage:
@@ -14,29 +15,20 @@ class AbacuraMessage:
     event_type: str
     value: str = ""
 
+
+@dataclass(order=True)
 class EventTask:
-    """Class to support queue-able events"""
-    def __init__(self, handler):
-        self.priority = handler.priority
-        self.handler = handler
-
-    def __lt__(self, other):
-        return self.priority < other.priority
-
-    def __gt__(self, other):
-        return self.priority > other.priority
-
-    def __eq__(self, other):
-        return self.priority == other.priority
+    priority: int
+    source: object = field(compare=False)
+    handler: Callable = field(compare=False)
+    trigger: str
 
 
 def event(trigger: str = '', priority: int = 5):
     """Decorator for event functions"""
     def add_event(fn):
-
-        fn.event_name = fn.__name__
         fn.event_trigger = trigger
-        fn.priority = priority
+        fn.event_priority = priority
 
         return fn
 
@@ -52,33 +44,28 @@ class EventManager:
         log("Booting EventManager")
         self.events: Dict[str, PriorityQueue] = {}
 
-    def register_object(self, obj):
+    def register_object(self, obj: object):
         self.unregister_object(obj)  # prevent duplicates
+
         # Look for listeners in the plugin
         for member_name, member in inspect.getmembers(obj, callable):
-            if hasattr(member, 'event_name'):
+            if hasattr(member, 'event_trigger'):
                 log(f"Appending listener function '{member_name}'")
-                self.listener(member)
+                self.listener(member, source=obj)
 
-    def unregister_object(self, obj):
-        for member_name, member in inspect.getmembers(obj, callable):
-            if hasattr(member, 'event_name'):
-                log(f"Removing listener function '{member_name}'")
-                self.remove_listener(member)
+    def unregister_object(self, obj: object):
+        for trigger, pq in self.events.items():
+            for item in pq.queue:
+                if item.source == obj:
+                    pq.queue.remove(item)
 
-    def remove_listener(self, event_handler: callable):
-        if event_handler.event_trigger in self.events:
-            try:
-                self.events[event_handler.event_trigger].queue.remove(event_handler)
-            except ValueError:
-                log(f"Listener not found when unregistering {event_handler} from {event_handler.event_trigger}")
+    def listener(self, listener: Callable, source: object = None):
+        """Add an event listener"""
+        trigger: str = getattr(listener, "event_trigger")
+        task = EventTask(handler=listener, source=source, trigger=trigger,
+                         priority=getattr(listener, "event_priority"))
 
-    def listener(self, new_event: callable):
-        """Add an event listener to a queue"""
-        if new_event.event_trigger not in self.events:
-            self.events[new_event.event_trigger] = PriorityQueue()
-
-        self.events[new_event.event_trigger].put(EventTask(new_event))
+        self.events.setdefault(trigger, PriorityQueue()).put(task)
 
     # def get_events(self, trigger):
     #     """Return list of EventTasks in a queue"""

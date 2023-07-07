@@ -1,18 +1,16 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Callable
-import inspect
 
 from serum import inject, Context
 
 from abacura.plugins.actions import ActionManager
-from abacura.plugins.commands import CommandManager
-from abacura.plugins.tickers import TickerManager
 from abacura.plugins.aliases.manager import AliasManager
+from abacura.plugins.commands import CommandManager
 from abacura.plugins.events import EventManager
 from abacura.plugins.scripts import ScriptManager, ScriptProvider
-from dataclasses import dataclass
-
+from abacura.plugins.tickers import TickerManager
 
 if TYPE_CHECKING:
     from abacura.mud.session import Session
@@ -64,7 +62,7 @@ class Director:
             if script.source == obj:
                 registrations.append(Registration("script", script.name, script.script_fn, ""))
 
-        for act in self.action_manager.actions:
+        for act in self.action_manager.actions.queue:
             if act.source == obj:
                 registrations.append(Registration("action", act.name, act.callback, act.pattern))
 
@@ -78,10 +76,9 @@ class Director:
                 registrations.append(Registration("command", cmd.name, cmd.callback, cmd.get_description()))
 
         # Create lookup of members
-        obj_members = set(v for n, v in inspect.getmembers(obj, callable))
-        for evt, pq in self.event_manager.events.items():
-            for q in pq.queue:
-                if q.handler in obj_members:
-                    registrations.append(Registration("event", evt, q.handler, ""))
+        for trigger, pq in self.event_manager.events.items():
+            for et in pq.queue:
+                if et.source == obj:
+                    registrations.append(Registration("event", et.trigger, et.handler, f"priority={et.priority}"))
 
         return registrations

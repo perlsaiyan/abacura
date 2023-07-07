@@ -65,7 +65,7 @@ class TourDemo2(LOKPlugin):
         self.output(tbl)
 
     @event("lok.room")
-    def got_room(self, _message: RoomMessage):
+    def got_room2(self, _message: RoomMessage):
         if not self.tour_guide:
             return
 
@@ -73,7 +73,6 @@ class TourDemo2(LOKPlugin):
 
     def advance_tour(self):
         response = self.tour_guide.get_next_step(self.room)
-
 
         if response.error:
             self.output(f"> TOUR ERROR {response.error}")
