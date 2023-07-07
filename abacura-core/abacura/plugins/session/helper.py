@@ -59,11 +59,22 @@ class PluginSession(Plugin):
         self.output(tbl)
         self.output("\n")
 
+    def show_failures(self):
+        if len(self.session.plugin_loader.failures):
+            tbl = Table(title="Failed Package Loads", title_justify="left")
+            tbl.add_column("Package")
+            tbl.add_column("Error")
+            for failure in self.session.plugin_loader.failures:
+                tbl.add_row(failure.package, failure.error)
+            self.output("\n")
+            self.output(tbl)
+
     @command
     def plugins(self, name: str = '') -> None:
         """Get information about plugins"""
         if not name:
             self.show_all_plugins()
+            self.show_failures()
             return
 
         loaded_plugins = self.session.plugin_loader.plugins
