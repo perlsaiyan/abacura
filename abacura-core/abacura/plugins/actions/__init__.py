@@ -46,6 +46,7 @@ class ActionManager:
         self.actions: List[Action] = []
 
     def register_object(self, obj: object):
+        self.unregister_object(obj)  # prevent duplicates
         for name, member in inspect.getmembers(obj, callable):
             if hasattr(member, "action_pattern"):
                 act = Action(pattern=getattr(member, "action_pattern"), callback=member, source=obj,
