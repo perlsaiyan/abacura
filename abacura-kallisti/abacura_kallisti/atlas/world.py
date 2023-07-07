@@ -50,7 +50,7 @@ class World:
             return
 
         del room.exits[direction]
-        self._save_room(vnum)
+        self.save_room(vnum)
 
     def set_exit(self, vnum: str, direction: str, door: str = '', to_vnum: str = None, commands: str = ''):
         if vnum not in self.rooms:
@@ -66,7 +66,7 @@ class World:
 
         room.exits[direction] = exit
 
-        self._save_room(vnum)
+        self.save_room(vnum)
 
     def search(self, word: str) -> List[Room]:
         word = word.lower()
@@ -143,7 +143,7 @@ class World:
                         last_visited=str(datetime.utcnow()), last_harvested=existing_room.last_harvested)
 
         self.rooms[vnum] = new_room
-        self._save_room(vnum)
+        self.save_room(vnum)
 
     def create_tables(self):
 
@@ -205,7 +205,7 @@ class World:
         self.db_conn.execute("delete from room_tracking where vnum = ? ", vnum)
         self.db_conn.execute("delete from rooms where vnum = ? ", vnum)
 
-    def _save_room(self, vnum: str):
+    def save_room(self, vnum: str):
         if vnum not in self.rooms:
             return
 

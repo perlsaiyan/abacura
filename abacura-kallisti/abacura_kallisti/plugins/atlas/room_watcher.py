@@ -54,7 +54,8 @@ class RoomWatcher(LOKPlugin):
             if not r.no_magic or not r.no_recall:
                 r.no_magic = True
                 r.no_recall = True
-                self.session.show(f'Marked room no recall/magic [{r.vnum}]')
+                self.output(f'[orange1]Marked room no recall/magic [{r.vnum}]', markup=True)
+                self.world.save_room(r.vnum)
 
     @action("^Your lips move,* but no sound")
     def silent(self):
@@ -62,7 +63,8 @@ class RoomWatcher(LOKPlugin):
             r = self.world.rooms[self.msdp.room_vnum]
             if not r.silent:
                 r.silent = True
-                self.session.show(f'Marked room silent [{r.vnum}]')
+                self.output(f'[orange1]Marked room silent [{r.vnum}]', markup=True)
+                self.world.save_room(r.vnum)
 
     # @lru_cache(maxsize=1024)
     def match_wilderness(self, line, stripped):

@@ -30,7 +30,7 @@ class WorldHelper(LOKPlugin):
                 terrain = to_room.terrain_name
 
             exits.append((e.direction, e.to_vnum, e.door, e.commands,
-                          bool(e.closes), bool(e.locks), known, visited, terrain, bool(e.deathtrap)))
+                          bool(e.closes), bool(e.locks), bool(e.deathtrap), known, visited, terrain))
 
         exits = sorted(exits)
         caption = ""
@@ -44,17 +44,17 @@ class WorldHelper(LOKPlugin):
         table.add_column("Commands")
         table.add_column("Closes")
         table.add_column("Locks")
+        table.add_column("Deathtrap")
         table.add_column("Known")
         table.add_column("Visited")
         table.add_column("Terrain")
-        table.add_column("Deathtrap")
         for e in exits:
             table.add_row(*map(str, e))
 
         return table
 
-    @command()
-    def room(self, location: Room = None, delete: bool = False):
+    @command(name="room")
+    def room_command(self, location: Room = None, delete: bool = False):
         """Display information about a room
 
         :location A room vnum or location name
@@ -266,6 +266,10 @@ class WorldHelper(LOKPlugin):
         rows = list(cursor.fetchmany(_max_rows))
 
         column_types = []
+
+        if len(rows) == 0:
+            self.output(Panel(Text("No rows returned")))
+            return
 
         for i, column in enumerate(cursor.description):
             c = Counter([type(row[i]) for row in rows])

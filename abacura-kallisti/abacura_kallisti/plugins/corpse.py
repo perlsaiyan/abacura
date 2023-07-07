@@ -34,5 +34,6 @@ class CorpseScanner(LOKPlugin):
 
     @action(r"^Corpse type: (.*), Race of deceased: (.*), Level: (\d+)")
     def corpse(self, corpse_type: str, race: str, level: int):
+        # self.debuglog(msg="Corpse")
         self.dispatcher(CorpseMessage(race=race, level=level, size=self.last_size,
                                       weight=self.last_weight, value=self.last_value, corpse_type=corpse_type))
