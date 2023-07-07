@@ -9,6 +9,7 @@ from abacura.plugins import Plugin, command, CommandError
 if TYPE_CHECKING:
     pass
 
+
 class TickerCommand(Plugin):
 
     def show_tickers(self):
@@ -51,5 +52,9 @@ class TickerCommand(Plugin):
         # always remove an existing ticker with this name
         self.remove_ticker(name)
 
-        self.add_ticker(seconds=seconds, callback_fn=partial(self.session.output, msg=message),
+        self.add_ticker(seconds=seconds, callback_fn=partial(self.send_message, message),
                         repeats=repeats, name=name)
+
+    def send_message(self, message: str):
+        for msg in message.split(";"):
+            self.send(msg)
