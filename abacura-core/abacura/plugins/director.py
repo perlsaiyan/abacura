@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Callable
+import inspect
 
 from serum import inject, Context
 
@@ -10,10 +11,19 @@ from abacura.plugins.tickers import TickerManager
 from abacura.plugins.aliases.manager import AliasManager
 from abacura.plugins.events import EventManager
 from abacura.plugins.scripts import ScriptManager, ScriptProvider
+from dataclasses import dataclass
 
 
 if TYPE_CHECKING:
     from abacura.mud.session import Session
+
+
+@dataclass()
+class Registration:
+    registration_type: str
+    name: str
+    callback: Callable
+    details: str
 
 
 @inject
@@ -46,3 +56,32 @@ class Director:
         self.command_manager.unregister_object(obj)
         self.event_manager.unregister_object(obj)
         self.script_manager.unregister_object(obj)
+
+    def get_registrations_for_object(self, obj: object) -> List:
+        registrations: List[Registration] = []
+
+        for script in self.script_manager.scripts.values():
+            if script.source == obj:
+                registrations.append(Registration("script", script.name, script.script_fn, ""))
+
+        for act in self.action_manager.actions:
+            if act.source == obj:
+                registrations.append(Registration("action", act.name, act.callback, act.pattern))
+
+        for tkr in self.ticker_manager.tickers:
+            if tkr.source == obj:
+                detail = f"seconds={tkr.seconds}, repeats={tkr.repeats}"
+                registrations.append(Registration("ticker", tkr.name, tkr.callback, detail))
+
+        for cmd in self.command_manager.commands:
+            if cmd.source == obj:
+                registrations.append(Registration("command", cmd.name, cmd.callback, cmd.get_description()))
+
+        # Create lookup of members
+        obj_members = set(v for n, v in inspect.getmembers(obj, callable))
+        for evt, pq in self.event_manager.events.items():
+            for q in pq.queue:
+                if q.handler in obj_members:
+                    registrations.append(Registration("event", evt, q.handler, ""))
+
+        return registrations

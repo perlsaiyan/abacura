@@ -1,5 +1,5 @@
-import inspect
 import time
+from collections import Counter
 
 from rich.panel import Panel
 from rich.pretty import Pretty
@@ -43,19 +43,28 @@ class PluginSession(Plugin):
 
         for name, loaded_plugin in self.session.plugin_loader.plugins.items():
             plugin = loaded_plugin.plugin
+            registrations = self.director.get_registrations_for_object(plugin)
+            counts = Counter([r.registration_type for r in registrations])
+
             base = plugin.__class__.__base__.__name__
             indicator = '✓' if plugin.register_actions else 'x'
             indicator_color = "bold green" if plugin.register_actions else 'bold red'
-            plugin_rows.append((base, plugin.get_name(), plugin.get_help() or '', Text(indicator, style=indicator_color)))
+            plugin_rows.append((base, plugin.get_name(), plugin.get_help() or '',
+                                Text(indicator, style=indicator_color), counts))
 
         tbl = Table(title=f" Currently Registered Plugins", title_justify="left")
         tbl.add_column("Type")
         tbl.add_column("Plugin Name")
         tbl.add_column("Description")
         tbl.add_column("Register Actions")
+        tbl.add_column("# Actions", justify="right")
+        tbl.add_column("# Commands", justify="right")
+        tbl.add_column("# Events", justify="right")
+        tbl.add_column("# Tickers", justify="right")
 
-        for row in sorted(plugin_rows):
-            tbl.add_row(*row)
+        for base, name, doc, indicator, counts in sorted(plugin_rows):
+            tbl.add_row(base, name, doc, indicator,
+                        str(counts["action"]), str(counts["command"]), str(counts["event"]), str(counts["ticker"]))
         self.output(tbl)
         self.output("\n")
 
@@ -90,30 +99,7 @@ class PluginSession(Plugin):
         loaded_plugin = loaded_plugins[matches[0]]
         plugin = loaded_plugin.plugin
 
-        registrations = []
-        for script in self.director.script_manager.scripts.values():
-            if script.source == plugin:
-                registrations.append(("script", script.name, script.script_fn.__qualname__, ""))
-
-        for act in self.director.action_manager.actions:
-            if act.source == plugin:
-                registrations.append(("action", act.name, act.callback.__qualname__, act.pattern))
-
-        for tkr in self.director.ticker_manager.tickers:
-            if tkr.source == plugin:
-                detail = f"seconds={tkr.seconds}, repeats={tkr.repeats}"
-                registrations.append(("ticker", tkr.name, tkr.callback.__qualname__, detail))
-
-        for cmd in self.director.command_manager.commands:
-            if cmd.source == plugin:
-                registrations.append(("command", cmd.name, cmd.callback.__qualname__, cmd.get_description()))
-
-        # Create lookup of members
-        plugin_members = set(v for n, v in inspect.getmembers(plugin, callable))
-        for evt, pq in self.director.event_manager.events.items():
-            for q in pq.queue:
-                if q.handler in plugin_members:
-                    registrations.append(("event", evt, q.handler.__qualname__, ""))
+        registrations = self.director.get_registrations_for_object(plugin)
 
         tbl = Table(title=f" Details for Plugin {loaded_plugin.package}.{plugin.get_name()}", title_justify="left")
         tbl.add_column("Type")
@@ -121,7 +107,7 @@ class PluginSession(Plugin):
         tbl.add_column("Callback")
         tbl.add_column("Details")
         for r in registrations:
-            tbl.add_row(*r)
+            tbl.add_row(r.registration_type, r.name, r.callback.__qualname__, r.details)
 
         self.output(tbl)
 
