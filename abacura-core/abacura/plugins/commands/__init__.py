@@ -230,7 +230,7 @@ class CommandManager:
             # use the partial match if there is only 1
             command = starts[0]
         elif len(starts) == 0:
-            raise CommandError(f"Unknown Command {submitted_command}")
+            raise CommandError(f"Unknown command '{submitted_command}'")
         else:
             matches = ", ".join([cmd.name for cmd in starts])
             raise CommandError(escape(f"Ambiguous command '{submitted_command}' [{matches}]"))
@@ -249,11 +249,11 @@ class CommandManager:
                 self.session.output(message)
 
         except CommandArgumentError as exc:
-            self.session.show_exception(f"[bold red]# ERROR: {command.name}: {repr(exc)}", exc, show_tb=False)
+            self.session.show_exception(f"[bold orange1]! {str(exc)}", exc, show_tb=False)
             self.session.output(f"[gray][italic]> {escape(command.get_help())}", markup=True, highlight=True)
 
         except CommandError as exc:
-            self.session.show_exception(f"[bold red]# ERROR: {command.name}: {repr(exc)}", exc, show_tb=False)
+            self.session.show_exception(f"[bold orange1]! {str(exc)}", exc, show_tb=False)
 
         except Exception as exc:
             self.session.show_exception(str(exc), exc, show_tb=True)

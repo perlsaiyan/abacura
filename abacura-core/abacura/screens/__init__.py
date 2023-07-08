@@ -53,6 +53,7 @@ class SessionScreen(Screen):
         # TODO: wrap should be a config file field option
         self.tl = TextLog(highlight=False, markup=False, wrap=True,
                               name=self.tlid, classes="mudoutput", id=self.tlid)
+        self.tl.can_focus = False
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the session"""
