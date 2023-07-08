@@ -12,7 +12,7 @@ class CommsLog(Container):
     def __init__(self, id: str, name: str = ""):
         super().__init__(id=id, name=name)
         self.tl = TextLog(id="commsTL", wrap=True,auto_scroll=True)
-        
+        self.tl.can_focus = False
 
     def compose(self) -> ComposeResult:
         yield self.tl

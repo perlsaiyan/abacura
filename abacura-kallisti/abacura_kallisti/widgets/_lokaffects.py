@@ -17,6 +17,7 @@ class LOKAffects(Static):
         yield Static("Affects", classes="WidgetTitle", markup=True)
         #yield LOKAffectDetail()
         self.datatable = DataTable(id="aff_detail", zebra_stripes=True, show_header=False, show_row_labels=False, show_cursor=False)
+        self.datatable.can_focus = False
         yield self.datatable
 
     def on_mount(self) -> None:
