@@ -7,6 +7,7 @@ from textual.reactive import reactive
 from textual.widgets import Static, DataTable
 
 
+from abacura.utils import percent_color
 from abacura.mud.options.msdp import MSDPMessage
 from abacura.plugins.events import event
 
@@ -15,12 +16,6 @@ class LOKGroup(Static):
     can_focus_children = False
 
     group = []
-    pct_colors = OrderedDict()
-    pct_colors[80] = "green"
-    pct_colors[60] = "green_yellow"
-    pct_colors[40] = "yellow"
-    pct_colors[20] = "dark_orange3"
-    pct_colors[0]  = "red"
 
     def __init__(self):
         super().__init__()
@@ -41,17 +36,9 @@ class LOKGroup(Static):
         self.screen.session.listener(self.update_group_level)
 
     def compose(self) -> ComposeResult:
-        #self.styles.height = 9
         yield self.group_title
         yield self.group_block
 
-    def pct_color(self,c) -> str:
-        cval = int(c)
-        for key, value in self.pct_colors.items():
-            if key < cval:
-                return value
-        return ""
-    
     @event("core.msdp.GROUP")
     def update_group(self, message: MSDPMessage):
         def with_color(g):
@@ -75,18 +62,18 @@ class LOKGroup(Static):
 
             for g_member in self.group:
                 w_color = with_color(g_member)
+                # TODO with LOK/typed MSDP we can drop the int casting here
                 row = [
                     f"[{g_member['level']:>3} {g_member['class']}]",
                     f"{w_color}{g_member['name']}",
-                    f"[{self.pct_color(g_member['health'])}]{g_member['health']}",
-                    f"[{self.pct_color(g_member['mana'])}]{g_member['mana']}",
-                    f"[{self.pct_color(g_member['stamina'])}]{g_member['stamina']}",
+                    f"[{percent_color(int(g_member['health']))}]{g_member['health']}",
+                    f"[{percent_color(int(g_member['mana']))}]{g_member['mana']}",
+                    f"[{percent_color(int(g_member['stamina']))}]{g_member['stamina']}",
                     g_member['flags']
                 ]
                 self.group_block.add_row(*row, label=g_member["name"])
             return
         
-        #self.styles.height = len(self.group) + 2
         self.display = False
 
     @event("core.msdp.GROUPLEVEL")
