@@ -71,21 +71,6 @@ class LOKCombat(Static):
     c_opponent_stamina = 0
     c_opponent_stamina_max = 0
 
-    my_reactives = {
-        'POSITION': "c_position",
-        'ALIGNMENT': "c_alignment",
-        'WIELD': "c_wield",
-        'HELD' : "c_held",
-        'SHIELD': "c_shield",
-        "QUICKDRAW": "c_quick",
-        "AC": "c_ac",
-        "DAMROLL": "c_damroll",
-        "HITROLL": "c_hitroll",
-        "WIMPY": "c_wimpy",
-        "MOUNT_NAME": "c_mount",
-        "OPPONENT_NAME": "c_opponent_name"
-    }
-
     def __init__(self, **kwargs):
         super().__init__(*kwargs)
         self.combat_title = Static("Combat",classes="WidgetTitle")
@@ -127,22 +112,25 @@ class LOKCombat(Static):
     def healthpct(self, health: int = 0):
         if self.screen:
             max = int(self.screen.session.core_msdp.values.get("HEALTH_MAX",health))
-            pct = int(health * 100 / max)
-            return f"[{percent_color(pct)}]{pct}%"
+            if max > 0:
+                pct = int(health * 100 / max)
+                return f"[{percent_color(pct)}]{pct}%"
         return "0%"
 
     def manapct(self, mana: int = 0):
         if self.screen:
             max = int(self.screen.session.core_msdp.values.get("MANA_MAX",mana))
-            pct = int(mana * 100 / max)
-            return f"[{percent_color(pct)}]{pct}%"
+            if max > 0:
+                pct = int(mana * 100 / max)
+                return f"[{percent_color(pct)}]{pct}%"
         return "0%"
 
     def stampct(self, stam: int = 0):
         if self.screen:
             max = int(self.screen.session.core_msdp.values.get("STAMINA_MAX",stam))
-            pct = int(stam * 100 / max)
-            return f"[{percent_color(pct)}]{pct}%"
+            if max > 0:
+                pct = int(stam * 100 / max)
+                return f"[{percent_color(pct)}]{pct}%"
         return "0%"
 
     def mount_block_update(self):
@@ -249,7 +237,7 @@ class LOKCombat(Static):
 
         elif msg.subtype == "MOUNT_NAME":
             self.c_mount_name = msg.value
-            self.mount_name.update(f"\n[cyan]Mnt: [white]{msg.value}")
+            self.mount_name.update(f"\n[cyan] Mnt: [white]{msg.value}")
             if msg.value == "":
                 self.mount_name.display = False
             else:
