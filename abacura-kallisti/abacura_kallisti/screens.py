@@ -72,6 +72,7 @@ class KallistiScreen(SessionScreen):
                 # TODO: wrap should be a config file field option
                 #yield TextLog(highlight=False, markup=False, wrap=True,
                 #              name=self.tlid, classes="mudoutput", id=self.tlid)
+                self.tl.can_focus = False
                 yield self.tl
             yield InputBar(id="playerinput")
         yield AbacuraFooter()
