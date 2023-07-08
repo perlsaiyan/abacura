@@ -38,6 +38,7 @@ class InputBar(Input):
         super().__init__(id=id)
         self.history = []
         self.history_ptr = None
+        self.styles.padding = (0,0)
 
     def on_mount(self):
         self.suggester = AbacuraSuggester(self.screen.session)
