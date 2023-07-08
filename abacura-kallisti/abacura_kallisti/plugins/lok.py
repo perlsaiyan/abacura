@@ -1,12 +1,22 @@
+from dataclasses import dataclass
 import os
+import re
 import time
+
 
 from abacura.mud.options.msdp import MSDPMessage
 from abacura.plugins import command, action
-from abacura.plugins.events import event
+from abacura.plugins.events import event, AbacuraMessage
 
 from abacura_kallisti.plugins import LOKPlugin
 
+xp_kill_re = re.compile("(.*) is dead!")
+
+@dataclass
+class LOKKillMessage(AbacuraMessage):
+    event_type: str = "lok.kill"
+    victim: str = ""
+    experience: int = 0
 
 class LegendsOfKallisti(LOKPlugin):
     """Main plugin for LOK modules"""
@@ -46,3 +56,11 @@ class LegendsOfKallisti(LOKPlugin):
             self.debuglog(facility="info", msg=f"Reloading player conf for '{msg.value}'")
             self.pc.load(self.config.data_directory(self.session.name), msg.value)
             self.director.alias_manager.load(f"{self.session.name}.aliases")
+
+    @action(r"^You receive your reward for the kill, (\d+) experience points.")
+    def mob_kill(self, experience: int):
+        res = self.session.ring_buffer.query(limit=1, like="%is dead!  R.I.P%")
+        k_name = xp_kill_re.match(res[0][2])
+        if k_name:
+            msg = LOKKillMessage(victim=k_name.groups(1)[0], experience=experience)
+            self.session.dispatcher(msg)
