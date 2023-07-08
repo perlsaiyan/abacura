@@ -12,6 +12,7 @@ from abacura.plugins.events import event
 
 class LOKGroup(Static):
     """Group information Widget"""
+    can_focus_children = False
 
     group = []
     pct_colors = OrderedDict()
@@ -24,8 +25,10 @@ class LOKGroup(Static):
     def __init__(self):
         super().__init__()
         self.display = False
+        self.expand = True
+        
         self.group_title = Static(classes="WidgetTitle")
-        self.group_block = DataTable(id="aff_detail", zebra_stripes=True, show_header=False, show_row_labels=False, show_cursor=False)
+        self.group_block = DataTable(id="group_detail", zebra_stripes=True, show_header=False, show_row_labels=False, show_cursor=False)
         self.group_block.add_column("ClassLevel", key="classlevel")
         self.group_block.add_column("Name", key="name")
         self.group_block.add_column("H", key="health")
@@ -38,7 +41,7 @@ class LOKGroup(Static):
         self.screen.session.listener(self.update_group_level)
 
     def compose(self) -> ComposeResult:
-        self.styles.height = 9
+        #self.styles.height = 9
         yield self.group_title
         yield self.group_block
 
@@ -67,7 +70,7 @@ class LOKGroup(Static):
         self.group_block.clear()
 
         if self.group:
-            self.styles.height = len(self.group) + 1
+            #self.styles.height = len(self.group) + 2
             self.display = True
 
             for g_member in self.group:
@@ -83,7 +86,7 @@ class LOKGroup(Static):
                 self.group_block.add_row(*row, label=g_member["name"])
             return
         
-        self.styles.height = len(self.group) + 1
+        #self.styles.height = len(self.group) + 2
         self.display = False
 
     @event("core.msdp.GROUPLEVEL")
