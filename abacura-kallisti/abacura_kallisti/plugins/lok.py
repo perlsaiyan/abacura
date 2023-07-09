@@ -17,6 +17,11 @@ class LOKKillMessage(AbacuraMessage):
     event_type: str = "lok.kill"
     victim: str = ""
     experience: int = 0
+    rare_bonus: int = 0
+
+    @property
+    def total_experience(self):
+        return self.rare_bonus + self.experience
 
 class LegendsOfKallisti(LOKPlugin):
     """Main plugin for LOK modules"""
@@ -57,10 +62,11 @@ class LegendsOfKallisti(LOKPlugin):
             self.pc.load(self.config.data_directory(self.session.name), msg.value)
             self.director.alias_manager.load(f"{self.session.name}.aliases")
 
-    @action(r"^You receive your reward for the kill, (\d+) experience points.")
-    def mob_kill(self, experience: int):
+    @action(r"^You receive your reward for the kill, (\d+) experience points( plus (\d+) bonus experience for a rare kill)?.")
+    def mob_kill(self, experience: int, rare_msg, rare_bonus):
         res = self.session.ring_buffer.query(limit=1, like="%is dead!  R.I.P%")
         k_name = xp_kill_re.match(res[0][2])
         if k_name:
-            msg = LOKKillMessage(victim=k_name.groups(1)[0], experience=experience)
+            msg = LOKKillMessage(victim=k_name.groups(1)[0], experience=experience, rare_bonus=rare_bonus)
+            self.debuglog("info",msg)
             self.session.dispatcher(msg)
