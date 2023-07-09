@@ -1,4 +1,8 @@
-"""Experimental pixel image widget"""
+"""
+Experimental pixel image widget
+
+This depends on the vertical resolution doubling patch to rich-pixels
+"""
 
 from rich_pixels import Pixels
 
