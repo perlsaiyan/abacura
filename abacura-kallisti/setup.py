@@ -17,6 +17,7 @@ setup(
     },
     install_requires=[
         "abacura~=0.0.9",
+        "pillow",
         ],
 )
 
