@@ -77,8 +77,7 @@ class WildernessMap:
                         counts[room.terrain_name] += 1
 
                     recently_harvested = False
-                    tr = self.world.get_tracking(room.vnum)
-                    skill_date = tr.last_harvested if skill != 'search' else tr.last_searched
+                    skill_date = room.last_harvested
                     if since is not None and skill_date is not None and skill_date != '':
                         recently_harvested = skill_date >= since
 

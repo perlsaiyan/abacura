@@ -2,11 +2,12 @@
 import importlib
 import io
 
-from abacura.plugins import Plugin, command
+from abacura.plugins import Plugin, command, CommandError
 from rich.table import Table
 
 
 class Profiler(Plugin):
+    """CPU and Memory Profiling"""
 
     def __init__(self):
         super().__init__()
@@ -34,7 +35,7 @@ class Profiler(Plugin):
         else:
             self.session.output(str(self.heap.heap()))
 
-    @command
+    @command(hide=True)
     def profile2(self, num_functions: int = 40, disable: bool = False):
         """Python implemented profiler"""
         from abacura.utils import profiler
@@ -95,7 +96,7 @@ class Profiler(Plugin):
 
         sort_by = [s for s in ('time', 'calls', 'cumulative_time') if s.startswith(_sort.lower())]
         if len(sort_by) == 0:
-            raise ValueError("Invalid sort option.  Valid values are time, calls, cumulative")
+            raise CommandError("Invalid sort option.  Valid values are time, calls, cumulative")
         sort_by = sort_by[0]
 
         # ps = eval("pstats.Stats(self.profiler, stream=s).sort_stats(sort_by)")

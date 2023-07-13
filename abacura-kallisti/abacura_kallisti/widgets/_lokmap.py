@@ -8,25 +8,153 @@ from rich.console import Console, ConsoleOptions, RenderResult
 from rich.segment import Segment
 from rich.style import Style
 from rich.text import Text
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Union
 
 from textual import log
 from textual.app import ComposeResult
 from textual.events import Resize
-from textual.containers import Container, Center, Middle
-from textual.widget import Widget
-from textual.widgets import Static
+from textual.containers import Container
+from textual.widgets import Static, ProgressBar
 from dataclasses import dataclass
 
 from functools import lru_cache
 
-from abacura.plugins.events import event
+from abacura.widgets.image_widget import ImageWidget
+from abacura.plugins.events import event, AbacuraMessage
 from abacura.mud.options.msdp import MSDPMessage
+from abacura.widgets import RichImage
 from abacura.widgets.resizehandle import ResizeHandle
+
 
 if TYPE_CHECKING:
     from abacura.mud.session import Session
     from abacura_kallisti.atlas.world import World
+
+class LOKMapBlockFat:
+    terrains = {
+        'Inside': Color("Inside", ColorType(3), None, ColorTriplet(75,74,75)),
+        'City': Color("City", ColorType(3), None, ColorTriplet(40,42,46)),        
+        'Field': Color("Field", ColorType(3), None, ColorTriplet(91,163,88)),
+        'Forest': Color("Forest", ColorType(3), None, ColorTriplet(28,93,25)),
+        'Path': Color("Path", ColorType(3), None, ColorTriplet(92,49,20)),
+        'Hills': Color("Hills", ColorType(3), None, ColorTriplet(121,163,88)),
+        'Mountains': Color("Mountains", ColorType(3), None, ColorTriplet(59,38,4)),
+        'Water': Color("Water", ColorType(3), None, ColorTriplet(52,124,186)),
+        'Deep': Color("Deep", ColorType(3), None, ColorTriplet(52, 124,240)),
+        'Air': Color("Air", ColorType(3), None, ColorTriplet(177, 177,177)),
+        'Underwater': Color("Underwater", ColorType(3), None, ColorTriplet(22,94,156)),              
+        'Jungle': Color("Jungle", ColorType(3), None, ColorTriplet(28,143,25)),
+        'Desert': Color("Desert", ColorType(3), None, ColorTriplet(243,203,147)),
+        'Arctic': Color("Arctic", ColorType(3), None, ColorTriplet(200,200,214)),
+        'Underground': Color("Underground", ColorType(3), None, ColorTriplet(55,55,55)),
+        'Swamp': Color("Swamp", ColorType(3), None, ColorTriplet(55,85,85)),        
+        'Ocean': Color("Ocean", ColorType(3), None, ColorTriplet(52, 104,250)),
+        'Bridge': Color("Bridge", ColorType(3), None, ColorTriplet(122,79,50)),
+        'Peak': Color("Peak", ColorType(3), None, ColorTriplet(201,195,185)),
+        'Pasture': Color("Pasture", ColorType(3), None, ColorTriplet(91,163,88)),
+        'Fence': Color("Fence", ColorType(3), None, ColorTriplet(255,255,255)),
+        'Portal': Color("Portal", ColorType(3), None, ColorTriplet(255,255,255)),
+        'ForestJungle': Color("ForestJungle", ColorType(3), None, ColorTriplet(28,93,25)),
+        'Beach': Color("Beach", ColorType(3), None, ColorTriplet(238,223,147)),
+        'Astral': Color("Astral", ColorType(3), None, ColorTriplet(177, 177,177)),
+        'Planar': Color("Planar", ColorType(3), None, ColorTriplet(177, 177,177)),
+        'Lava': Color("Lava", ColorType(3), None, ColorTriplet(255,0,0)),
+        'Nothingness': Color("Nothingness", ColorType(3), None, ColorTriplet(255,255,255)),
+        'Stairs': Color("Stairs", ColorType(3), None, ColorTriplet(255,255,255)),
+        'Ice': Color("Ice", ColorType(3), None, ColorTriplet(255,255,255)),
+        'Snow': Color("Snow", ColorType(3), None, ColorTriplet(230,230,250)),
+        'Shallow': Color("Shallow", ColorType(3), None, ColorTriplet(90,164,228)),
+        'Tundra': Color("Tundra", ColorType(3), None, ColorTriplet(220,220,220)),
+    }
+
+    def __init__(self, world: Optional[World], start_room, height, width):
+        self.start_room = start_room
+        self.world = world
+        self.width = width
+        self.height = height
+
+    @lru_cache(maxsize=1000)
+    def get_terrain2_icon(self, terrain: str) -> Color:
+        """Return terrain color/icon"""
+        return self.terrains.get(terrain.split()[0], Color("", ColorType(3), None, ColorTriplet(255,255,255)))
+
+    def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
+        if self.width == 0 or self.height == 0:
+            return
+        BFS = []
+
+        rows = self.width / 5
+        cols = (self.height - 1) / 3 
+        cenH = int(self.height/2)
+        cenW = int(self.width/2)
+
+        # Y is first in the matrix!
+        blank = ''
+        Matrix = [[blank for x in range(cols)] for y in range(rows)]
+        try:
+            room = self.world.rooms[self.start_room]
+        except KeyError:
+            return
+        visited = {}
+
+        BFS.append(MapPoint(room.vnum, cenW, cenH))
+
+        while len(BFS) > 0:
+            here = BFS.pop(0)
+
+            if here.room == '' or not here.room in self.world.rooms:
+                continue
+
+            if here.room in visited:
+                continue
+            visited[here.room] = 1
+
+            room = self.world.rooms[here.room]
+            room_exits = room.exits  # get this once to improve wilderness performance
+                
+            if Matrix[here.y][here.x] == blank:
+                Matrix[here.y][here.x] = room.vnum
+
+                # Add exits to BFS
+                if (here.y-1) >= 0 and "north" in room_exits:
+                    if not room_exits["north"].to_vnum in visited:
+                        #log(f"appending {room_exits['north']}")
+                        BFS.append(MapPoint(room_exits["north"].to_vnum, here.x, here.y -1))
+                if (here.y +1) < len(Matrix) and "south" in room_exits:
+                    if not room_exits["south"].to_vnum in visited:
+                        #log(f"appending {room_exits['south']}")
+                        BFS.append(MapPoint(room_exits["south"].to_vnum, here.x, here.y+1))
+                if (here.x +1) < len(Matrix[here.y]) and "east" in room_exits:
+                    if not room_exits["east"].to_vnum in visited:
+                        #log(f"appending {room_exits['east']}")
+                        BFS.append(MapPoint(room_exits["east"].to_vnum, here.x+1, here.y))
+                if (here.x -1) >= 0 and "west" in room_exits:
+                    if not room_exits["west"].to_vnum in visited:
+                        #log(f"appending {room_exits['west']}")
+                        BFS.append(MapPoint(room_exits["west"].to_vnum, here.x-1, here.y))        
+
+        @lru_cache(1000)
+        def get_style(bgcolor):
+            return Style(bgcolor=bgcolor)
+
+        def top_row(room):
+            return f" {'|' if room.exits['north'] else ' '}{'+' if room.exits['up'] else ' '}"
+        def mid_row(room):
+            segments = [Segment('-[' if room.exits["west"] else ' [')]
+            segments.append(Segment('@' if room.vnum == self.start_room else ' '))
+            segments.append(Segment(']-' if room.exits["east"] else "] "))
+            return Strip(segments)
+        
+        segments = [] * rows
+
+        for row in Matrix:
+            for color, n in [(color, len(list(g))) for color, g in groupby(row)]:
+                if color.name == "me":
+                    yield Segment("@", Style(color="red", bgcolor=color))
+                else:
+                    yield Segment(" " * n, get_style(bgcolor=color))
+            yield Segment("\n")
+
 
 class LOKMapBlock:
     terrains = {
@@ -157,22 +285,31 @@ class MapPoint:
 class LOKMap(Container):
     """Main map widget, used in sidebars and bigmap screen"""
     world: Optional[World] = None
+    map_type: str = "explore"
+    img: Union[RichImage,None] = None
+    img2: Union[ImageWidget,None] = None
 
     def __init__(self, resizer: bool=True, id: str=""):
         super().__init__()
         self.id=id
         self.resizer: bool = resizer
         self.map = Static(id="minimap", classes="lokmap", expand=True)
+        self.progress_bar = ProgressBar(id="map_progress", show_eta=False, show_percentage=False, classes="lokmap")
+        self.progress_bar.display = False
+        self.progress_bar.total = 100
+        self.progress_bar.progress = 50
         self.START_ROOM = None
 
     def compose(self) -> ComposeResult:
         yield self.map
         if self.resizer:
             yield ResizeHandle(self, "bottom")
+            yield self.progress_bar
 
     def on_mount(self) -> None:
         # Register our listener until we have a RegisterableObject to descend from
         self.screen.session.listener(self.recenter_map)
+        self.screen.session.listener(self.toggle_map_type)
         self.world = self.screen.world
 
     def generate_dense_map(self) -> None:
@@ -361,8 +498,10 @@ class LOKMap(Container):
         a_map = [[' ' for x in range(cW)] for y in range(cH)]
         # subtract one for the 0-index array
         y = 2 - 1
+        segments = [] * cH
 
         for yp in Matrix:
+            
             x = xtmp + 3 -1
             for xp in yp:
                 if xp == '':
@@ -415,15 +554,62 @@ class LOKMap(Container):
         return "\n".join([''.join(yp) for yp in a_map])
 
     def on_resize(self, event: Resize):
-        #self.generate_map()
-        self.map.update(LOKMapBlock(self.world, self.START_ROOM, self.content_size.height, self.content_size.width))
+        self.map_generator()
+
+    def frame_advance(self):
+        self.img.advance_frame()
+        frame_duration = self.img.current_frame.info.get('duration', 100) / 1000
+        self.set_timer(frame_duration, self.frame_advance)
+        self.map.update(self.img)
+
+    def map_generator(self):
+        if self.START_ROOM == "60252":
+            if self.img2:
+                return
+            gif = self.screen.session.config.get_specific_option("global", "test_image")
+            if not gif:
+                return
+            self.img2 = ImageWidget(gif)
+            self.mount(self.img2, before="#minimap")
+            self.map.display = False
+            #return
+            #img = LOKImage()
+            #img.show_image(self.content_size.height-2, self.content_size.width)
+            #self.map.update(img.render())
+            
+            #self.img = RichImage.from_image_path("/home/tom/Pictures/dance2.gif", (self.content_size.width, self.content_size.height *2))
+            #self.map.update(self.img)
+            #frame_duration = self.img.current_frame.info.get('duration', 100) / 1000
+            #self.set_timer(frame_duration, self.frame_advance)
+            
+        elif self.map_type == "explore":
+            if self.img2:
+                self.img2.remove()
+                self.img2 = None
+                self.map.display = True
+            self.generate_map()
+        else:
+            if self.img2:
+                self.img2.remove()
+                self.img2 = None
+                self.map.display = True
+            self.map.update(LOKMapBlock(self.world, self.START_ROOM, self.content_size.height-2, self.content_size.width))
+
+    @event("lok.navigate")
+    def toggle_map_type(self, msg: AbacuraMessage):
+        if msg.value == "start":
+            self.map_type = "dense"
+            if self.resizer:
+                self.progress_bar.display = True
+            return
+        self.map_type = "explore"
+        self.progress_bar.display = False
+        self.map_generator()
 
     @event("core.msdp.ROOM_VNUM")
     def recenter_map(self, message: MSDPMessage):
         """Event to trigger map redraws on movement"""
         self.START_ROOM = str(message.value)
-        #self.generate_dense_map()
+        self.map_generator()
 
-        LMB = LOKMapBlock(self.world, self.START_ROOM, self.content_size.height, self.content_size.width)
-        self.map.update(LMB)
-        
+

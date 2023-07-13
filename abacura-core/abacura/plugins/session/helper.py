@@ -1,15 +1,19 @@
+import time
+from collections import Counter
+
 from rich.panel import Panel
 from rich.pretty import Pretty
-import time
+from rich.table import Table
+from rich.text import Text
 
-from abacura.plugins import Plugin, command
+from abacura.plugins import Plugin, command, CommandError
 
 
 class PluginSession(Plugin):
     def __init__(self):
         super().__init__()
         if self.session.ring_buffer:
-            self.add_ticker(1, self.session.ring_buffer.commit)
+            self.add_ticker(1, self.session.ring_buffer.commit, name="ring-autocommit")
 
     """Session specific commands"""
     @command(name="echo")
@@ -34,22 +38,83 @@ class PluginSession(Plugin):
             panel = Panel(Pretty(self.core_msdp.values.get(variable, None)), highlight=True)
         self.session.output(panel, highlight=True, actionable=False)
 
-    @command
-    def plugin(self) -> None:
-        """Get information about plugins"""
+    def show_all_plugins(self):
+        plugin_rows = []
 
-        self.session.output("Current registered global plugins:")
-
-        for plugin_name, loaded_plugin in self.session.plugin_loader.plugins.items():
+        for name, loaded_plugin in self.session.plugin_loader.plugins.items():
             plugin = loaded_plugin.plugin
-            indicator = '[bold green]✓' if plugin.plugin_enabled else '[bold red]x'
-            self.session.output(
-                f"{indicator} [white]{plugin.get_name()}" +
-                f" - {plugin.get_help()}", markup=True)
+            registrations = self.director.get_registrations_for_object(plugin)
+            counts = Counter([r.registration_type for r in registrations])
+
+            base = plugin.__class__.__base__.__name__
+            indicator = '✓' if plugin.register_actions else 'x'
+            indicator_color = "bold green" if plugin.register_actions else 'bold red'
+            plugin_rows.append((base, plugin.get_name(), plugin.get_help() or '',
+                                Text(indicator, style=indicator_color), counts))
+
+        tbl = Table(title=f" Currently Registered Plugins", title_justify="left")
+        tbl.add_column("Type")
+        tbl.add_column("Plugin Name")
+        tbl.add_column("Description")
+        tbl.add_column("Register Actions")
+        tbl.add_column("# Actions", justify="right")
+        tbl.add_column("# Commands", justify="right")
+        tbl.add_column("# Events", justify="right")
+        tbl.add_column("# Tickers", justify="right")
+
+        for base, name, doc, indicator, counts in sorted(plugin_rows):
+            tbl.add_row(base, name, doc, indicator,
+                        str(counts["action"]), str(counts["command"]), str(counts["event"]), str(counts["ticker"]))
+        self.output(tbl)
+        self.output("\n")
+
+    def show_failures(self):
+        if len(self.session.plugin_loader.failures):
+            tbl = Table(title="Failed Package Loads", title_justify="left")
+            tbl.add_column("Package")
+            tbl.add_column("Error")
+            for failure in self.session.plugin_loader.failures:
+                tbl.add_row(failure.package, failure.error)
+            self.output("\n")
+            self.output(tbl)
+
+    @command
+    def plugins(self, name: str = '') -> None:
+        """Get information about plugins"""
+        if not name:
+            self.show_all_plugins()
+            self.show_failures()
+            return
+
+        loaded_plugins = self.session.plugin_loader.plugins
+        matches = [n for n in loaded_plugins.keys() if n.lower().startswith(name.lower())]
+        if len(matches) > 1:
+            self.output(f"[orange1] Ambigious Plugin Name: {matches}", markup=True)
+            return
+
+        if len(matches) == 0:
+            self.output(f"[orange1] No plugin by that name [{name}]", markup=True)
+            return
+
+        loaded_plugin = loaded_plugins[matches[0]]
+        plugin = loaded_plugin.plugin
+
+        registrations = self.director.get_registrations_for_object(plugin)
+
+        tbl = Table(title=f" Details for Plugin {loaded_plugin.package}.{plugin.get_name()}", title_justify="left")
+        tbl.add_column("Type")
+        tbl.add_column("Name")
+        tbl.add_column("Callback")
+        tbl.add_column("Details")
+        for r in registrations:
+            tbl.add_row(r.registration_type, r.name, r.callback.__qualname__, r.details)
+
+        self.output(tbl)
 
     @command
     def reload(self, plugin_name: str = "", auto: bool = False):
         """Reload plugins"""
+
         if not plugin_name:
             self.session.plugin_loader.autoreload_plugins()
         else:
@@ -97,5 +162,5 @@ class PluginSession(Plugin):
     def log(self, like: str = "%", limit: int = 40, minutes_ago: int = 30):
         """Search output log """
         if self.session.ring_buffer is None:
-            raise ValueError("No output log ring buffer configured")
+            raise CommandError("No output log ring buffer configured")
         self.ring_log_query(like, limit, hide_msdp=False, minutes_ago=minutes_ago)

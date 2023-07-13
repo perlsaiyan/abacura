@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable
 
-from serum import inject
+from serum import Context
 
 from abacura.plugins.actions import Action
 from abacura.plugins.director import Director
 from abacura.plugins.tickers import Ticker
+from abacura.plugins.scripts import ScriptProvider, Script
+from abacura.plugins.commands import CommandError
 
 if TYPE_CHECKING:
     from abacura.mud.options.msdp import MSDP
@@ -23,18 +25,20 @@ class ContextProvider:
         return {}
 
 
-@inject
 class Plugin:
     """Generic Plugin Class"""
-    session: Session
-    config: Config
-    director: Director
-    core_msdp: MSDP
+    _context: Context
 
     def __init__(self):
         # super().__init__()
-        self.plugin_enabled = True
+        self.session: Session = self._context['session']
+        self.config: Config = self._context['config']
+        self.director: Director = self._context['director']
+        self.scripts: ScriptProvider = self._context['scripts']
+        self.core_msdp: MSDP = self._context['core_msdp']
+        self.register_actions = True
         self.output = self.session.output
+        self.debuglog = self.session.debuglog
         self.dispatcher = self.director.event_manager.dispatcher
 
     def get_name(self):
@@ -51,18 +55,28 @@ class Plugin:
     def remove_action(self, name: str):
         self.director.action_manager.remove(name)
 
-    def add_ticker(self, seconds: float, callback_fn: Callable, repeats: int = -1, name: str = ''):
-        ticker = Ticker(source=self, seconds=seconds, callback=callback_fn, repeats=repeats, name=name)
-        self.director.ticker_manager.add(ticker)
+    def add_ticker(self, seconds: float, callback_fn: Callable, repeats: int = -1, name: str = '', commands: str = ''):
+        t = Ticker(source=self, seconds=seconds, callback=callback_fn, repeats=repeats, name=name, commands=commands)
+        self.director.ticker_manager.add(t)
 
     def remove_ticker(self, name: str):
         self.director.ticker_manager.remove(name)
+
+    def add_script(self, script_fn: Callable, name: str = ''):
+        s = Script(source=self, script_fn=script_fn, name=name or script_fn.__name__)
+        self.director.script_manager.add(s)
+
+    def remove_script(self, name: str):
+        self.director.script_manager.remove(name)
 
     def add_substitute(self, pattern: str, repl: str, name: str = ''):
         pass
 
     def remove_substitute(self, name: str):
         pass
+
+    def send(self, message: str, raw: bool = False, echo_color: str = 'orange1'):
+        self.session.send(message, raw=raw, echo_color=echo_color)
 
 
 def action(pattern: str, flags: int = 0, color: bool = False, priority: int = 0):
@@ -86,3 +100,24 @@ def command(function=None, name: str = '', hide: bool = False):
         return add_command(function)
 
     return add_command
+
+
+def ticker(seconds: int, repeats=-1, name=""):
+    def add_ticker(fn):
+        fn.ticker_seconds = seconds
+        fn.ticker_repeats = repeats
+        fn.ticker_name = name
+        return fn
+
+    return add_ticker
+
+
+def script(function=None, name: str = ''):
+    def add_script(fn):
+        fn.script_name = name or fn.__name__
+        return fn
+
+    if function:
+        return add_script(function)
+
+    return add_script

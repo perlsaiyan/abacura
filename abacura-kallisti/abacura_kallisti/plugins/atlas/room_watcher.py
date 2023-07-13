@@ -1,6 +1,9 @@
 import re
 import dataclasses
 from typing import List, Optional
+import os
+import unicodedata
+import tomlkit
 
 from rich.panel import Panel
 from rich.text import Text
@@ -12,6 +15,8 @@ from abacura.plugins.events import event, AbacuraMessage
 from abacura_kallisti.atlas import encounter, item
 from abacura_kallisti.atlas.room import ScannedRoom, RoomMessage
 from abacura_kallisti.atlas.world import strip_ansi_codes
+from abacura_kallisti.mud.area import Area
+from abacura_kallisti.mud.mob import Mob
 from abacura_kallisti.plugins import LOKPlugin
 
 item_re = re.compile(r'(\x1b\[0m)?\x1b\[0;37m[^\x1b ]')
@@ -49,7 +54,8 @@ class RoomWatcher(LOKPlugin):
             if not r.no_magic or not r.no_recall:
                 r.no_magic = True
                 r.no_recall = True
-                self.session.show(f'Marked room no recall/magic [{r.vnum}]')
+                self.output(f'[orange1]Marked room no recall/magic [{r.vnum}]', markup=True)
+                self.world.save_room(r.vnum)
 
     @action("^Your lips move,* but no sound")
     def silent(self):
@@ -57,7 +63,8 @@ class RoomWatcher(LOKPlugin):
             r = self.world.rooms[self.msdp.room_vnum]
             if not r.silent:
                 r.silent = True
-                self.session.show(f'Marked room silent [{r.vnum}]')
+                self.output(f'[orange1]Marked room silent [{r.vnum}]', markup=True)
+                self.world.save_room(r.vnum)
 
     # @lru_cache(maxsize=1024)
     def match_wilderness(self, line, stripped):
@@ -265,6 +272,7 @@ class RoomWatcher(LOKPlugin):
 
         # TODO: Make the latest available scanned room available somewhere
         # self.msdp.room = self.scanned_room
+        self.scanned_room.msdp_exits = self.msdp.room_exits
 
         if self.debug:
             self.show_debug()
@@ -273,8 +281,6 @@ class RoomWatcher(LOKPlugin):
                                 terrain=self.msdp.room_terrain, room_exits=self.msdp.room_exits,
                                 scan_room=self.scanned_room)
 
-        self.dispatcher(RoomMessage(vnum=self.scanned_room.vnum, room=self.scanned_room))
-
         if self.scanned_room.vnum in self.world.rooms:
             room = self.world.rooms[self.scanned_room.vnum]
             missing_msdp_exits = any([d for d in self.msdp.room_exits if d not in room.exits])
@@ -282,8 +288,18 @@ class RoomWatcher(LOKPlugin):
             if missing_msdp_exits or extra_room_exits:
                 self.session.output(Text(f"\nROOM WATCHER: Mismatch between MSDP and Room exits\n", style="purple"))
 
-        for f in dataclasses.fields(self.room):
+        # Load the new area if it has changed
+        self.scanned_room.area = self.room.area
+        if self.scanned_room.area.name != self.msdp.area_name:
+            self.scanned_room.area = self.load_area(self.msdp.area_name)
+
+
+        # Do not create a new instance of self.room since a reference is held by all plugins
+        for f in dataclasses.fields(ScannedRoom):
             setattr(self.room, f.name, getattr(self.scanned_room, f.name))
+
+        self.dispatcher(RoomMessage(vnum=self.scanned_room.vnum, room=self.scanned_room))
+
         self.scanned_room = None
 
     @action(r".*")
@@ -342,3 +358,42 @@ class RoomWatcher(LOKPlugin):
         else:
             if (player_name := self.get_player_name(message.message)) is not None:
                 self.scanned_room.room_players.append(player_name)
+
+    @staticmethod
+    def slugify(value):
+        """
+        Normalizes string, converts to lowercase, removes non-alpha characters,
+        and converts spaces to hyphens.
+        """
+        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+        value = re.sub(r'[^\w\s-]', '', value.lower())
+        return re.sub(r'[-\s]+', '-', value).strip('-_')
+
+    def load_area(self, area_name: str) -> Area:
+        data_dir = self.config.data_directory(self.session.name)
+
+        new_area = Area()
+        filename = os.path.join(data_dir, "areas", self.slugify(area_name) + ".toml")
+
+        if not os.path.exists(filename):
+            return new_area
+
+        with open(filename, "r") as f:
+            doc = tomlkit.load(f)
+
+        for attribute, value in doc['area'].items():
+            if hasattr(new_area, attribute):
+                setattr(new_area, attribute, value)
+
+        new_area.room_exclude = set(new_area.room_exclude)
+        new_area.rooms_to_scout = set(new_area.rooms_to_scout)
+
+        for mob_name, mob_dict in doc['mobs'].items():
+            mob = Mob(name=mob_name)
+            for attribute, value in mob_dict.items():
+                if hasattr(mob, attribute):
+                    setattr(mob, attribute, value)
+            new_area.mobs.append(mob)
+
+        self.debuglog(msg=f"Loaded area file '{filename}'")
+        return new_area

@@ -35,6 +35,7 @@ class Abacura(App):
         Binding("ctrl+c", "null", "Toggle Dark Mode"),
         Binding("f3", "reload_config", "f3"),
         Binding("f12", "toggle_inspector", ("Toggle Inspector")),
+        Binding("f10", "screenshot", "")
     ]
 
     def __init__(self):

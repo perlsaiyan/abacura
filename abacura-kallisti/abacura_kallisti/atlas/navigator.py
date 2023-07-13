@@ -5,7 +5,7 @@ from itertools import groupby
 
 from abacura_kallisti.atlas.wilderness import WildernessGrid
 from abacura_kallisti.atlas.world import World
-from abacura_kallisti.atlas.room import Exit, Room
+from abacura_kallisti.atlas.room import Exit, Room, Area
 from abacura_kallisti.mud.player import PlayerCharacter
 from itertools import chain
 
@@ -18,17 +18,6 @@ class NavigationStep:
     vnum: str
     exit: Exit
     cost: float
-    open: bool = False
-
-    def get_command(self):
-        if self.exit.closes and self.open:
-            return f"open {self.exit.door or 'door'} {self.exit.direction}"
-        elif self.exit.direction in ['home', 'depart', 'recall']:
-            return self.exit.direction
-        elif self.exit.portal_method:
-            return f"{self.exit.portal_method} {self.exit.direction}"
-        else:
-            return self.exit.direction[0]
 
 
 class NavigationPath:
@@ -55,6 +44,11 @@ class NavigationPath:
 
         return False
 
+    def get_steps(self, vnum: str) -> Generator[NavigationStep, None, None]:
+        for step in self.steps:
+            if step.vnum == vnum:
+                yield step
+
     def get_travel_cost(self) -> float:
         return sum(s.cost for s in self.steps)
 
@@ -66,7 +60,7 @@ class NavigationPath:
         if len(self.steps) == 0:
             return ''
 
-        commands = [step.get_command() for step in self.steps]
+        commands = [cmd for step in self.steps for cmd in step.exit.get_commands()]
         grouped = [(len(list(g)), cmd) for cmd, g in groupby(commands)]
         simplified = [f"{cnt if cnt > 1 else ''}{cmd}" for cnt, cmd in grouped]
 
@@ -88,6 +82,9 @@ class Navigator:
     def get_path_to_room(self, start_vnum: str, goal_vnum: str,
                          avoid_vnums: Set[str], allowed_vnums: Set[str] = None) -> NavigationPath:
         try:
+            if start_vnum not in self.world.rooms:
+                return NavigationPath()
+
             path = next(self._gen_nearest_rooms(start_vnum, {goal_vnum}, avoid_vnums, allowed_vnums))
             return path
         except StopIteration:
@@ -147,20 +144,16 @@ class Navigator:
 
         while current_vnum in came_from and came_from[current_vnum][1].to_vnum != '':
             current_vnum, room_exit, cost = came_from[current_vnum]
+
             path.add_step(NavigationStep(current_vnum, room_exit, cost))
             # add command to open door after the door because we will reverse below
-            if room_exit.closes:
-                path.add_step(NavigationStep(current_vnum, room_exit, 0, open=True))
 
         path.reverse()
 
         # translate from running cost to actual cost per step
         last_cost = 0
         for s in path.steps:
-            if s.open:
-                s.cost = 1
-            else:
-                s.cost, last_cost = s.cost - last_cost, s.cost
+            s.cost, last_cost = s.cost - last_cost, s.cost
 
         return path
 
@@ -211,13 +204,6 @@ class Navigator:
             e = Exit(from_vnum=current_room.vnum, to_vnum=self.pc.recall_vnum, direction='recall', weight=3)
             yield e
 
-        # if self.knows_bifrost and current_room.area_name == 'Midgaard City':
-        #     for i, vnum in enumerate(self.pc.bifrosts):
-        #         # if vnum not in [e.to_vnum for e, w in result]:
-        #         e = Exit(from_vnum=current_room.vnum, to_vnum=vnum, direction='bifrost %d' % i, weight=30)
-        #         # there is a 6 second delay on bifrost, so make it more expensive
-        #         yield e
-    #
     # def _get_area_cost(self, start_vnum: str, room_exit: Exit, goal_vnums: set) -> int:
     #     if len(goal_vnums) != 1:
     #         return 0
@@ -251,8 +237,8 @@ class Navigator:
 
         return cost
 
-    def _gen_nearest_rooms(self, start_vnum: str, goal_vnums: Set[str],
-                           avoid_vnums: Set[str], allowed_vnums: Set[str] = None) -> Generator:
+    def _gen_nearest_rooms(self, start_vnum: str, goal_vnums: Set[str], avoid_vnums: Set[str],
+                           allowed_vnums: Set[str] = None) -> Generator[NavigationPath, None, None]:
 
         # This is a priority queue using heapq, the lowest weight item will heappop() off the list
         frontier = []
@@ -318,53 +304,52 @@ class Navigator:
                     cost_so_far[room_exit.to_vnum] = new_cost
                     came_from[room_exit.to_vnum] = (current_vnum, room_exit, new_cost)
 
-    # def is_navigable_room_in_area(self, known_area: KnownArea, vnum: str) -> bool:
-    #     vnum_allowed = known_area.is_allowed_vnum(vnum, self.char_level)
-    #     vnum_mapped = vnum in self.world.rooms
-    #     if not vnum_allowed or not vnum_mapped:
-    #         return False
-    #
-    #     room = self.world.rooms[vnum]
-    #     area_allowed = known_area.is_allowed_area(room.area_name)
-    #     return vnum_mapped and vnum_allowed and area_allowed
-    #
+    def is_navigable_room_in_area(self, area: Area, vnum: str) -> bool:
+        vnum_allowed = area.is_allowed_vnum(vnum, self.level)
+        vnum_mapped = vnum in self.world.rooms
+        if not vnum_allowed or not vnum_mapped:
+            return False
+
+        room = self.world.rooms[vnum]
+        area_allowed = area.is_allowed_area(room.area_name)
+        return vnum_mapped and vnum_allowed and area_allowed
+
     # def get_avoid_rooms_in_known_area(self, start_vnum: str) -> set:
     #     room: Room = self.world.rooms[start_vnum]
-    #     known_area = KNOWN_AREAS[room.area_name]
+    #     ea = KNOWN_AREAS[room.area_name]
     #     return known_area.get_excluded_room_vnums(self.char_level)
     #
-    # def get_reachable_rooms_in_known_area(self, start_vnum: str,
-    #                                       allowed_rooms: Set[str] = None, max_steps: int = 999999,
-    #                                       consider_locks_reachable: bool = False) -> set:
-    #     visited = set()
-    #     frontier = {start_vnum}
-    #     room: Room = self.world.rooms[start_vnum]
-    #     known_area: KnownArea = KNOWN_AREAS[room.area_name]
-    #
-    #     if known_area.track_random_portals:
-    #         vnums = [r.vnum for r in self.world.rooms.values() if r.area_name == room.area_name]
-    #         vnums = [v for v in vnums if self.is_navigable_room_in_area(known_area, v)]
-    #         vnums = [v for v in vnums if allowed_rooms is None or v in allowed_rooms]
-    #         return set(vnums)
-    #
-    #     while len(frontier) > 0 and max_steps > 0:
-    #         max_steps -= 1
-    #         room_vnum = frontier.pop()
-    #         if room_vnum not in self.world.rooms:
-    #             continue
-    #
-    #         visited.add(room_vnum)
-    #         # room = self.world.rooms[room_vnum]
-    #
-    #         for e in self.world.get_known_exits(room_vnum).values():
-    #             if not self.is_navigable_room_in_area(known_area, e.to_vnum):
-    #                 continue
-    #
-    #             if allowed_rooms is not None and e.to_vnum not in allowed_rooms:
-    #                 continue
-    #
-    #             unreachable_lock = e.locks and not consider_locks_reachable
-    #             if e.to_vnum not in visited and e.to_vnum not in frontier and not unreachable_lock:
-    #                 frontier.add(e.to_vnum)
-    #
-    #     return visited
+    def get_reachable_rooms_in_known_area(self, start_vnum: str, area: Area,
+                                          allowed_rooms: Set[str] = None, max_steps: int = 999999,
+                                          consider_locks_reachable: bool = False) -> set:
+        visited = set()
+        frontier = {start_vnum}
+        room: Room = self.world.rooms[start_vnum]
+
+        if area.track_random_portals:
+            vnums = [r.vnum for r in self.world.rooms.values() if r.area_name == room.area_name]
+            vnums = [v for v in vnums if self.is_navigable_room_in_area(area, v)]
+            vnums = [v for v in vnums if allowed_rooms is None or v in allowed_rooms]
+            return set(vnums)
+
+        while len(frontier) > 0 and max_steps > 0:
+            max_steps -= 1
+            room_vnum = frontier.pop()
+            if room_vnum not in self.world.rooms:
+                continue
+
+            visited.add(room_vnum)
+            # room = self.world.rooms[room_vnum]
+
+            for e in self.world.rooms[room_vnum].exits.values():
+                if not self.is_navigable_room_in_area(area, e.to_vnum):
+                    continue
+
+                if allowed_rooms is not None and e.to_vnum not in allowed_rooms:
+                    continue
+
+                unreachable_lock = e.locks and not consider_locks_reachable
+                if e.to_vnum not in visited and e.to_vnum not in frontier and not unreachable_lock:
+                    frontier.add(e.to_vnum)
+
+        return visited

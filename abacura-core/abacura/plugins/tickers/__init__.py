@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from typing import List, TYPE_CHECKING, Callable
+import inspect
 
 from serum import inject
 
@@ -10,9 +11,11 @@ if TYPE_CHECKING:
 
 
 class Ticker:
-    def __init__(self, source: object, callback: Callable, seconds: float, repeats: int = -1, name: str = ''):
+    def __init__(self, source: object, callback: Callable, seconds: float, repeats: int = -1,
+                 name: str = '', commands: str = ''):
         self.source: object = source
         self.callback: Callable = callback
+        self.commands: str = commands
         self.seconds: float = seconds
         self.repeats: int = repeats
         self.name: str = name
@@ -40,7 +43,12 @@ class TickerManager:
         self.tickers: List[Ticker] = []
 
     def register_object(self, obj: object):
-        pass
+        # self.unregister_object(obj)  # prevent duplicates
+        for name, member in inspect.getmembers(obj, callable):
+            if hasattr(member, "ticker_seconds"):
+                t = Ticker(source=obj, callback=member, seconds=getattr(member, "ticker_seconds"),
+                           repeats=getattr(member, "ticker_repeats"), name=getattr(member, "ticker_name"))
+                self.add(t)
 
     def unregister_object(self, obj: object):
         self.tickers = [t for t in self.tickers if t.source != obj]

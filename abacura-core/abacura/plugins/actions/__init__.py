@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import inspect
 import re
-from typing import List, TYPE_CHECKING, Callable, Match
+from queue import PriorityQueue
+from typing import TYPE_CHECKING, Callable, Match
 
 from serum import inject
 from textual import log
+
 from abacura.mud import OutputMessage
 
 if TYPE_CHECKING:
@@ -37,15 +39,18 @@ class Action:
         if invalid_types:
             raise TypeError(f"Invalid action parameter type: {callback}({invalid_types})")
 
+    def __lt__(self, other):
+        return self.priority < other.priority
 
 @inject
 class ActionManager:
     session: Session
 
     def __init__(self):
-        self.actions: List[Action] = []
+        self.actions: PriorityQueue = PriorityQueue()
 
     def register_object(self, obj: object):
+        # self.unregister_object(obj)  # prevent duplicates
         for name, member in inspect.getmembers(obj, callable):
             if hasattr(member, "action_pattern"):
                 act = Action(pattern=getattr(member, "action_pattern"), callback=member, source=obj,
@@ -53,21 +58,24 @@ class ActionManager:
                 self.add(act)
 
     def unregister_object(self, obj: object):
-        self.actions = [a for a in self.actions if a.source != obj]
+        for a in self.actions.queue:
+            if a.source == obj:
+                self.actions.queue.remove(a)
 
     def add(self, action: Action):
         log.debug(f"Appending action '{action.name}' from '{action.source}'")
-        self.actions.append(action)
+        self.actions.put(action)
 
     def remove(self, name: str):
-        self.actions = [a for a in self.actions if name == '' or a.name != name]
+        for a in self.actions.queue:
+            if a.name == name:
+                self.actions.queue.remove(a)
 
     def process_output(self, message: OutputMessage):
         if type(message.message) is not str:
             return
 
-        act: Action
-        for act in sorted(self.actions, key=lambda x: x.priority, reverse=True):
+        for act in self.actions.queue:
             s = message.message if act.color else message.stripped
             match = act.compiled_re.search(s)
 

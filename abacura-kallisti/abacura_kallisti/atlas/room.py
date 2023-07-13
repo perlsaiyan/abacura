@@ -9,6 +9,7 @@ from .terrain import TERRAIN, Terrain
 
 from abacura.plugins.events import AbacuraMessage
 from abacura_kallisti.atlas.wilderness import WildernessGrid
+from abacura_kallisti.mud.area import Area
 
 
 @dataclass(slots=True)
@@ -16,8 +17,6 @@ class Exit:
     from_vnum: str = ''
     direction: str = ''
     to_vnum: str = ''
-    portal: str = ''
-    portal_method: str = ''
     door: str = ''
     closes: bool = False
     locks: bool = False
@@ -26,6 +25,7 @@ class Exit:
     max_level: int = 100
     min_level: int = 0
     deathtrap: bool = False
+    commands: str = ''
     _temporary: bool = False
 
     @classmethod
@@ -36,6 +36,18 @@ class Exit:
     @property
     def temporary(self) -> bool:
         return self._temporary
+
+    def get_commands(self) -> List[str]:
+        if self.commands:
+            return self.commands.split(";")
+
+        if self.closes:
+            return [f"open {self.door or 'door'} {self.direction}", self.direction]
+
+        if self.direction in ['home', 'depart', 'recall']:
+            return [self.direction]
+
+        return [self.direction[0]]
 
 
 @dataclass(slots=True)
@@ -56,7 +68,8 @@ class Room:
     narrow: bool = False
     no_magic: bool = False
     no_recall: bool = False
-    navigable: bool = True
+    last_visited: Optional[datetime] = None
+    last_harvested: Optional[datetime] = None
     # _exits should be last to make the simple db query work
     _exits: Dict[str, Exit] = field(default_factory=dict)
 
@@ -95,22 +108,9 @@ class Room:
         return result
 
 
-@dataclass(slots=True)
-class RoomTracking:
-    vnum: str = ""
-    last_harvested: Optional[datetime] = None
-    last_visited: Optional[datetime] = None
-    last_searched: Optional[datetime] = None
-    kills: int = 0
-
-    @classmethod
-    @lru_cache()
-    def persistent_fields(cls) -> List[str]:
-        return [f.name for f in fields(cls) if not f.name.startswith("_")]
-
-
 @dataclass
 class ScannedRoom(Room):
+    area: Area = field(default_factory=Area)
     room_header: str = ''
     room_items: List[item.Item] = field(default_factory=list)
     room_corpses: List[str] = field(default_factory=list)
@@ -120,6 +120,7 @@ class ScannedRoom(Room):
     room_lines: List[str] = field(default_factory=list)
     blood_trail: str = ''
     hunt_tracks: str = ''
+    msdp_exits: Dict[str, str] = field(default_factory=dict)
     # minimap: List[str] = field(default_factory=list)
 
     # def get_hash(self):
@@ -129,12 +130,10 @@ class ScannedRoom(Room):
     #     # TODO: strip out hidden exits that appear sometimes instead of just stripping the () characters
     #     return hash(self.room_vnum + "\n" + self.room_header + "\n".join(self.minimap))
 
+
 @dataclass
 class RoomMessage(AbacuraMessage):
     """Message when a room is viewed"""
     vnum: str = ""
     room: ScannedRoom = None
     event_type: str = "lok.room"
-
-
-

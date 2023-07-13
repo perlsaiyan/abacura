@@ -1,0 +1,6 @@
+# For sound/MSP
+playsound
+PyGObject
+
+# For _lokimage
+rich-pixels

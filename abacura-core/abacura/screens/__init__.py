@@ -16,6 +16,7 @@ from textual.message import Message
 
 from textual.screen import Screen
 from textual.widgets import Header, TextLog
+from abacura.widgets.debug import DebugDock
 
 from abacura.config import Config
 from abacura.widgets import CommsLog, InputBar
@@ -52,6 +53,7 @@ class SessionScreen(Screen):
         # TODO: wrap should be a config file field option
         self.tl = TextLog(highlight=False, markup=False, wrap=True,
                               name=self.tlid, classes="mudoutput", id=self.tlid)
+        self.tl.can_focus = False
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the session"""
@@ -71,6 +73,9 @@ class SessionScreen(Screen):
             inspector = Inspector()
             inspector.display = False
             yield inspector
+        debugger = DebugDock(id="debugger")
+        debugger.display = False
+        yield debugger
 
     def on_mount(self) -> None:
         """Screen is mounted, launch it"""
@@ -78,7 +83,7 @@ class SessionScreen(Screen):
 
     async def on_input_bar_user_command(self, command: InputBar.UserCommand) -> None:
         """Handle user input from InputBar"""
-        self.session.player_input(command.command)
+        self.session.player_input(command.command, gag=command.password)
         #list = csv.reader(io.StringIO(command.command), delimiter=';', escapechar='\\')
 
         #try:

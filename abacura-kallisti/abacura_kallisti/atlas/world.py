@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict
 
-from .room import ScannedRoom, Exit, Room, RoomTracking
+from .room import ScannedRoom, Exit, Room
 from .wilderness import WildernessGrid
 
 
@@ -28,7 +28,6 @@ class World:
         db_path = Path(db_filename).expanduser()
 
         self.rooms: Dict[str, Room] = {}
-        self.tracking: Dict[str, RoomTracking] = {}
         self.wilderness_loaded: bool = False
 
         # temporary portals do not get persisted
@@ -51,42 +50,23 @@ class World:
             return
 
         del room.exits[direction]
-        self._save_room(vnum)
+        self.save_room(vnum)
 
-    def set_exit(self, vnum: str, direction: str, door: str, to_vnum: str = None):
+    def set_exit(self, vnum: str, direction: str, door: str = '', to_vnum: str = None, commands: str = ''):
         if vnum not in self.rooms:
             return
 
         room = self.rooms[vnum]
-        if direction not in room.exits:
-            return
+        exit = room.exits.get(direction, Exit(direction=direction, from_vnum=vnum))
+        exit.door = door
+        exit.commands = commands
 
-        room.exits[direction].door = door
         if to_vnum is not None:
-            room.exits[direction].to_vnum = to_vnum
+            exit.to_vnum = to_vnum
 
-        self._save_room(vnum)
+        room.exits[direction] = exit
 
-    def add_portal(self, vnum: str, name: str, method: str, to_vnum: str):
-        if vnum not in self.rooms:
-            return
-
-        room = self.rooms[vnum]
-        exits = room.exits
-        new_exit = Exit(direction=name, from_vnum=vnum, to_vnum=to_vnum, portal=name, portal_method=method)
-        exits[name] = new_exit
-
-        self._save_room(vnum)
-
-    def delete_portal(self, vnum: str, name: str):
-        if vnum not in self.rooms:
-            return
-
-        room = self.rooms[vnum]
-        if name in room.exits:
-            del room.exits[name]
-
-        self._save_room(vnum)
+        self.save_room(vnum)
 
     def search(self, word: str) -> List[Room]:
         word = word.lower()
@@ -96,9 +76,9 @@ class World:
                 result.append(r)
         return result
 
-    def track_kill(self, vnum: str):
-        if vnum in self.tracking:
-            self.tracking[vnum].kills += 1
+    # def track_kill(self, vnum: str):
+    #     if vnum in self.tracking:
+    #         self.tracking[vnum].kills += 1
 
     def visited_room(self, area_name: str, name: str, vnum: str, terrain: str,
                      room_exits: Dict, scan_room: ScannedRoom):
@@ -108,8 +88,6 @@ class World:
         # can't do much with a '?' vnum for now
         if vnum == '?':
             return
-
-        self.get_tracking(scan_room.vnum).last_visited = datetime.utcnow()
 
         if vnum in self.rooms:
             existing_room = self.rooms[vnum]
@@ -161,34 +139,62 @@ class World:
                         regen_hp=regen_hp, regen_mp=regen_mp, regen_sp=regen_sp, wild_magic=wild_magic,
                         silent=existing_room.silent, no_magic=existing_room.no_magic or no_magic,
                         no_recall=existing_room.no_recall or no_recall, set_recall=set_recall,
-                        deathtrap=existing_room.deathtrap, peaceful=existing_room.peaceful)
+                        deathtrap=existing_room.deathtrap, peaceful=existing_room.peaceful,
+                        last_visited=str(datetime.utcnow()), last_harvested=existing_room.last_harvested)
 
         self.rooms[vnum] = new_room
-        self._save_room(vnum)
-
-    def get_tracking(self, vnum: str) -> RoomTracking:
-        if vnum not in self.tracking:
-            self.tracking[vnum] = RoomTracking()
-        return self.tracking[vnum]
+        self.save_room(vnum)
 
     def create_tables(self):
-        field_names = [f.name for f in fields(Exit)]
-        sql = f"create table if not exists exits({','.join(field_names)}, PRIMARY KEY ({'from_vnum, direction'}))"
-        self.db_conn.execute(sql)
 
-        field_names = [f.name for f in fields(Room) if f.name != "exits"]
-        sql = f"create table if not exists rooms({','.join(field_names)}, primary key ({'vnum'}))"
-        self.db_conn.execute(sql)
+        sql_updates = [
+            (1, "alter table exits add column commands"),
+            (1, "update exits set commands = portal_method where portal_method != ''"),
+            (1, """update exits set commands = portal_method || ' ' || portal where portal_method != ''
+                               and portal_method not like '%down' and portal_method not like '%up'
+                               and portal_method not like '%east' and portal_method not like '%west'
+                               and portal_method not like '%north' and portal_method not like '%south'"""),
+            (1, "alter table exits drop column portal"),
+            (1, "alter table exits drop column portal_method"),
+            (1, "create index exits_n1 on exits(to_vnum)"),
+            (1, "alter table rooms drop column navigable"),
+            (1, "alter table rooms add column last_visited"),
+            (1, "alter table rooms add column last_harvested"),
+            (1, "update rooms set last_visited = (select last_visited from room_tracking where room_tracking.vnum = rooms.vnum)"),
+            (1, "update rooms set last_harvested = (select last_harvested from room_tracking where room_tracking.vnum = rooms.vnum)"),
+            (2, "alter table rooms rename column terrain to terrain_name"),
+            (2, "update rooms set terrain_name = 'Ocean' where vnum in ('87546', '87897', '88248', '88599', '88950', '89301')")
+        ]
 
-        field_names = [f.name for f in fields(RoomTracking)]
-        sql = f"create table if not exists room_tracking({','.join(field_names)}, primary key ({'vnum'}))"
-        self.db_conn.execute(sql)
+        max_sql_version = max([version for version, sql in sql_updates])
+        schema_version = self.db_conn.execute("pragma schema_version").fetchall()[0][0]
 
-        sql = "update rooms set terrain = 'Ocean' where vnum in ('87546', '87897', '88248', '88599', '88950', '89301')"
-        self.db_conn.execute(sql)
+        if schema_version == 0:
+            # brand new db
+            field_names = [f.name for f in fields(Exit) if not f.name.startswith("_")]
+            sql = f"create table if not exists exits({','.join(field_names)}, PRIMARY KEY ({'from_vnum, direction'}))"
+            self.db_conn.execute(sql)
 
+            field_names = [f.name for f in fields(Room) if not f.name.startswith("_")]
+            sql = f"create table if not exists rooms({','.join(field_names)}, primary key ({'vnum'}))"
+            self.db_conn.execute(sql)
+
+            self.db_conn.execute(f"pragma user_version={max_sql_version}")
+
+            self.db_conn.commit()
+
+        # Check if we need to run any sql updates to the db
+        user_version_current = self.db_conn.execute("pragma user_version").fetchall()[0][0]
+        if user_version_current >= max_sql_version:
+            return
+
+        for sql_version, sql in sql_updates:
+            if sql_version > user_version_current:
+                self.db_conn.execute(sql)
+                user_version_new = sql_version
+
+        self.db_conn.execute(f"pragma user_version = {max_sql_version}")
         self.db_conn.commit()
-
 
     def delete_room(self, vnum: str):
         if vnum in self.rooms:
@@ -199,7 +205,7 @@ class World:
         self.db_conn.execute("delete from room_tracking where vnum = ? ", vnum)
         self.db_conn.execute("delete from rooms where vnum = ? ", vnum)
 
-    def _save_room(self, vnum: str):
+    def save_room(self, vnum: str):
         if vnum not in self.rooms:
             return
 
@@ -210,13 +216,6 @@ class World:
 
         self.db_conn.execute("BEGIN TRANSACTION")
         self.db_conn.execute(f"INSERT OR REPLACE INTO rooms VALUES({room_binds})", room_fields)
-
-        if vnum in self.tracking:
-            trk = self.tracking[vnum]
-            trk_fields = [getattr(trk, pf) for pf in trk.persistent_fields()]
-            trk_binds = ",".join("?" * len(trk_fields))
-
-            self.db_conn.execute(f"INSERT OR REPLACE INTO room_tracking VALUES({trk_binds})", trk_fields)
 
         self.db_conn.execute(f"DELETE FROM exits WHERE from_vnum = ?", (vnum,))
 
@@ -239,15 +238,6 @@ class World:
             self.rooms[new_room.vnum] = new_room
 
         # print(len(rows), "rooms loaded from db")
-
-        sql = f"select t.* from room_tracking t join rooms r on t.vnum = r.vnum {where_clause}"
-        cursor = self.db_conn.execute(sql)
-        # field_names = [c[0] for c in cursor.description]
-        rows = cursor.fetchall()
-        for row in rows:
-            # d = {name: value for name, value in zip(field_names, row)}
-            new_trk = RoomTracking(*row)
-            self.tracking[new_trk.vnum] = new_trk
 
         sql = f"select e.* from exits e join rooms r on e.from_vnum = r.vnum {where_clause}"
         cursor = self.db_conn.execute(sql)

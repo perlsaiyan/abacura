@@ -10,6 +10,7 @@ from ..case import camel_to_snake
 
 if TYPE_CHECKING:
     from ._lokcharacter import LOKCharacter
+    from ._lokcombat import LOKCombat
     from ._lokexperience import LOKExperience
     from ._indeterminate_progress_bar import IndeterminateProgressBar
     from ._lokleft import LOKLeft
@@ -17,10 +18,12 @@ if TYPE_CHECKING:
     from ._lokmap import LOKMap
     from ._lokzone import LOKZone
     from ._lokgroup import LOKGroup
-    
+    from ._lokaffects import LOKAffects
 
 __all__ = [
+    "LOKAffects",
     "LOKCharacter",
+    "LOKCombat",
     "LOKExperience",
     "LOKLeft",
     "LOKMap",

@@ -12,6 +12,8 @@ from textual.message import Message
 from textual.suggester import Suggester
 from textual.widgets import Input
 
+from abacura.plugins.events import event, AbacuraMessage
+
 if TYPE_CHECKING:
     from typing_extensions import Self
     from abacura.mud.session import Session
@@ -27,17 +29,27 @@ class InputBar(Input):
     """player input line"""
     class UserCommand(Message):
         """Message object to bubble up inputs with"""
-        def __init__(self, command: str) -> None:
+        def __init__(self, command: str, password: bool = False) -> None:
             self.command = command
+            self.password: bool = password
             super().__init__()
 
     def __init__(self, id: str=""):
         super().__init__(id=id)
         self.history = []
         self.history_ptr = None
+        self.styles.padding = (0,0)
 
     def on_mount(self):
         self.suggester = AbacuraSuggester(self.screen.session)
+        self.screen.session.listener(self.password_mode)
+
+    @event("core.password_mode")
+    def password_mode(self, msg: AbacuraMessage):
+        if msg.value == "on":
+            self.password = True
+            return
+        self.password = False
 
     def action_history_scrollback(self) -> None:
         if self.history_ptr is None:
@@ -77,7 +89,7 @@ class InputBar(Input):
             self.history.append(self.value)
 
         self.history_ptr = None
-        self.post_message(self.UserCommand(message.value))
+        self.post_message(self.UserCommand(message.value, self.password))
         self.value = ""
     
     def action_clear(self) -> None:

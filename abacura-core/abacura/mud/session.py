@@ -11,9 +11,13 @@ from importlib import import_module
 from typing import TYPE_CHECKING, Optional, List, Any, AnyStr, Generator
 
 from rich.text import Text
+from rich.segment import Segment, Segments
+from rich.style import Style
 from serum import inject, Context
 from textual import log
+from textual.css.query import NoMatches
 from textual.screen import Screen
+from textual.strip import Strip
 from textual.widgets import TextLog
 
 from abacura.widgets import InputBar
@@ -66,6 +70,8 @@ class Session(BaseSession):
         self.host = None
         self.port = None
         self.tl: Optional[TextLog] = None
+        self.debugtl: Optional[TextLog] = None
+
         self.core_msdp: MSDP = MSDP(self.output, self.send, self)
         self.options = {}
 
@@ -92,7 +98,7 @@ class Session(BaseSession):
 
         core_injections = {"config": self.config, "session": self, "app": self.abacura,
                            "sessions": self.abacura.sessions, "core_msdp": self.core_msdp,
-                           "director": self.director}
+                           "director": self.director, "scripts": self.director.script_provider}
         self.core_plugin_context = Context(**core_injections)
 
         additional_injections = {}
@@ -124,6 +130,10 @@ class Session(BaseSession):
         """Fired on screen mounting, so our Footer is updated and Session gets a TextLog handle"""
         self.screen.query_one(AbacuraFooter).session = self.name
         self.tl = self.screen.query_one(f"#output-{self.name}", expect_type=TextLog)
+        try:
+            self.debugtl = self.screen.query_one("#debug", expect_type=TextLog)
+        except NoMatches:
+            pass
 
         self.plugin_loader = PluginLoader()
         self.plugin_loader.load_plugins(modules=["abacura"], plugin_context=self.core_plugin_context)
@@ -158,8 +168,9 @@ class Session(BaseSession):
         if len(buf) > 0:
             yield buf
 
-    def player_input(self, line) -> None:
+    def player_input(self, line, gag: bool = False) -> None:
         """This is entry point of the inputbar on the screen"""        
+        echo_color = "" if gag else "white"
         sl = line.lstrip()
         if sl == "":
             self.send("\n")
@@ -180,22 +191,22 @@ class Session(BaseSession):
                     # We're keeping delimiters so without a preceding number, first part is ''
                     parts = re.split('([neswud])', walk)
                     if parts[0] == '':
-                        self.send(parts[1] + "\n")
+                        self.send(parts[1] + "\n", echo_color=echo_color)
                     else:
                         for _ in range(int(parts[0])):
-                            self.send(parts[1] + "\n")
+                            self.send(parts[1] + "\n", echo_color='')
                 continue
 
             if self.director.alias_manager.handle(cmd, sl):
                 continue
 
             if self.connected:
-                self.send(sl + "\n")
+                self.send(sl + "\n", echo_color=echo_color)
                 continue
 
             self.output(f"[bold red]# NO SESSION CONNECTED - pi {sl}", markup=True)
 
-    def send(self, msg: str, raw: bool = False) -> None:
+    def send(self, msg: str, raw: bool = False, echo_color: str = "orange1") -> None:
         """Send to writer (socket), raw will send the message without byte translation"""
         if self.writer is not None:
             try:
@@ -205,11 +216,50 @@ class Session(BaseSession):
                     self.writer.write(bytes(msg + "\n", "UTF-8"))
                 self.last_socket_write = time.monotonic()
 
+                if echo_color:
+                    self.echo_command(msg.rstrip("\n"), echo_color)
+
             except BrokenPipeError:
                 self.connected = False
                 self.output(f"[bold red]# Lost connection to server.", markup=True)
         else:
             self.output(f"[bold red]# NO-SESSION SEND: {msg}", markup=True, highlight=True)
+
+    def echo_command(self, cmd, color="white"):
+        if not self.tl or not len(self.tl.lines):
+            return
+
+        strip = self.tl.lines[-1]
+        line_text = "".join([segment.text for segment in strip._segments])
+        cmd_segment = Segment(cmd, Style(color=color))
+        if not line_text.rstrip().endswith(">"):
+            self.output(Segments([cmd_segment]))
+            return
+
+        new_segments = strip._segments + [cmd_segment]
+        new_strip = Strip(segments=new_segments)
+        self.tl.lines[-1] = new_strip
+        self.tl._line_cache.clear()
+        self.tl.render()
+
+    @command(name="debuglog")
+    def debuglog_command(self, _facility: str = "info", msg: str = "", markup: bool = True, highlight: bool=True):
+        """
+        Send output to debug window
+
+        :facility optional facility, defaults to 'info'
+        :markup use rich markup
+        :highlight use rich highlighting
+        :param msg message to log
+        """
+        self.debuglog(facility=_facility, msg=msg, markup=markup, highlight=highlight)
+
+    def debuglog(self, facility: str = "info", msg: str= "", markup: bool = True, highlight: bool=True):
+        if self.debugtl:
+            date_time = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+            self.debugtl.markup = markup
+            self.debugtl.highlight = highlight
+            self.debugtl.write(f"{date_time} \[{facility}]: {msg}")
 
     def output(self, msg,
                markup: bool = False, highlight: bool = False, ansi: bool = False, actionable: bool = True,
@@ -340,9 +390,7 @@ class Session(BaseSession):
                     if ord(data) in self.options:
                         self.options[ord(data)].will()
                     elif ord(data) == 1:
-                        ibar = self.screen.query_one("#playerinput", expect_type=InputBar)
-                        ibar.password = True
-                        
+                        self.dispatcher(AbacuraMessage(event_type="core.password_mode", value="on"))
                     else:
                         pass
                         #self.output(f"IAC WILL {ord(data)}")
@@ -352,8 +400,7 @@ class Session(BaseSession):
                     data = await reader.read(1)
                     #self.output(f"IAC WONT {data}")
                     if ord(data) == 1:
-                        ibar = self.screen.query_one("#playerinput", expect_type=InputBar)
-                        ibar.password = False
+                        self.dispatcher(AbacuraMessage(event_type="core.password_mode", value="off"))
                 # SB
                 elif data == b'\xfa':
                     c = await reader.read(1)

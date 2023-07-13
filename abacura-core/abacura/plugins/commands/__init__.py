@@ -2,11 +2,20 @@ from __future__ import annotations
 
 import inspect
 import shlex
-from typing import List, Dict, TYPE_CHECKING, Callable
+from typing import List, Dict, TYPE_CHECKING, Callable, Tuple
 
 from rich.markup import escape
 from serum import inject
+
 from textual import log
+
+class CommandArgumentError(Exception):
+    pass
+
+
+class CommandError(Exception):
+    pass
+
 
 if TYPE_CHECKING:
     from abacura.mud.session import Session
@@ -57,7 +66,7 @@ class Command:
 
         for parameter in command_parameters:
             if parameter.default is inspect.Parameter.empty and len(submitted_arguments) == 0:
-                raise AttributeError(f"Missing argument {parameter.name}")
+                raise CommandArgumentError(f"Missing argument {parameter.name}")
 
             if len(submitted_arguments) > 0:
                 if parameter.name.lower() == 'text':
@@ -90,10 +99,10 @@ class Command:
             matched_options = [k for k in command_options.keys() if k.lstrip("_").startswith(so_name.lower())]
 
             if len(matched_options) == 0:
-                raise NameError(f"Invalid option: {so_name}")
+                raise CommandArgumentError(f"Invalid option: {so_name}")
 
             if len(matched_options) > 1:
-                raise NameError(f"Ambiguous option: {so_name}")
+                raise CommandArgumentError(f"Ambiguous option: {so_name}")
 
             option_name = matched_options[0]
 
@@ -102,7 +111,7 @@ class Command:
                 continue
 
             if so.find("=") < 0:
-                raise ValueError(f"Please specify value for --{option_name.lstrip('_')}")
+                raise CommandArgumentError(f"Please specify value for --{option_name.lstrip('_')}")
 
             submitted_value = so.split("=")[1]
 
@@ -121,6 +130,11 @@ class Command:
     def get_options(self) -> Dict[str, inspect.Parameter]:
         parameters = inspect.signature(self.callback).parameters.values()
         return {p.name: p for p in parameters if p.annotation in [bool, 'bool'] or p.name.startswith("_")}
+
+    def get_description(self) -> str:
+        doc = getattr(self.callback, '__doc__', None)
+        doc = "" if doc is None else doc.split("\n")[0]
+        return doc
 
     def get_help(self):
         help_text = []
@@ -163,7 +177,8 @@ class Command:
             if p.annotation in (bool, 'bool'):
                 option_help.append(f"  --{name.lstrip('_'):30s} : {parameter_doc.get(name, '')}")
             else:
-                pname = f"{name.lstrip('_') + '=<' + p.annotation.__name__ + '>'}"
+                ptype = getattr(p.annotation, '__name__', p.annotation)
+                pname = f"{name.lstrip('_') + '=<' + ptype + '>'}"
                 option_help.append(f"  --{pname:30s} : {parameter_doc.get(name, '')}")
 
         if len(option_help):
@@ -181,6 +196,7 @@ class CommandManager:
         self.commands: List[Command] = []
 
     def register_object(self, obj: object):
+        # self.unregister_object(obj)  #  prevent duplicates
         for name, member in inspect.getmembers(obj, callable):
             if hasattr(member, "command_name"):
                 log(f"Appending command function '{member.command_name}'")
@@ -189,9 +205,7 @@ class CommandManager:
     def unregister_object(self, obj: object):
         self.commands = [a for a in self.commands if a.source != obj]
 
-    def execute_command(self, command_line: str) -> bool:
-        if not len(command_line):
-            return False
+    def parse_command_line(self, command_line: str) -> Tuple[Command, List[str]]:
 
         # remove leading @
         if command_line.startswith("##") and len(command_line) > 2:
@@ -216,28 +230,32 @@ class CommandManager:
             # use the partial match if there is only 1
             command = starts[0]
         elif len(starts) == 0:
-            error_msg = f"Unknown Command {submitted_command}"
-            self.session.output(f"[orange1][italic]> {escape(error_msg)}", markup=True, highlight=True)
-            return False
+            raise CommandError(f"Unknown command '{submitted_command}'")
         else:
             matches = ", ".join([cmd.name for cmd in starts])
-            error_msg = f"Ambiguous command '{submitted_command}' [{matches}]"
-            self.session.output(f"[orange1][italic]> {escape(error_msg)}", markup=True, highlight=True)
+            raise CommandError(escape(f"Ambiguous command '{submitted_command}' [{matches}]"))
+
+        return command, submitted_args
+
+    def execute_command(self, command_line: str) -> bool:
+        if not len(command_line):
             return False
 
         try:
+            command, submitted_args = self.parse_command_line(command_line)
             self.session.output(f"[green][italic]> {escape(command_line)}", markup=True, highlight=True)
             message = command.execute(submitted_args)
             if message:
                 self.session.output(message)
 
-        except AttributeError as e:
-            self.session.show_exception(f"[bold red]# ERROR: {command.name}: {repr(e)}", e, show_tb=False)
+        except CommandArgumentError as exc:
+            self.session.show_exception(f"[bold orange1]! {str(exc)}", exc, show_tb=False)
             self.session.output(f"[gray][italic]> {escape(command.get_help())}", markup=True, highlight=True)
-            return True
 
-        except (ValueError, NameError) as e:
-            self.session.show_exception(f"[bold red]# ERROR: {command.name}: {repr(e)}", e, show_tb=True)
-            return True
+        except CommandError as exc:
+            self.session.show_exception(f"[bold orange1]! {str(exc)}", exc, show_tb=False)
+
+        except Exception as exc:
+            self.session.show_exception(str(exc), exc, show_tb=True)
 
         return True
