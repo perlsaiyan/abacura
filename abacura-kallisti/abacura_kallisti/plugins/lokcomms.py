@@ -247,5 +247,5 @@ class LOKComms(LOKPlugin):
             else:
                 raise ValueError("Valid options are 'channel' or 'speaker'.")
         else:
-            raise ValueError("Valid options are 'on' or 'off'.")
+            raise ValueError("Usage: #commstog <channel/speaker> <name> <on/off>")
         
