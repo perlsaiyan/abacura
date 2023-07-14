@@ -142,10 +142,7 @@ class MSDP(TelnetOption):
             varname, sb = self.msdpvar(sb)
             var = varname.decode("UTF-8")
             value, sb = self.msdpval(sb)
-            try:
-                oldvalue = self.values[var]
-            except KeyError:
-                oldvalue = None
+            oldvalue = self.values.setdefault(var,None)
 
             if var == "REPORTABLE_VARIABLES":
                 #self.handler(f"MSDP: Requesting all variables from {var}")
@@ -169,7 +166,7 @@ class MSDP(TelnetOption):
                 #    pass
 
             # Two dispatchers here, first is for all-value listeners
-            msg = MSDPMessage(subtype=var, value=self.values[var], oldvalue="")
+            msg = MSDPMessage(subtype=var, value=self.values[var], oldvalue=oldvalue)
             self.session.dispatcher(msg)
             # Second dispatch for variable-specific listeners
             msg.event_type = f"core.msdp.{var}"
