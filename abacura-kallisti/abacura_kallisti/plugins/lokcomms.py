@@ -185,10 +185,11 @@ class LOKComms(LOKPlugin):
     You tell Vajra (Anicca){Rp}, 'huehue'
     You tell Vajra{Rp}, 'huehue'
     """
-    @action(r"You tell (.*){Rp}, '(.*)'", color=False)
+    @action(r"You tell (.*), '(.*)'", color=False)
     def comms_tell_self(self, listener: str, message: str, msg: OutputMessage):
         channel = 'tell'
         speaker = 'You'
+        _listener = re.sub("{Rp}", '', )
         _listener = listener.split()
         if len(_listener) > 1:
             acct = _listener[1]
