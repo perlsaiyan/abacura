@@ -25,6 +25,9 @@ class BFS:
         cen_w = int(width/2)
         matrix = [[None for x in range(width)] for y in range(height)]
 
+        if height <= 0 or width <= 0:
+            return matrix # type: ignore[reportGeneralTypeIssues] for Pylance
+
         queue = []
         visited = {}
         queue.append(MapPoint(start_room.vnum, cen_w, cen_h))

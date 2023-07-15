@@ -3,14 +3,25 @@ App {
 }
 
 Screen {
+    
 }
 
 #LOKMap {
     align: center middle;
 }
 
+#map_progress {
+}
+#map_progress #bar {
+    width: 30;
+}
+
+#rightsidecontainer #minimap {
+    height: 15;
+}
+
 #rightsidecontainer #lokmap {
-        height: 15;
+    height: 15;
 }
 
 Grid#MapGrid {
