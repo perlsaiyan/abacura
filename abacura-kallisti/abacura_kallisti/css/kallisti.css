@@ -17,7 +17,7 @@ Screen {
 }
 
 #rightsidecontainer #minimap {
-    height: 15;
+    min-height: 15;
 }
 
 #rightsidecontainer #lokmap {

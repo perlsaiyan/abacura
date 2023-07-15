@@ -174,10 +174,10 @@ class LOKMap(Container):
         if self.bfs is None:
             return
         
-        g_width = int(width / 5)
-        g_height = int(height / 3)
+        g_width = int(width / 5) 
+        g_height = int(height / 3) 
 
-        grid = self.bfs.get_bfs_grid(start_room, g_width, g_height)
+        grid = self.bfs.get_bfs_grid(start_room, g_width, g_height, overscan=2)
 
         self.strips = []
         for row in grid:
@@ -194,8 +194,6 @@ class LOKMap(Container):
             self.strips.append(Strip(row1))
             self.strips.append(Strip(row2))
             self.strips.append(Strip(row3))
-
-        log.warning(f"Returning {len(self.strips)} strips for map")
 
     def generate_1x1_map(self, start_room: Room, width, height):
         if self.bfs is None:

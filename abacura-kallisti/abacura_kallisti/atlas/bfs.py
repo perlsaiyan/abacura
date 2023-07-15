@@ -19,11 +19,11 @@ class BFS:
     def __init__(self, world: World):
         self.world: World = world
 
-    def get_bfs_grid(self, start_room: Room, width: int = 0, height: int = 0) -> List[List[Room|None]]:
+    def get_bfs_grid(self, start_room: Room, width: int = 0, height: int = 0, overscan: int = 0) -> List[List[Room|None]]:
         """Return Rooms in Grid around start room"""
         cen_h = int(height/2)
         cen_w = int(width/2)
-        matrix = [[None for x in range(width)] for y in range(height)]
+        matrix = [[None for x in range(width + overscan)] for y in range(height + overscan)]
 
         if height <= 0 or width <= 0:
             return matrix # type: ignore[reportGeneralTypeIssues] for Pylance
