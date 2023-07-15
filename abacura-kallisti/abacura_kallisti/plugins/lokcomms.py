@@ -189,7 +189,7 @@ class LOKComms(LOKPlugin):
     def comms_tell_self(self, listener: str, message: str, msg: OutputMessage):
         channel = 'tell'
         speaker = 'You'
-        _listener = re.sub("{Rp}", '', )
+        _listener = re.sub("{Rp}", "", listener)
         _listener = listener.split()
         if len(_listener) > 1:
             acct = _listener[1]
@@ -248,9 +248,5 @@ class LOKComms(LOKPlugin):
             else:
                 raise CommandError("Valid options are 'channel' or 'speaker'.")
         else:
-<<<<<<< HEAD
-            raise ValueError("Usage: #commstog <channel/speaker> <name> <on/off>")
-=======
             raise CommandError("Valid options are 'on' or 'off'.")
->>>>>>> upstream/main
         
