@@ -42,7 +42,7 @@ class InputBar(Input):
 
     def on_mount(self):
         self.suggester = AbacuraSuggester(self.screen.session)
-        self.screen.session.listener(self.password_mode)
+        self.screen.session.add_listener(self.password_mode)
 
     @event("core.password_mode")
     def password_mode(self, msg: AbacuraMessage):

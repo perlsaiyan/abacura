@@ -18,7 +18,7 @@ class LOKZoneHeading(Static):
         self.classes = "WidgetTitle"
 
     def on_mount(self):
-        self.screen.session.listener(self.update_zone_name)
+        self.screen.session.add_listener(self.update_zone_name)
 
     def render(self) -> str:
         return f"{self.z_name}"
@@ -36,7 +36,7 @@ class LOKZoneInfo(Static):
     r_icon: reactive[str] = reactive[str](" ")
 
     weather_icons = {
-        'clear': "[yellow]☀",
+        'clear': "☀️",
         'cloudy': "🌥",
         'snowing': "🌨",
         'sandstorm': "🌪",
@@ -51,13 +51,13 @@ class LOKZoneInfo(Static):
         self.display = False
     
     def on_mount(self):
-        self.screen.session.listener(self.update_room_name)
-        self.screen.session.listener(self.update_room_vnum)
-        self.screen.session.listener(self.update_room_weather)
+        self.screen.session.add_listener(self.update_room_name)
+        self.screen.session.add_listener(self.update_room_vnum)
+        self.screen.session.add_listener(self.update_room_weather)
 
 
     def render(self) -> str:
-        return f"{self.r_icon} {self.r_name} [{self.r_vnum}]"
+        return f"{self.r_icon}  {self.r_name} [{self.r_vnum}]"
 
     @event("core.msdp.ROOM_WEATHER")
     def update_room_weather(self, message: MSDPMessage):

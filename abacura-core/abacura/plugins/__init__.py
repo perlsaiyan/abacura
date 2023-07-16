@@ -9,6 +9,8 @@ from abacura.plugins.director import Director
 from abacura.plugins.tickers import Ticker
 from abacura.plugins.scripts import ScriptProvider, Script
 from abacura.plugins.commands import CommandError
+from abacura.utils.fifo_buffer import FIFOBuffer
+from abacura.mud import OutputMessage
 
 if TYPE_CHECKING:
     from abacura.mud.options.msdp import MSDP
@@ -34,12 +36,12 @@ class Plugin:
         self.session: Session = self._context['session']
         self.config: Config = self._context['config']
         self.director: Director = self._context['director']
-        self.scripts: ScriptProvider = self._context['scripts']
         self.core_msdp: MSDP = self._context['core_msdp']
-        self.register_actions = True
+        self.output_history: FIFOBuffer[OutputMessage] = self._context['buffer']
         self.output = self.session.output
         self.debuglog = self.session.debuglog
-        self.dispatcher = self.director.event_manager.dispatcher
+        self.dispatch = self.director.event_manager.dispatch
+        self.register_actions = True
 
     def get_name(self):
         return self.__class__.__name__
@@ -111,13 +113,3 @@ def ticker(seconds: int, repeats=-1, name=""):
 
     return add_ticker
 
-
-def script(function=None, name: str = ''):
-    def add_script(fn):
-        fn.script_name = name or fn.__name__
-        return fn
-
-    if function:
-        return add_script(function)
-
-    return add_script

@@ -121,6 +121,7 @@ class ScannedRoom(Room):
     blood_trail: str = ''
     hunt_tracks: str = ''
     msdp_exits: Dict[str, str] = field(default_factory=dict)
+    room_flags: Dict[str, bool] = field(default_factory=dict)
     # minimap: List[str] = field(default_factory=list)
 
     # def get_hash(self):

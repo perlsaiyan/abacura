@@ -16,8 +16,13 @@ class Profiler(Plugin):
         self.guppy = None
 
     @command()
-    def memory(self, baseline: bool = False):
+    def memory(self, baseline: bool = False, gc: bool = False):
         """Show memory usage"""
+
+        if gc:
+            import gc
+            gc.collect()
+            self.session.output("Garbage collected")
 
         if self.guppy is None:
             try:

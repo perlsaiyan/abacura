@@ -26,7 +26,7 @@ class LOKAffects(Static):
         tbl.add_column("affect", key="affect")
         tbl.add_column("time", key="time")
         
-        self.screen.session.listener(self.update_affects)
+        self.screen.session.add_listener(self.update_affects)
 
     @event("core.msdp.AFFECTS")
     def update_affects(self, msg: MSDPMessage):

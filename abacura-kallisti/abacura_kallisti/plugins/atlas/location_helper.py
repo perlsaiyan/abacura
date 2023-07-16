@@ -39,7 +39,7 @@ class LocationHelper(LOKPlugin):
 
             rooms = []
 
-            # nav = Navigator(check_specials=True)
+            # nav = TravelGuide(check_specials=True)
 
             for a in self.locations.get_category(category):
                 room_name = self.world.rooms[a.vnum].name if a.vnum in self.world.rooms else "<missing>"

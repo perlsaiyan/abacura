@@ -14,18 +14,18 @@ HOME_AREA_NAME = 'Mortal Residences'
 
 
 @dataclass(slots=True)
-class NavigationStep:
+class TravelStep:
     vnum: str
     exit: Exit
     cost: float
 
 
-class NavigationPath:
+class TravelPath:
     def __init__(self, destination: Room = None):
-        self.steps: List[NavigationStep] = []
+        self.steps: List[TravelStep] = []
         self.destination: Room = destination
 
-    def add_step(self, step: NavigationStep):
+    def add_step(self, step: TravelStep):
         self.steps.append(step)
 
     def reverse(self):
@@ -44,7 +44,7 @@ class NavigationPath:
 
         return False
 
-    def get_steps(self, vnum: str) -> Generator[NavigationStep, None, None]:
+    def get_steps(self, vnum: str) -> Generator[TravelStep, None, None]:
         for step in self.steps:
             if step.vnum == vnum:
                 yield step
@@ -67,7 +67,7 @@ class NavigationPath:
         return ";".join(simplified)
 
 
-class Navigator:
+class TravelGuide:
 
     def __init__(self, world: World, pc: PlayerCharacter, level: int = 0, avoid_home: bool = False):
         super().__init__()
@@ -80,19 +80,19 @@ class Navigator:
         self.avoid_home = avoid_home
 
     def get_path_to_room(self, start_vnum: str, goal_vnum: str,
-                         avoid_vnums: Set[str], allowed_vnums: Set[str] = None) -> NavigationPath:
+                         avoid_vnums: Set[str], allowed_vnums: Set[str] = None) -> TravelPath:
         try:
             if start_vnum not in self.world.rooms:
-                return NavigationPath()
+                return TravelPath()
 
             path = next(self._gen_nearest_rooms(start_vnum, {goal_vnum}, avoid_vnums, allowed_vnums))
             return path
         except StopIteration:
-            return NavigationPath()
+            return TravelPath()
 
     def get_nearest_rooms_in_set(self, start_vnum: str, goal_vnums: Set[str],
                                  avoid_vnums: Set[str] = None, allowed_vnums: Set[str] = None,
-                                 max_rooms: int = 1) -> List[NavigationPath]:
+                                 max_rooms: int = 1) -> List[TravelPath]:
         if avoid_vnums is None:
             avoid_vnums = set()
 
@@ -105,7 +105,7 @@ class Navigator:
 
         return found
 
-    # def get_next_command(self, step: NavigationStep) -> str:
+    # def get_next_command(self, step: TravelStep) -> str:
     #     if not step:
     #         return ""
     #
@@ -134,18 +134,18 @@ class Navigator:
     #     # self.session.debug(f"Nav direction {move_direction}", show=True)
     #     return move_direction
 
-    def _convert_came_from_to_path(self, dest_vnum: str, came_from: Dict) -> NavigationPath:
+    def _convert_came_from_to_path(self, dest_vnum: str, came_from: Dict) -> TravelPath:
         if dest_vnum not in self.world.rooms:
-            return NavigationPath()
+            return TravelPath()
 
-        path = NavigationPath(self.world.rooms[dest_vnum])
+        path = TravelPath(self.world.rooms[dest_vnum])
 
         current_vnum = dest_vnum
 
         while current_vnum in came_from and came_from[current_vnum][1].to_vnum != '':
             current_vnum, room_exit, cost = came_from[current_vnum]
 
-            path.add_step(NavigationStep(current_vnum, room_exit, cost))
+            path.add_step(TravelStep(current_vnum, room_exit, cost))
             # add command to open door after the door because we will reverse below
 
         path.reverse()
@@ -238,7 +238,7 @@ class Navigator:
         return cost
 
     def _gen_nearest_rooms(self, start_vnum: str, goal_vnums: Set[str], avoid_vnums: Set[str],
-                           allowed_vnums: Set[str] = None) -> Generator[NavigationPath, None, None]:
+                           allowed_vnums: Set[str] = None) -> Generator[TravelPath, None, None]:
 
         # This is a priority queue using heapq, the lowest weight item will heappop() off the list
         frontier = []

@@ -69,4 +69,4 @@ class LOKMSDP(LOKPlugin):
             setattr(self.msdp, attr_name, value)
 
         # if name == 'MSDP_CHARACTER_NAME':
-        #     self.dispatcher.dispatch(event.Event(event.NEW_CHARACTER, value))
+        #     self.dispatch.dispatch(event.Event(event.NEW_CHARACTER, value))

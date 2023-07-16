@@ -107,6 +107,23 @@ class WorldHelper(LOKPlugin):
         panel = Panel(group)
         self.output(panel, highlight=True)
 
+        if self.msdp.room_vnum == location.vnum:
+            text = Text()
+            text.append(f"Scanned Room ", style="purple")
+            text.append("[")
+            text.append(self.room.vnum, style="bright_cyan")
+            text.append("]")
+            text.append(f" {self.room.room_header}\n\n")
+            text.append(f"     players: {self.room.room_players}\n", style="bright_yellow")
+            text.append(f"    charmies: {self.room.room_charmies}\n", style="white")
+            text.append(f"     corpses: {self.room.room_corpses}\n", style="white")
+            text.append(f"  encounters: {self.room.room_encounters}\n", style="white")
+            text.append(f"       items: {self.room.room_items}\n", style="white")
+            text.append(f"       blood: {self.room.blood_trail}\n", style="bold red")
+            text.append(f"      tracks: {self.room.hunt_tracks}", style="bold green")
+            text.highlight_regex(r"[\w]+: ", style="bold white")
+            self.output(Panel(text), highlight=True)
+
         if delete:
             self.world.delete_room(location.vnum)
             self.session.output("\n[orange1] ROOM DELETED\n", markup=True)

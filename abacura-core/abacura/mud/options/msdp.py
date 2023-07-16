@@ -165,12 +165,12 @@ class MSDP(TelnetOption):
                 #except ValueError:
                 #    pass
 
-            # Two dispatchers here, first is for all-value listeners
+            # Two dispatchs here, first is for all-value listeners
             msg = MSDPMessage(subtype=var, value=self.values[var], oldvalue=oldvalue)
-            self.session.dispatcher(msg)
+            self.session.dispatch(msg)
             # Second dispatch for variable-specific listeners
             msg.event_type = f"core.msdp.{var}"
-            self.session.dispatcher(msg)
+            self.session.dispatch(msg)
 
         else:
             # TODO this is a candidate for some kind of protocol.log

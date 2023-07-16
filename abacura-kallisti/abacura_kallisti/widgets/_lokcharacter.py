@@ -59,7 +59,7 @@ class LOKCharacterStatic(Static):
 
     def on_mount(self):
         # Register our listener until we have a RegisterableObject to descend from
-        self.screen.session.listener(self.update_reactives)
+        self.screen.session.add_listener(self.update_reactives)
         if self.c_name is None:
             self.display = False
 

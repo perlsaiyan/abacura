@@ -32,6 +32,7 @@ from abacura.plugins.director import Director
 from abacura.plugins.events import AbacuraMessage
 from abacura.plugins.loader import PluginLoader
 from abacura.utils.ring_buffer import RingBufferLogSql
+from abacura.utils.fifo_buffer import FIFOBuffer
 from abacura.widgets.footer import AbacuraFooter
 
 if TYPE_CHECKING:
@@ -71,6 +72,7 @@ class Session(BaseSession):
         self.port = None
         self.tl: Optional[TextLog] = None
         self.debugtl: Optional[TextLog] = None
+        self.output_history: FIFOBuffer = FIFOBuffer(1000)
 
         self.core_msdp: MSDP = MSDP(self.output, self.send, self)
         self.options = {}
@@ -89,16 +91,15 @@ class Session(BaseSession):
 
         self.loklog = LOKLogger(self.name, self.config)
 
-        with Context(session=self):
-            self.director: Director = Director()
-            self.director.register_object(self)
+        self.director: Director = Director(session=self)
+        self.director.register_object(obj=self)
 
-        self.dispatcher = self.director.event_manager.dispatcher
-        self.listener = self.director.event_manager.listener
+        self.dispatch = self.director.event_manager.dispatch
+        self.add_listener = self.director.event_manager.add_listener
 
         core_injections = {"config": self.config, "session": self, "app": self.abacura,
                            "sessions": self.abacura.sessions, "core_msdp": self.core_msdp,
-                           "director": self.director, "scripts": self.director.script_provider}
+                           "director": self.director, "buffer": self.output_history}
         self.core_plugin_context = Context(**core_injections)
 
         additional_injections = {}
@@ -271,6 +272,7 @@ class Session(BaseSession):
             return
 
         message = OutputMessage(msg, gag)
+        self.output_history.append(message)
 
         if actionable:
 
@@ -278,6 +280,7 @@ class Session(BaseSession):
                 self.director.action_manager.process_output(message)
 
         if not message.gag:
+
             self.tl.markup = markup
             self.tl.highlight = highlight
             if ansi:
@@ -390,7 +393,7 @@ class Session(BaseSession):
                     if ord(data) in self.options:
                         self.options[ord(data)].will()
                     elif ord(data) == 1:
-                        self.dispatcher(AbacuraMessage(event_type="core.password_mode", value="on"))
+                        self.dispatch(AbacuraMessage(event_type="core.password_mode", value="on"))
                     else:
                         pass
                         #self.output(f"IAC WILL {ord(data)}")
@@ -400,7 +403,7 @@ class Session(BaseSession):
                     data = await reader.read(1)
                     #self.output(f"IAC WONT {data}")
                     if ord(data) == 1:
-                        self.dispatcher(AbacuraMessage(event_type="core.password_mode", value="off"))
+                        self.dispatch(AbacuraMessage(event_type="core.password_mode", value="off"))
                 # SB
                 elif data == b'\xfa':
                     c = await reader.read(1)
@@ -428,7 +431,7 @@ class Session(BaseSession):
                 # telnet GA sequence, likely end of prompt
                 elif data == GA:
                     self.output(self.outb.decode("UTF-8", errors="ignore"), ansi=True)
-                    self.dispatcher(AbacuraMessage("core.prompt", self.outb.decode("UTF-8", errors="ignore")))
+                    self.dispatch(AbacuraMessage("core.prompt", self.outb.decode("UTF-8", errors="ignore")))
                     self.output("")
 
                     self.outb = b''

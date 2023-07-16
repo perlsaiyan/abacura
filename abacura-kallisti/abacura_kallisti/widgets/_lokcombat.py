@@ -92,7 +92,7 @@ class LOKCombat(Static):
         self.opponent_block.display = False
 
     def on_mount(self):
-        self.screen.session.listener(self.update_combat_values)
+        self.screen.session.add_listener(self.update_combat_values)
 
     def compose(self) -> ComposeResult:
         yield self.combat_title

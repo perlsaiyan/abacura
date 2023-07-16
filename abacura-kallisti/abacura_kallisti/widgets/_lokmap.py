@@ -101,8 +101,8 @@ class LOKMap(Container):
 
     def on_mount(self) -> None:
         # Register our listener until we have a RegisterableObject to descend from
-        self.screen.session.listener(self.recenter_map)
-        self.screen.session.listener(self.toggle_map_type)
+        self.screen.session.add_listener(self.recenter_map)
+        self.screen.session.add_listener(self.toggle_map_type)
         self.world = self.screen.world
         self.bfs = BFS(self.world)
         self.msdp = self.screen.session.core_msdp
@@ -110,7 +110,7 @@ class LOKMap(Container):
     def on_resize(self, event: Resize):
         self.update_map()
     
-    @event("lok.navigate")
+    @event("lok.travel")
     def toggle_map_type(self, msg: AbacuraMessage):
         if msg.value == "start":
             self.map_type = "1x1"

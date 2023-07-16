@@ -59,7 +59,7 @@ class LOKExperience(Static):
 
     def on_mount(self):
         """Set up listeners, update visibility state"""
-        self.screen.session.listener(self.update_reactives)
+        self.screen.session.add_listener(self.update_reactives)
         self.setup_progress_bars()
         if not self.c_level:
             self.display = False
