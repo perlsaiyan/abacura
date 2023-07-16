@@ -9,6 +9,8 @@ from abacura.plugins.director import Director
 from abacura.plugins.tickers import Ticker
 from abacura.plugins.scripts import ScriptProvider, Script
 from abacura.plugins.commands import CommandError
+from abacura.utils.fifo_buffer import FIFOBuffer
+from abacura.mud import OutputMessage
 
 if TYPE_CHECKING:
     from abacura.mud.options.msdp import MSDP
@@ -40,6 +42,7 @@ class Plugin:
         self.output = self.session.output
         self.debuglog = self.session.debuglog
         self.dispatcher = self.director.event_manager.dispatcher
+        self.output_history: FIFOBuffer[OutputMessage] = self._context['buffer']
 
     def get_name(self):
         return self.__class__.__name__

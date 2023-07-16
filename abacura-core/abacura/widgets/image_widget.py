@@ -80,7 +80,7 @@ class ImageWidget(Widget):
         self.refresh()
 
     def get_frame_strips(self, frame_number: int) -> List[Strip]:
-        if len(self.strip_cache) == 0:
+        if frame_number > len(self.frames):
             return [Strip([])]
 
         if self.strip_cache[frame_number] is not None:

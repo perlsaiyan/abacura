@@ -32,6 +32,7 @@ from abacura.plugins.director import Director
 from abacura.plugins.events import AbacuraMessage
 from abacura.plugins.loader import PluginLoader
 from abacura.utils.ring_buffer import RingBufferLogSql
+from abacura.utils.fifo_buffer import FIFOBuffer
 from abacura.widgets.footer import AbacuraFooter
 
 if TYPE_CHECKING:
@@ -71,6 +72,7 @@ class Session(BaseSession):
         self.port = None
         self.tl: Optional[TextLog] = None
         self.debugtl: Optional[TextLog] = None
+        self.output_buffer: FIFOBuffer = FIFOBuffer(1000)
 
         self.core_msdp: MSDP = MSDP(self.output, self.send, self)
         self.options = {}
@@ -98,7 +100,8 @@ class Session(BaseSession):
 
         core_injections = {"config": self.config, "session": self, "app": self.abacura,
                            "sessions": self.abacura.sessions, "core_msdp": self.core_msdp,
-                           "director": self.director, "scripts": self.director.script_provider}
+                           "director": self.director, "scripts": self.director.script_provider,
+                           "buffer": self.output_buffer}
         self.core_plugin_context = Context(**core_injections)
 
         additional_injections = {}
@@ -271,6 +274,7 @@ class Session(BaseSession):
             return
 
         message = OutputMessage(msg, gag)
+        self.output_buffer.append(message)
 
         if actionable:
 
@@ -278,6 +282,7 @@ class Session(BaseSession):
                 self.director.action_manager.process_output(message)
 
         if not message.gag:
+
             self.tl.markup = markup
             self.tl.highlight = highlight
             if ansi:

@@ -1,6 +1,5 @@
 import ast
 import uuid
-from typing import Optional
 
 from rich.panel import Panel
 from rich.pretty import Pretty
@@ -43,7 +42,8 @@ class ExecHelper(LOKPlugin):
                             "msdp": self.msdp,
                             "pc": self.pc,
                             "locations": self.locations,
-                            "room": self.room
+                            "room": self.room,
+                            "history": self.output_history
                             }
 
             self.session.output(f"# Running script {filename}", actionable=False)
@@ -74,8 +74,9 @@ class ExecHelper(LOKPlugin):
                 self.exec_locals = {}
 
             exec_globals = {"session": self.session, "plugins": self.session.plugin_loader.plugins,
+                            "output": self.output,
                             "world": self.world, "msdp": self.msdp, "locations": self.locations,
-                            "pc": self.pc, "room": self.room}
+                            "pc": self.pc, "room": self.room, "history": self.output_history}
 
             compiled = compile(text.strip(), '<string>', 'eval')
             result = eval(compiled, exec_globals, self.exec_locals)
