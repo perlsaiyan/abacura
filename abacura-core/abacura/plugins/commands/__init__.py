@@ -5,9 +5,11 @@ import shlex
 from typing import List, Dict, TYPE_CHECKING, Callable, Tuple
 
 from rich.markup import escape
-from serum import inject
-
 from textual import log
+
+if TYPE_CHECKING:
+    from abacura.mud.session import Session
+
 
 class CommandArgumentError(Exception):
     pass
@@ -18,7 +20,7 @@ class CommandError(Exception):
 
 
 if TYPE_CHECKING:
-    from abacura.mud.session import Session
+    pass
 
 
 class Command:
@@ -188,12 +190,11 @@ class Command:
         return "\n".join(help_text)
 
 
-@inject
 class CommandManager:
-    session: Session
 
-    def __init__(self):
+    def __init__(self, session: Session):
         self.commands: List[Command] = []
+        self.session = session
 
     def register_object(self, obj: object):
         # self.unregister_object(obj)  #  prevent duplicates
@@ -205,7 +206,7 @@ class CommandManager:
     def unregister_object(self, obj: object):
         self.commands = [a for a in self.commands if a.source != obj]
 
-    def parse_command_line(self, command_line: str) -> Tuple[Command, List[str]]:
+    def parse_command_line(self, command_line: str) -> Tuple[Command, str]:
 
         # remove leading @
         if command_line.startswith("##") and len(command_line) > 2:
@@ -213,15 +214,15 @@ class CommandManager:
             command_line = "## " + command_line[2:]
 
         s = command_line[1:].rstrip("\n").split(" ")
-        submitted_command = s[0]
-        submitted_args = "" if len(s) == 1 else " ".join(s[1:])
+        command_str = s[0]
+        argument_str = "" if len(s) == 1 else " ".join(s[1:])
 
-        if submitted_command == '':
-            submitted_command = 'help'
+        if command_str == '':
+            command_str = 'help'
 
         # look for partial matches and exact matches
-        starts = [cmd for cmd in self.commands if cmd.name.lower().startswith(submitted_command.lower())]
-        exact_matches = [cmd for cmd in self.commands if cmd.name.lower() == submitted_command.lower()]
+        starts = [cmd for cmd in self.commands if cmd.name.lower().startswith(command_str.lower())]
+        exact_matches = [cmd for cmd in self.commands if cmd.name.lower() == command_str.lower()]
 
         if len(exact_matches) == 1:
             # use the exact match if we have 1
@@ -230,27 +231,30 @@ class CommandManager:
             # use the partial match if there is only 1
             command = starts[0]
         elif len(starts) == 0:
-            raise CommandError(f"Unknown command '{submitted_command}'")
+            raise CommandError(f"Unknown command '{command_str}'")
         else:
             matches = ", ".join([cmd.name for cmd in starts])
-            raise CommandError(escape(f"Ambiguous command '{submitted_command}' [{matches}]"))
+            raise CommandError(escape(f"Ambiguous command '{command_str}' [{matches}]"))
 
-        return command, submitted_args
+        return command, argument_str
 
     def execute_command(self, command_line: str) -> bool:
         if not len(command_line):
             return False
 
+        command: Command | None = None
+
         try:
-            command, submitted_args = self.parse_command_line(command_line)
+            command, arg_str = self.parse_command_line(command_line)
             self.session.output(f"[green][italic]> {escape(command_line)}", markup=True, highlight=True)
-            message = command.execute(submitted_args)
+            message = command.execute(arg_str)
             if message:
                 self.session.output(message)
 
         except CommandArgumentError as exc:
             self.session.show_exception(f"[bold orange1]! {str(exc)}", exc, show_tb=False)
-            self.session.output(f"[gray][italic]> {escape(command.get_help())}", markup=True, highlight=True)
+            if command is not None:
+                self.session.output(f"[gray][italic]> {escape(command.get_help())}", markup=True, highlight=True)
 
         except CommandError as exc:
             self.session.show_exception(f"[bold orange1]! {str(exc)}", exc, show_tb=False)

@@ -32,8 +32,8 @@ class LOKGroup(Static):
         self.group_block.add_column("Flags", key="flags")
 
     def on_mount(self):
-        self.screen.session.listener(self.update_group)
-        self.screen.session.listener(self.update_group_level)
+        self.screen.session.add_listener(self.update_group)
+        self.screen.session.add_listener(self.update_group_level)
 
     def compose(self) -> ComposeResult:
         yield self.group_title

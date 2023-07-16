@@ -88,11 +88,14 @@ class PluginSession(Plugin):
 
         loaded_plugins = self.session.plugin_loader.plugins
         matches = [n for n in loaded_plugins.keys() if n.lower().startswith(name.lower())]
-        if len(matches) > 1:
-            self.output(f"[orange1] Ambigious Plugin Name: {matches}", markup=True)
-            return
+        exact = [n for n in loaded_plugins.keys() if n.lower() == name.lower()]
 
-        if len(matches) == 0:
+        if len(exact) == 1:
+            matches = exact
+        elif len(matches) > 1:
+            self.output(f"[orange1] Ambiguous Plugin Name: {matches}", markup=True)
+            return
+        elif len(matches) == 0:
             self.output(f"[orange1] No plugin by that name [{name}]", markup=True)
             return
 

@@ -3,12 +3,13 @@ from rich.table import Table
 from abacura.plugins import command
 from abacura.plugins.scripts import ScriptResult
 from abacura.utils.timer import Timer
-from abacura_kallisti.atlas.navigator import Navigator
+from abacura_kallisti.atlas.travel_guide import TravelGuide
 from abacura_kallisti.atlas.room import Room
 from abacura_kallisti.plugins import LOKPlugin
+from abacura_kallisti.plugins.scripts.travel import TravelMessage
 
 
-class NavigationHelper(LOKPlugin):
+class TravelHelper(LOKPlugin):
     def __init__(self):
         super().__init__()
 
@@ -16,7 +17,7 @@ class NavigationHelper(LOKPlugin):
     def path(self, destination: Room, detailed: bool = False):
         """Compute path to a room/location"""
         t = Timer()
-        nav = Navigator(self.world, self.pc, level=self.msdp.level, avoid_home=False)
+        nav = TravelGuide(self.world, self.pc, level=self.msdp.level, avoid_home=False)
         t.start()
         nav_path = nav.get_path_to_room(self.msdp.room_vnum, destination.vnum, avoid_vnums=set())
         path_elapsed_time = t.stop()
@@ -32,7 +33,8 @@ class NavigationHelper(LOKPlugin):
             return
 
         tbl = Table(title=f"Path to {destination.vnum}: {speedwalk}", title_justify="left",
-                    caption=f"Total Cost [{cost}].  Computed in {1000*path_elapsed_time:6.3f}ms", caption_justify="right")
+                    caption=f"Total Cost [{cost}].  Computed in {1000*path_elapsed_time:6.3f}ms",
+                    caption_justify="right")
 
         tbl.add_column("Vnum", justify="right")
         tbl.add_column("To Vnum", justify="right")
@@ -61,4 +63,7 @@ class NavigationHelper(LOKPlugin):
         def go_done(result: ScriptResult):
             self.output(f"[bold purple] #go {result.result}", markup=True)
 
-        self.scripts.navigate(go_done, destination, avoid_home)
+        tm = TravelMessage(destination=destination, avoid_home=avoid_home, callback_fn=go_done)
+        self.dispatch(tm)
+
+        # self.scripts.navigate(go_done, destination, avoid_home)

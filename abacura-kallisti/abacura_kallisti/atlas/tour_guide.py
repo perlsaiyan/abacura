@@ -2,7 +2,7 @@ import random
 from dataclasses import dataclass, field
 from typing import Optional
 
-from abacura_kallisti.atlas.navigator import Navigator, NavigationPath
+from abacura_kallisti.atlas.travel_guide import TravelGuide, TravelPath
 from abacura_kallisti.atlas.room import Area, Exit, ScannedRoom
 from abacura_kallisti.atlas.world import World
 from abacura_kallisti.mud.player import PlayerCharacter
@@ -41,7 +41,7 @@ class TourGuide:
         self.area: Area = area
         self.world: World = world
         self.level = level
-        self.navigator = Navigator(world, pc, level, avoid_home=True)
+        self.travel_guide = TravelGuide(world, pc, level, avoid_home=True)
 
         self.route_method = override_route if override_route != '' else self.area.route
 
@@ -56,7 +56,7 @@ class TourGuide:
 
     def _start(self, scanned_room: ScannedRoom):
         self.visited_rooms: set = set()
-        self.reachable_rooms: set = self.navigator.get_reachable_rooms_in_known_area(scanned_room.vnum, self.area)
+        self.reachable_rooms: set = self.travel_guide.get_reachable_rooms_in_known_area(scanned_room.vnum, self.area)
         if len(self.area.rooms_to_scout):
             self.unvisited_rooms = {vnum for vnum in self.unvisited_rooms if vnum in self.area.rooms_to_scout}
             # self.metrics.info['rooms_to_scout'] = len(self.area.rooms_to_scout)
@@ -110,12 +110,12 @@ class TourGuide:
     def _next_step_nu(self, scanned_room: ScannedRoom) -> TourGuideResponse:
         """Choose exit to head towards the nearest unvisited room"""
         avoid = self.area.get_excluded_room_vnums(self.level)
-        found = self.navigator.get_nearest_rooms_in_set(scanned_room.vnum,
-                                                        self.unvisited_rooms, avoid, self.reachable_rooms)
+        found = self.travel_guide.get_nearest_rooms_in_set(scanned_room.vnum,
+                                                           self.unvisited_rooms, avoid, self.reachable_rooms)
         if len(found) == 0:
             return TourGuideResponse(error=f"NU: No rooms found {scanned_room.vnum}")
 
-        path: NavigationPath = found[0]
+        path: TravelPath = found[0]
         # self.session.debug('NU: %s -> %s' % (self.msdp.room_vnum, dest.vnum))
 
         if path is None or len(path.steps) == 0:
@@ -136,8 +136,8 @@ class TourGuide:
         near = []
         best_cost = 9999
 
-        for path in self.navigator.get_nearest_rooms_in_set(scanned_room.vnum, self.unvisited_rooms,
-                                                            avoid, self.reachable_rooms, max_rooms=scan_rooms):
+        for path in self.travel_guide.get_nearest_rooms_in_set(scanned_room.vnum, self.unvisited_rooms,
+                                                               avoid, self.reachable_rooms, max_rooms=scan_rooms):
             if len(path.steps) == 0:
                 continue
 
@@ -148,8 +148,8 @@ class TourGuide:
             # print("%5s: %4d/%4d [%3d steps]" % (cur_vnum, cost, best_cost, len(path.steps)))
             best_cost = min(cost, best_cost)
 
-            pocket = self.navigator.get_reachable_rooms_in_known_area(path.destination.vnum, self.area,
-                                                                      self.unvisited_rooms, max_pocket_size)
+            pocket = self.travel_guide.get_reachable_rooms_in_known_area(path.destination.vnum, self.area,
+                                                                         self.unvisited_rooms, max_pocket_size)
             pocket_size = len(pocket)
             near.append((path, cost, pocket_size))
 

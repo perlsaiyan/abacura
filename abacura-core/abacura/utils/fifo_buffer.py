@@ -13,6 +13,7 @@ class FIFOBuffer(Generic[T]):
     def __init__(self, max_size: int = 16384):
         self._entries: List[T] = []
         self._max_size = max_size
+        self.entry_id: int = 0
 
     def __getitem__(self, k) -> T:
         return self._entries.__getitem__(k)
@@ -28,6 +29,7 @@ class FIFOBuffer(Generic[T]):
         if len(self._entries) > self._max_size:
             # remove a large chunk if we hit the max size for efficiency
             self.remove_first(self._max_size // 16)
+        self.entry_id += 1
 
 
 class TimestampedBuffer(FIFOBuffer):

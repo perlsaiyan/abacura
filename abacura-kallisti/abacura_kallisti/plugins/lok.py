@@ -69,4 +69,4 @@ class LegendsOfKallisti(LOKPlugin):
         if k_name:
             msg = LOKKillMessage(victim=k_name.groups(1)[0], experience=experience, rare_bonus=rare_bonus)
             self.debuglog("info",msg)
-            self.session.dispatcher(msg)
+            self.session.dispatch(msg)

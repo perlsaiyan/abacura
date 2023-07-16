@@ -1,23 +1,18 @@
 from __future__ import annotations
 
 import csv
-from dataclasses import dataclass
 import io
 import os
-from pathlib import Path
 import re
+from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Optional, TYPE_CHECKING
+
 import tomlkit
-from typing import Dict, List, Optional, TYPE_CHECKING
-
-from serum import inject
-
-from abacura.plugins.events import event
-
 
 if TYPE_CHECKING:
-    from abacura.mud.options.msdp import MSDPMessage
-    from abacura import Session
-    from abacura.config import Config
+    from abacura.mud.session import Session
+
 
 @dataclass
 class Alias:
@@ -26,15 +21,13 @@ class Alias:
     value: str
     temporary: bool = False
 
-@inject
+
 class AliasManager:
     """Alias manager"""
 
-    session: Session
-    config: Config
-
-    def __init__(self):
+    def __init__(self, session: Session):
         super().__init__()
+        self.session = session
         self.aliases: List[Alias] = []
         self.re_param = re.compile(r'^%([0-9]+)')
 
@@ -61,7 +54,7 @@ class AliasManager:
     def get_category(self, category: str) -> List[Alias]:
         return [ali for ali in self.aliases if ali.category.lower() == category.lower()]
     
-    def get_alias_by_command(self, cmd: str) -> Alias:
+    def get_alias_by_command(self, cmd: str) -> Alias | None:
         for a in self.aliases:
             if a.cmd == cmd:
                 return a

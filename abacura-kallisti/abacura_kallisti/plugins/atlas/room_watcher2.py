@@ -1,19 +1,16 @@
-import re
-import dataclasses
-from typing import List, Optional
 import os
+import re
 import unicodedata
-import tomlkit
+from typing import List, Optional
 
-from rich.panel import Panel
-from rich.text import Text
+import tomlkit
 
 # from atlas.known_areas import KNOWN_AREAS
 from abacura.mud import OutputMessage
 from abacura.plugins import action
+from abacura.utils.fifo_buffer import FIFOBuffer
 from abacura.plugins.events import event, AbacuraMessage
 from abacura_kallisti.atlas import encounter, item
-from abacura_kallisti.atlas.room import ScannedRoom, RoomMessage
 from abacura_kallisti.atlas.world import strip_ansi_codes
 from abacura_kallisti.mud.area import Area
 from abacura_kallisti.mud.mob import Mob
@@ -22,16 +19,15 @@ from abacura_kallisti.plugins import LOKPlugin
 item_re = re.compile(r'(\x1b\[0m)?\x1b\[0;37m[^\x1b ]')
 
 
-class RoomWatcher(LOKPlugin):
+class RoomWatcherNew(LOKPlugin):
 
     def __init__(self):
         super().__init__()
 
-        self.scanned_room: Optional[ScannedRoom] = None
-
-        self.re_room_nocompass = re.compile(r"^.* (\[ [ NSWEUD<>v^\|\(\)\[\]]* \] *$)")
-        self.re_room_compass = re.compile(r".* \|")
-        self.re_room_here = re.compile(r"^Here +- ")
+        self.re_room_no_compass = re.compile(r"^.* (\[ [ NSWEUD<>v^\|\(\)\[\]]* \] *$)")
+        self.re_room_compass = re.compile(r"^.* \|")
+        # self.re_room_here = re.compile(r"^Here +- ")
+        self.re_room_no_exits = re.compile(r"^.* \[ No exits! \]")
 
         self.re_player = re.compile(r"\x1b\[1;33m(\w+)")  # yellow
         self.re_mob_count = re.compile(r"\[(\d+)\]")
@@ -43,40 +39,42 @@ class RoomWatcher(LOKPlugin):
         self.flag_checks = [" %s " % f for f in self.flags]
         self.flag_checks += [" %s." % f for f in self.flags]
 
-    @action("^Not here!")
-    def no_magic(self):
-        if self.msdp.room_vnum in self.world.rooms:
-            r = self.world.rooms[self.msdp.room_vnum]
-            if not r.no_magic or not r.no_recall:
-                r.no_magic = True
-                r.no_recall = True
-                self.output(f'[orange1]Marked room no recall/magic [{r.vnum}]', markup=True)
-                self.world.save_room(r.vnum)
+        self.room_header_entry_id = -1
+        self.room_header = ''
 
-    @action("^Your lips move,* but no sound")
-    def silent(self):
-        if self.msdp.room_vnum in self.world.rooms:
-            r = self.world.rooms[self.msdp.room_vnum]
-            if not r.silent:
-                r.silent = True
-                self.output(f'[orange1]Marked room silent [{r.vnum}]', markup=True)
-                self.world.save_room(r.vnum)
+    # @action("^Not here!")
+    # def no_magic(self):
+    #     if self.msdp.room_vnum in self.world.rooms:
+    #         r = self.world.rooms[self.msdp.room_vnum]
+    #         if not r.no_magic or not r.no_recall:
+    #             r.no_magic = True
+    #             r.no_recall = True
+    #             self.output(f'[orange1]Marked room no recall/magic [{r.vnum}]', markup=True)
+    #             self.world.save_room(r.vnum)
+    #
+    # @action("^Your lips move,* but no sound")
+    # def silent(self):
+    #     if self.msdp.room_vnum in self.world.rooms:
+    #         r = self.world.rooms[self.msdp.room_vnum]
+    #         if not r.silent:
+    #             r.silent = True
+    #             self.output(f'[orange1]Marked room silent [{r.vnum}]', markup=True)
+    #             self.world.save_room(r.vnum)
 
-    # @lru_cache(maxsize=1024)
-    def match_wilderness(self, line, stripped):
-        magenta: int = line.find("\x1b[1;35m")
-        starts_with_magenta = (0 <= magenta < 5)
+    @action("\x1b\[1;35m", color=True)
+    def bold_magenta(self, message: OutputMessage):
 
-        return (starts_with_magenta and len(stripped) <= 40) or self.match_room(line, stripped)
+        # here_matched = self.re_room_here.match(message.stripped) is not None
 
-    # @lru_cache(maxsize=8192)
-    def match_room(self, line: str, stripped: str) -> bool:
-        contains_bold_magenta = (line.find("\x1b[1;35m") >= 0)
-        room_matched1 = self.re_room_nocompass.match(stripped) is not None
-        room_matched2 = self.re_room_compass.match(stripped) is not None
-        here_matched = self.re_room_here.match(stripped) is not None
-        no_exits = stripped.find("[ No exits! ]") > 0
-        return contains_bold_magenta and (room_matched1 or room_matched2 or here_matched or no_exits)
+        room_no_compass = self.re_room_no_compass.match(message.stripped) is not None
+        room_compass = self.re_room_compass.match(message.stripped) is not None
+        room_no_exits = self.re_room_no_exits.match(message.stripped) is not None
+        room_wilderness = all([self.msdp.area_name == 'The Wilderness', len(message.stripped) <= 40,
+                               message.message.find("\x1b[1;35m") <= 5])
+
+        if any([room_compass, room_no_compass, room_no_exits, room_wilderness]):
+            self.room_header_entry_id = self.output_history.entry_id
+            self.room_header = message
 
     # @lru_cache(maxsize=512)
     def get_mob_re_for_area(self, area_name: str) -> List:
@@ -235,72 +233,20 @@ class RoomWatcher(LOKPlugin):
 
         return []
 
-    @event("core.prompt", priority=1)
-    def got_prompt(self, _: AbacuraMessage):
-        """Getting a prompt ends the room"""
-        # self.session.debug("room: got_prompt %s" % self.scanned_room)
-        # session.debug("mobs: %s" % [m.name for m in self.scanned_room.room_mobs], show=True)
-        # session.debug("corpses: %s" % self.scanned_room.room_corpses, show=True)
-
-        if self.scanned_room is None:
-            return
-
-        # TODO: Make the latest available scanned room available somewhere
-        # self.msdp.room = self.scanned_room
-        self.scanned_room.msdp_exits = self.msdp.room_exits
-
-        self.world.visited_room(area_name=self.msdp.area_name, name=self.msdp.room_name, vnum=self.msdp.room_vnum,
-                                terrain=self.msdp.room_terrain, room_exits=self.msdp.room_exits,
-                                scan_room=self.scanned_room)
-
-        if self.scanned_room.vnum in self.world.rooms:
-            room = self.world.rooms[self.scanned_room.vnum]
-            missing_msdp_exits = any([d for d in self.msdp.room_exits if d not in room.exits])
-            extra_room_exits = any([d for d in room.exits if d not in self.msdp.room_exits])
-            if missing_msdp_exits or extra_room_exits:
-                self.session.output(Text(f"\nROOM WATCHER: Mismatch between MSDP and Room exits\n", style="purple"))
-
-        # Load the new area if it has changed
-        self.scanned_room.area = self.room.area
-        if self.scanned_room.area.name != self.msdp.area_name:
-            self.scanned_room.area = self.load_area(self.msdp.area_name)
-
-        # Do not create a new instance of self.room since a reference is held by all plugins
-        for f in dataclasses.fields(ScannedRoom):
-            setattr(self.room, f.name, getattr(self.scanned_room, f.name))
-
-        self.dispatch(RoomMessage(vnum=self.scanned_room.vnum, room=self.scanned_room))
-
-        self.scanned_room = None
-
-    # @action(r"^.* (\[ [ NSWEUD<>v^\|\(\)\[\]]* \] *$)", color=False)
-    # def start_room_nocompass(self, text: OutputMessage):
-    #     self.output("start no compass")
+    # @action(r"^There is a trail of fresh blood here leading (.*)\.")
+    # def blood_trail(self, direction: str):
+    #     if self.scanned_room:
+    #         self.scanned_room.blood_trail = direction
     #
-    # @action(r".* \|")
-    # def start_room_compass(self, text: OutputMessage):
-    #     self.output("start compass")
+    # @action(r"^\[\* You see your target's tracks leading (.*)\. ")
+    # def hunt_tracks(self, direction: str):
+    #     if self.scanned_room:
+    #         self.scanned_room.hunt_tracks = direction
     #
-    # @action(r"^Here +- ")
-    # def start_room_here(self, text: OutputMessage):
-    #     self.output("Start here")
-    #
-    # @action(r"")
-
-    @action(r"^There is a trail of fresh blood here leading (.*)\.")
-    def blood_trail(self, direction: str):
-        if self.scanned_room:
-            self.scanned_room.blood_trail = direction
-
-    @action(r"^\[\* You see your target's tracks leading (.*)\. ")
-    def hunt_tracks(self, direction: str):
-        if self.scanned_room:
-            self.scanned_room.hunt_tracks = direction
-
-    @action(r"\[\* You found ")
-    def hunt_found(self):
-        if self.scanned_room:
-            self.scanned_room.hunt_tracks = "here"
+    # @action(r"\[\* You found ")
+    # def hunt_found(self):
+    #     if self.scanned_room:
+    #         self.scanned_room.hunt_tracks = "here"
 
         # regen_hp = scan_room and scan_room.room_header.find("RegenHp") >= 0
         # regen_mp = scan_room and scan_room.room_header.find("RegenMp") >= 0
@@ -311,54 +257,6 @@ class RoomWatcher(LOKPlugin):
         # no_recall = scan_room and scan_room.room_header.find('Warded') >= 0
         # bank = scan_room and scan_room.room_header.find('Bank') >= 0
         # terrain = strip_ansi_codes(terrain)
-
-    @action(r".*")
-    def scan_everything(self, message: OutputMessage):
-        if type(message.message) is not str:
-            return
-        
-        # check for the start of a room name
-        if self.scanned_room is None:
-            if self.msdp.area_name == 'The Wilderness':
-                # wilderness rooms don't have the exit list
-                matched = self.match_wilderness(message.message, message.stripped)
-            else:
-                matched = self.match_room(message.message, message.stripped)
-
-            if matched:
-                self.scanned_room = ScannedRoom(room_header=message.stripped, vnum=self.msdp.room_vnum)
-
-                if self.msdp.area_name == 'The Wilderness':
-                    self.world.load_wilderness()
-
-                if self.msdp.room_vnum in self.world.rooms:
-                    room = self.world.rooms[self.msdp.room_vnum]
-
-                    # copy the room attributes into the new ScanndRoom instance
-                    for f in dataclasses.fields(room):
-                        setattr(self.scanned_room, f.name, getattr(room, f.name))
-
-            return
-
-        if len(self.scanned_room.room_lines) > 100:
-            return
-
-        # otherwise, if we are in between then check for encounters/mobs & players in the room
-        self.scanned_room.room_lines.append(message.message)
-        encounters = self.match_encounters(self.msdp.area_name, message.message)
-        objects = self.match_objects(message.message)
-        corpses = self.get_corpses(self.msdp.area_name, message.stripped)
-        # charmies = self.get_charmies(text.stripped)
-
-        if len(encounters) > 0:
-            self.scanned_room.room_encounters += encounters
-        elif len(corpses) > 0:
-            self.scanned_room.room_corpses += corpses
-        elif len(objects) > 0:
-            self.scanned_room.room_items += objects
-        else:
-            if (player_name := self.get_player_name(message.message)) is not None:
-                self.scanned_room.room_players.append(player_name)
 
     @staticmethod
     def slugify(value):
@@ -398,3 +296,44 @@ class RoomWatcher(LOKPlugin):
 
         self.debuglog(msg=f"Loaded area file '{filename}'")
         return new_area
+
+    def get_minimap(self):
+        minimap = []
+
+        num_room_lines = self.output_history.entry_id - self.room_header_entry_id + 1
+
+        for msg in self.output_history[-num_room_lines:-num_room_lines - 30:-1]:
+            if type(msg.message) not in (str, 'str'):
+                continue
+
+            if msg == self.room_header:
+                continue
+
+            if msg.stripped.startswith(' ') and msg.stripped.strip(' ') != '':
+                minimap.append(msg)
+            else:
+                break
+
+        return list(reversed(minimap))
+
+    def get_last_room_messages(self) -> List[OutputMessage]:
+        if self.room_header_entry_id < 0:
+            return []
+
+        num_room_lines = self.output_history.entry_id - self.room_header_entry_id
+
+        if 1 > num_room_lines > 100:
+            return []
+
+        return [m for m in self.output_history[-num_room_lines:-1] if type(m.message) in (str, 'str')]
+
+
+    # @event("core.prompt", priority=1)
+    # def got_prompt(self, _: AbacuraMessage):
+    #     if self.room_header_entry_id >= 0:
+    #         room_messages = self.get_last_room_messages()
+    #         self.output([m.stripped[:5] for m in room_messages])
+    #         minimap = self.get_minimap()
+    #         self.room_header_entry_id = -1
+    #         self.output([m.stripped for m in minimap])
+    #         pass

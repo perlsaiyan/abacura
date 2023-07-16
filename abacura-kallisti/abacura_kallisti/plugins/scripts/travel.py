@@ -1,26 +1,35 @@
+from dataclasses import dataclass
 from functools import partial
 from typing import Optional, Callable
 
-from abacura.plugins import action, script
+from abacura.plugins import action
 from abacura.plugins.events import event, AbacuraMessage
 from abacura.plugins.scripts import ScriptResult
-from abacura_kallisti.atlas.navigator import Navigator, NavigationPath
+from abacura_kallisti.atlas.travel_guide import TravelGuide, TravelPath
 from abacura_kallisti.atlas.room import RoomMessage, Room
 from abacura_kallisti.plugins import LOKPlugin
 
 
-class NavigationScript(LOKPlugin):
+@dataclass
+class TravelMessage(AbacuraMessage):
+    destination: Optional[Room] = None
+    avoid_home: bool = False
+    callback_fn: Optional[Callable] = None
+    event_type: str = "lok.script.travel"
+
+
+class TravelScript(LOKPlugin):
     def __init__(self):
         super().__init__()
-        self.navigation_path: Optional[NavigationPath] = None
-        self.navigator: Optional[Navigator] = None
+        self.navigation_path: Optional[TravelPath] = None
+        self.travel_guide: Optional[TravelGuide] = None
         self.retries = 0
         self.callback_fn: Optional[Callable] = None
 
-    @script
-    def navigate(self, callback_fn: Callable, destination: Room, avoid_home: bool = False):
-        self.callback_fn = callback_fn
-        self.start_nav(destination, avoid_home)
+    @event(trigger="lok.script.travel")
+    def handle_travel(self, message: TravelMessage):
+        self.callback_fn = message.callback_fn
+        self.start_nav(message.destination, message.avoid_home)
         self.retries = 0
 
     @event(trigger="lok.room")
@@ -55,21 +64,21 @@ class NavigationScript(LOKPlugin):
 
     def start_nav(self, destination: Room, avoid_home: bool = False):
         self.output(f"> start_nav {destination.vnum}")
-        self.navigator = Navigator(self.world, self.pc, self.msdp.level, avoid_home)
-        nav_path = self.navigator.get_path_to_room(self.msdp.room_vnum, destination.vnum, avoid_vnums=set())
+        self.travel_guide = TravelGuide(self.world, self.pc, self.msdp.level, avoid_home)
+        nav_path = self.travel_guide.get_path_to_room(self.msdp.room_vnum, destination.vnum, avoid_vnums=set())
         if not nav_path.destination:
             self.end_nav(False, f"Unable to compute path to {destination.vnum}")
             return
 
-        self.dispatcher(AbacuraMessage("lok.navigate", "start"))
+        self.dispatch(AbacuraMessage("lok.travel", "start"))
         self.navigation_path = nav_path
         self.send("look")
 
     def end_nav(self, success: bool, message: str):
         self.output(f"> end_nav: {success} {message}")
-        self.navigator = None
+        self.travel_guide = None
         self.navigation_path = None
-        self.dispatcher(AbacuraMessage("lok.navigate", success))
+        self.dispatch(AbacuraMessage("lok.travel", str(success)))
         self.callback_fn(ScriptResult(success=success, result=message))
 
     def continue_nav(self):

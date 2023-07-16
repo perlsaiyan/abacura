@@ -1,13 +1,11 @@
 from __future__ import annotations
 
+import inspect
 from datetime import datetime, timedelta
 from typing import List, TYPE_CHECKING, Callable
-import inspect
-
-from serum import inject
 
 if TYPE_CHECKING:
-    from abacura.mud.session import Session
+    pass
 
 
 class Ticker:
@@ -35,9 +33,7 @@ class Ticker:
         return self.next_tick
 
 
-@inject
 class TickerManager:
-    session: Session
 
     def __init__(self):
         self.tickers: List[Ticker] = []

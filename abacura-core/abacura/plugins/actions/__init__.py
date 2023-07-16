@@ -5,13 +5,16 @@ import re
 from queue import PriorityQueue
 from typing import TYPE_CHECKING, Callable, Match
 
-from serum import inject
 from textual import log
 
 from abacura.mud import OutputMessage
 
 if TYPE_CHECKING:
-    from abacura.mud.session import Session
+    pass
+
+
+class ActionError(Exception):
+    pass
 
 
 class Action:
@@ -33,7 +36,9 @@ class Action:
         non_match_types = [Match, 'Match', OutputMessage, 'OutputMessage']
         self.expected_match_groups = len([t for t in self.parameter_types if t not in non_match_types])
 
-        valid_type_annotations = [str, 'str', int, float, inspect._empty, Match, 'Match', OutputMessage, 'OutputMessage']
+        valid_type_annotations = [str, 'str', int, float, getattr(inspect, "_empty"),
+                                  Match, 'Match', OutputMessage, 'OutputMessage']
+
         invalid_types = [t for t in self.parameter_types if t not in valid_type_annotations]
 
         if invalid_types:
@@ -42,10 +47,8 @@ class Action:
     def __lt__(self, other):
         return self.priority < other.priority
 
-@inject
-class ActionManager:
-    session: Session
 
+class ActionManager:
     def __init__(self):
         self.actions: PriorityQueue = PriorityQueue()
 
@@ -82,13 +85,14 @@ class ActionManager:
             if match:
                 self.initiate_callback(act, message, match)
 
-    def initiate_callback(self, action: Action, message: OutputMessage, match: Match):
+    @staticmethod
+    def initiate_callback(action: Action, message: OutputMessage, match: Match):
         g = list(match.groups())
 
         # perform type conversions
         if len(g) < action.expected_match_groups:
             msg = f"Incorrect # of match groups.  Expected {action.expected_match_groups}, got {g}"
-            self.session.output(f"[bold red] # ERROR: {msg} {repr(action)}", markup=True)
+            raise ActionError(msg)
 
         args = []
 
@@ -106,4 +110,7 @@ class ActionManager:
             args.append(value)
 
         # call with the list of args
-        action.callback(*args)
+        try:
+            action.callback(*args)
+        except Exception as exc:
+            raise ActionError(exc)
