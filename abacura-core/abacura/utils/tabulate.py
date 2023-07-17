@@ -5,6 +5,14 @@ from typing import Iterable
 
 
 def tabulate(tabular_data, headers=(), float_format="9.3f", **kwargs):
+    """
+    Create a rich Table with automatic justification for numbers and a configurable floating point format.
+
+    tabular_data can be a List[List], List[Dict], List[Tuple], List[dataclass], List[str]
+    headers should be an interable list/tuple of header names
+    kwargs are passed through to rich Table
+
+    """
     # title="", title_justify="left", title_style=None,
     # caption="", caption_justify="left", caption_style=None,
     # header_style=None, border_style=None,
