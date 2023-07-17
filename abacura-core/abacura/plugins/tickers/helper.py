@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from functools import partial
 from typing import TYPE_CHECKING, Callable
 from rich.table import Table
 
@@ -8,16 +7,6 @@ from abacura.plugins import Plugin, command, CommandError
 
 if TYPE_CHECKING:
     pass
-
-
-class TickerCallback:
-    def __init__(self, commands: str, send: Callable):
-        self.commands = commands
-        self.send = send
-
-    def callback(self):
-        for cmd in self.commands.split(";"):
-            self.send(cmd)
 
 
 class TickerCommand(Plugin):
@@ -65,8 +54,11 @@ class TickerCommand(Plugin):
         # always remove an existing ticker with this name
         self.remove_ticker(name)
 
-        callback = TickerCallback(commands, self.send)
-        self.add_ticker(seconds=seconds, callback_fn=callback.callback, repeats=repeats, name=name, commands=commands)
+        def ticker_callback():
+            for cmd in commands.split(";"):
+                self.session.player_input(cmd, echo_color="orange1")
+
+        self.add_ticker(seconds=seconds, callback_fn=ticker_callback, repeats=repeats, name=name, commands=commands)
 
 
 

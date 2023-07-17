@@ -12,7 +12,7 @@ class DebugDock(Widget):
     """Experimental debug window"""
     def __init__(self, id: str, name: str = ""):
         super().__init__(id=id, name=name)
-        self.tl = TextLog(id="debug")
+        self.tl = TextLog(id="debug", max_lines=2000)
         self.tl.can_focus = False
 
     def compose(self):

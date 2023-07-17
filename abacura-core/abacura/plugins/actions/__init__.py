@@ -61,18 +61,14 @@ class ActionManager:
                 self.add(act)
 
     def unregister_object(self, obj: object):
-        for a in self.actions.queue:
-            if a.source == obj:
-                self.actions.queue.remove(a)
+        self.actions.queue[:] = [a for a in self.actions.queue if a.source != obj]
 
     def add(self, action: Action):
         log.debug(f"Appending action '{action.name}' from '{action.source}'")
         self.actions.put(action)
 
     def remove(self, name: str):
-        for a in self.actions.queue:
-            if a.name == name:
-                self.actions.queue.remove(a)
+        self.actions.queue[:] = [a for a in self.actions.queue if a.name != name]
 
     def process_output(self, message: OutputMessage):
         if type(message.message) is not str:

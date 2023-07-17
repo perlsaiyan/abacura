@@ -51,9 +51,7 @@ class EventManager:
 
     def unregister_object(self, obj: object):
         for trigger, pq in self.events.items():
-            for item in pq.queue:
-                if item.source == obj:
-                    pq.queue.remove(item)
+            pq.queue[:] = [e for e in pq.queue if e.source != obj]
 
     def add_listener(self, listener: Callable, source: object = None):
         """Add an event listener"""
