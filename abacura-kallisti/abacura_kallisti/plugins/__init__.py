@@ -40,7 +40,6 @@ class LOKPlugin(Plugin):
 
         self.msdp: TypedMSDP = self._context['msdp']
         self.world: World = self._context['world']
-        self.cq: QueueManager = self._context['cq']
         self.pc: PlayerCharacter = self._context['pc']
         self.locations: LocationList = self._context['locations']
         self.room: ScannedRoom = self._context['room']

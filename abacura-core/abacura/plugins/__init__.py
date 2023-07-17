@@ -9,6 +9,7 @@ from abacura.plugins.director import Director
 from abacura.plugins.tickers import Ticker
 from abacura.plugins.scripts import ScriptProvider, Script
 from abacura.plugins.commands import CommandError
+from abacura.plugins.task_queue import QueueManager
 from abacura.utils.fifo_buffer import FIFOBuffer
 from abacura.mud import OutputMessage
 
@@ -37,6 +38,7 @@ class Plugin:
         self.config: Config = self._context['config']
         self.director: Director = self._context['director']
         self.core_msdp: MSDP = self._context['core_msdp']
+        self.cq: QueueManager = self._context['cq']
         self.output_history: FIFOBuffer[OutputMessage] = self._context['buffer']
         self.output = self.session.output
         self.debuglog = self.session.debuglog
@@ -63,13 +65,6 @@ class Plugin:
 
     def remove_ticker(self, name: str):
         self.director.ticker_manager.remove(name)
-
-    def add_script(self, script_fn: Callable, name: str = ''):
-        s = Script(source=self, script_fn=script_fn, name=name or script_fn.__name__)
-        self.director.script_manager.add(s)
-
-    def remove_script(self, name: str):
-        self.director.script_manager.remove(name)
 
     def add_substitute(self, pattern: str, repl: str, name: str = ''):
         pass

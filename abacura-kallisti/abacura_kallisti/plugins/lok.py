@@ -1,16 +1,15 @@
-from dataclasses import dataclass
 import os
 import re
 import time
-
+from dataclasses import dataclass
 
 from abacura.mud.options.msdp import MSDPMessage
-from abacura.plugins import command, action
+from abacura.plugins import action
 from abacura.plugins.events import event, AbacuraMessage
-
 from abacura_kallisti.plugins import LOKPlugin
 
 xp_kill_re = re.compile("(.*) is dead!")
+
 
 @dataclass
 class LOKKillMessage(AbacuraMessage):
@@ -23,13 +22,15 @@ class LOKKillMessage(AbacuraMessage):
     def total_experience(self):
         return self.rare_bonus + self.experience
 
+
 class LegendsOfKallisti(LOKPlugin):
     """Main plugin for LOK modules"""
 
     def __init__(self):
         super().__init__()
         self.add_ticker(seconds=60, callback_fn=self.idle_check, repeats=-1, name="idle-watch")
-        
+        self.cq.set_qpriorities({"priority": 10, "heal": 20, "combat": 30, "nco": 40, "any": 50, "move": 60})
+
     def idle_check(self):
         if time.monotonic() - 300 > self.session.last_socket_write:
             self.send("\n")
@@ -63,10 +64,10 @@ class LegendsOfKallisti(LOKPlugin):
             self.director.alias_manager.load(f"{self.session.name}.aliases")
 
     @action(r"^You receive your reward for the kill, (\d+) experience points( plus (\d+) bonus experience for a rare kill)?.")
-    def mob_kill(self, experience: int, rare_msg, rare_bonus):
+    def mob_kill(self, experience: int, _rare_msg, rare_bonus):
         res = self.session.ring_buffer.query(limit=1, like="%is dead!  R.I.P%")
         k_name = xp_kill_re.match(res[0][2])
         if k_name:
             msg = LOKKillMessage(victim=k_name.groups(1)[0], experience=experience, rare_bonus=rare_bonus)
-            self.debuglog("info",msg)
-            self.session.dispatch(msg)
+            self.debuglog(msg)
+            self.dispatch(msg)

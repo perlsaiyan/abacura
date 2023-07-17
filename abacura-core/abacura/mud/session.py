@@ -31,6 +31,7 @@ from abacura.plugins import command, ContextProvider
 from abacura.plugins.director import Director
 from abacura.plugins.events import AbacuraMessage
 from abacura.plugins.loader import PluginLoader
+from abacura.plugins.task_queue import QueueManager
 from abacura.utils.ring_buffer import RingBufferLogSql
 from abacura.utils.fifo_buffer import FIFOBuffer
 from abacura.widgets.footer import AbacuraFooter
@@ -99,6 +100,7 @@ class Session(BaseSession):
 
         core_injections = {"config": self.config, "session": self, "app": self.abacura,
                            "sessions": self.abacura.sessions, "core_msdp": self.core_msdp,
+                           "cq": QueueManager(),
                            "director": self.director, "buffer": self.output_history}
         self.core_plugin_context = Context(**core_injections)
 
@@ -169,9 +171,9 @@ class Session(BaseSession):
         if len(buf) > 0:
             yield buf
 
-    def player_input(self, line, gag: bool = False) -> None:
+    def player_input(self, line, gag: bool = False, echo_color: str = "white") -> None:
         """This is entry point of the inputbar on the screen"""        
-        echo_color = "" if gag else "white"
+        echo_color = "" if gag else echo_color
         sl = line.lstrip()
         if sl == "":
             self.send("\n")

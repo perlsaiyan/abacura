@@ -1,18 +1,19 @@
 from time import monotonic
-from rich.table import Table
-from rich.panel import Panel
 from typing import Dict, Optional
 
-from abacura_kallisti.plugins import LOKPlugin
-from abacura_kallisti.plugins.queue import QueueTask
+from rich.panel import Panel
+from rich.table import Table
 
 from abacura.plugins import command
+from abacura_kallisti.plugins import LOKPlugin
+
 
 class AutoBuf(LOKPlugin):
     """Handle application of bufs"""
     _RUNNER_INTERVAL: float = 2.0
     _RENEWABLE_BUFS = ["true seeing", "sanctuary"]
     _EXPIRING_BUFS = []
+
     def __init__(self):
         super().__init__()
         self.last_attempt: Dict[str, float] = {}
@@ -32,13 +33,12 @@ class AutoBuf(LOKPlugin):
     def acquire_buf(self, buf):
         """Figure out how to get buf and if possible, acquire it"""
         # Only try once every 10 seconds
-        if monotonic() - self.last_attempt.get(buf,0) > 10:
+        if monotonic() - self.last_attempt.get(buf, 0) > 10:
             self.last_attempt[buf] = monotonic()
             method = self.acquisition_method(buf)
             
             if method:
-                
-                self.cq.add(QueueTask(f"say Acquiring {buf}", 1.0),"NCO")
+                self.cq.add(cmd=f"say Acquiring {buf}", dur=1.0, queue_name="NCO")
             #else:
             #    self.output(f"[bold red]# AUTOBUF: No method of acquisition for {buf}!", markup=True)    
 

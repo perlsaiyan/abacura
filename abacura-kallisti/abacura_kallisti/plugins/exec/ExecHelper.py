@@ -41,6 +41,7 @@ class ExecHelper(LOKPlugin):
                             "world": self.world,
                             "msdp": self.msdp,
                             "pc": self.pc,
+                            "cq": self.cq,
                             "locations": self.locations,
                             "room": self.room,
                             "history": self.output_history
@@ -74,7 +75,7 @@ class ExecHelper(LOKPlugin):
                 self.exec_locals = {}
 
             exec_globals = {"session": self.session, "plugins": self.session.plugin_loader.plugins,
-                            "output": self.output,
+                            "output": self.output, "cq": self.cq,
                             "world": self.world, "msdp": self.msdp, "locations": self.locations,
                             "pc": self.pc, "room": self.room, "history": self.output_history}
 

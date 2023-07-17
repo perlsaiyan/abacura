@@ -1,12 +1,11 @@
 from dataclasses import dataclass
-from functools import partial
 from typing import Optional, Callable
 
 from abacura.plugins import action
 from abacura.plugins.events import event, AbacuraMessage
 from abacura.plugins.scripts import ScriptResult
-from abacura_kallisti.atlas.travel_guide import TravelGuide, TravelPath
 from abacura_kallisti.atlas.room import RoomMessage, Room
+from abacura_kallisti.atlas.travel_guide import TravelGuide, TravelPath
 from abacura_kallisti.plugins import LOKPlugin
 
 
@@ -44,7 +43,7 @@ class TravelScript(LOKPlugin):
     @action(r"^Your mount is too exhausted.")
     def mount_exhausted(self):
         if self.navigation_path:
-            self.add_ticker(3, partial(self.session.send, "look"), repeats=1, name="mount_exhausted")
+            self.cq.add_command(cmd="look", dur=0.1, delay=0, queue_name="Move")
 
     @action(r"^Alas, you cannot go (.*)")
     def cannot_go(self):
@@ -72,7 +71,7 @@ class TravelScript(LOKPlugin):
 
         self.dispatch(AbacuraMessage("lok.travel", "start"))
         self.navigation_path = nav_path
-        self.send("look")
+        self.cq.add_command(cmd="look", dur=0.1, delay=0, queue_name="Move")
 
     def end_nav(self, success: bool, message: str):
         self.output(f"> end_nav: {success} {message}")
@@ -107,7 +106,7 @@ class TravelScript(LOKPlugin):
                 if cmd.startswith("open") and self.msdp.room_exits.get(step.exit.direction) != 'C':
                     continue
 
-                self.send(cmd)
+                self.cq.add_command(cmd, dur=0, queue_name="Move")
 
     def look_and_retry(self):
         if self.navigation_path:
@@ -117,7 +116,7 @@ class TravelScript(LOKPlugin):
 
             wait = 3
             if self.retries == 2:
-                self.send("breakout")
+                self.cq.add_command("breakout", dur=3, queue_name="Priority")
                 wait = 6
 
-            self.add_ticker(wait, partial(self.session.send, "look"), repeats=1, name="retry")
+            self.cq.add_command("look", dur=0.1, delay=wait, queue_name="Move")
