@@ -5,10 +5,9 @@ Tracks last command, calculates delay, and issues commands in priority order,
 depending on the combat situation.
 """
 
-from rich.table import Table
-
 from abacura.plugins import command, Plugin
 from abacura.plugins.task_queue import _DEFAULT_PRIORITY, _DEFAULT_DURATION
+from abacura.utils.tabulate import tabulate
 
 
 class QueueRunner(Plugin):
@@ -25,18 +24,13 @@ class QueueRunner(Plugin):
 
     def show_queues(self, q: str):
         """Show current action queue depths"""
-        tbl = Table(title=f"Queued Commands for {q or 'all queues'}")
-        tbl.add_column("Queue")
-        tbl.add_column("Command")
-        tbl.add_column("Priority", justify="right")
-        tbl.add_column("Duration", justify="right")
-        tbl.add_column("Delay", justify="right")
-
+        rows = []
         for task in self.cq._pq.queue:
             if task.q.lower().startswith(q.lower()):
-                tbl.add_row(task.q, task.cmd, str(task.priority),
-                            format(task.dur, "3.1f"), format(task.delay, "3.1f"))
+                rows.append((task.q, task.cmd, task.priority, task.dur, task.delay))
 
+        tbl = tabulate(rows, headers=("Queue", "Command", "Priority", "Duration", "Delay"),
+                       title=f"Queued Commands for {q or 'all queues'}", title_justify="left")
         self.output(tbl)
 
     @command(name="queue")

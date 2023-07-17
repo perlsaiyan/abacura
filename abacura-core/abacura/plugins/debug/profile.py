@@ -3,7 +3,7 @@ import importlib
 import io
 
 from abacura.plugins import Plugin, command, CommandError
-from rich.table import Table
+from abacura.utils.tabulate import tabulate
 
 
 class Profiler(Plugin):
@@ -58,16 +58,10 @@ class Profiler(Plugin):
         profiler.profile_off()
         stats_dict = profiler.get_profile_stats()
 
-        tbl = Table()
-        tbl.add_column("Function")
-        tbl.add_column("Calls")
-        tbl.add_column("Elapsed")
-        tbl.add_column("CPU")
-        tbl.add_column("Self Time")
+        rows = []
         for pfn in sorted(stats_dict.values(), key=lambda x: x.self_time, reverse=True)[:num_functions]:
-            tbl.add_row(pfn.function.get_location(), str(pfn.call_count),
-                        format(pfn.elapsed_time, "6.3f"), format(pfn.cpu_time, "6.3f"),
-                        format(pfn.self_time, '6.3f'))
+            rows.append((pfn.function.get_location(), pfn.call_count, pfn.elapsed_time, pfn.cpu_time, pfn.self_time))
+        tbl = tabulate(rows, headers=("Function", "Calls", "Elapsed", "CPU", "Self Time"))
         self.output(tbl)
 
     @command()

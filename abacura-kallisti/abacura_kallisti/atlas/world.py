@@ -91,7 +91,7 @@ class World:
 
         if vnum in self.rooms:
             existing_room = self.rooms[vnum]
-            existing_exits = {k: v for k, v in existing_room.exits.items() if not v.temporary}
+            existing_exits = {k: v for k, v in existing_room._exits.items()}
 
         else:
             existing_room = Room()

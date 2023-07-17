@@ -1,22 +1,22 @@
-from collections import Counter
-
 from rich.console import Group
 from rich.panel import Panel
 from rich.style import Style
-from rich.table import Table
 from rich.text import Text
 
 from abacura.plugins import command, CommandError
+import abacura.utils.tabulate as tblt
+from abacura.utils.tabulate import tabulate
 from abacura_kallisti.atlas.wilderness import WildernessGrid
 from abacura_kallisti.atlas.world import Room, Exit
 from abacura_kallisti.plugins import LOKPlugin
-
+import importlib
 
 class WorldHelper(LOKPlugin):
 
     def __init__(self):
         super().__init__()
         self.wild_grid = WildernessGrid()
+        importlib.reload(tblt)
 
     def get_table_of_exits(self, vnum: str):
         exits = []
@@ -37,21 +37,9 @@ class WorldHelper(LOKPlugin):
         if vnum == self.msdp.room_vnum:
             caption = f"MSDP_EXITS: {str(self.msdp.room_exits)}"
 
-        table = Table(caption=caption, caption_justify="left")
-        table.add_column("Direction")
-        table.add_column("To", justify="right")
-        table.add_column("Door")
-        table.add_column("Commands")
-        table.add_column("Closes")
-        table.add_column("Locks")
-        table.add_column("Deathtrap")
-        table.add_column("Known")
-        table.add_column("Visited")
-        table.add_column("Terrain")
-        for e in exits:
-            table.add_row(*map(str, e))
-
-        return table
+        return tabulate(exits, caption=caption, caption_justify="left",
+                        headers=["Direction", "_To", "Door", "Commands", "Closes",
+                                 "Locks", "Deathtrap", "Known", "Visited", "Terrain"])
 
     @command(name="room")
     def room_command(self, location: Room = None, delete: bool = False):
@@ -176,16 +164,7 @@ class WorldHelper(LOKPlugin):
 
         sorted_rooms = list(sorted(rooms, key=lambda x: x.vnum))[:300]
 
-        table = Table(caption=f"{len(sorted_rooms)} of {len(rooms)} rooms shown", caption_justify="left")
-        table.add_column("Room", justify="right")
-        table.add_column("Name")
-        table.add_column("Direction")
-        table.add_column("To Room")
-        table.add_column("Closes")
-        table.add_column("Locks")
-        table.add_column("Known")
-        table.add_column("Visited")
-
+        rows = []
         r: Room
         for r in sorted_rooms:
             e: Exit
@@ -193,10 +172,10 @@ class WorldHelper(LOKPlugin):
                 known: bool = e.to_vnum in self.world.rooms
                 visited = known and self.world.rooms[e.to_vnum].last_visited
 
-                table.add_row(r.vnum, r.name, e.direction, e.to_vnum, str(bool(e.closes)), str(bool(e.locks)),
-                              str(known), str(visited))
+                rows.append([r.vnum, r.name, e.direction, e.to_vnum, bool(e.closes), bool(e.locks), known, visited])
 
-        # s = tabulate(table, headers=["Room", "Name", "Exit", "To", "Closes", "Locks", "Known", "Visited"])
+        headers = ("_Room", "Name", "Direction", "_To Room", "Closes", "Locks", "Known", "Visited")
+        table = tabulate(rows, headers=headers, caption=f"{len(sorted_rooms)} of {len(rooms)} rooms shown")
         self.session.output(table, actionable=False)
 
         num_visited = len([r for r in rooms if r.last_visited])
@@ -205,7 +184,7 @@ class WorldHelper(LOKPlugin):
                             actionable=False)
 
     @command()
-    def exits(self, direction: str = '', destination: Room = None, _door: str = '', _commands:str = '', delete: bool = False):
+    def exits(self, direction: str = '', to_vnum: str = '', _door: str = '', _commands: str = '', delete: bool = False):
         """View and modify exits in current room
 
         :direction Direction of exit to view or modify
@@ -234,10 +213,7 @@ class WorldHelper(LOKPlugin):
 
             # #exits goliath 60254 --commands="visit goliath"
 
-        if _door or _commands or destination:
-            to_vnum = None
-            if destination is not None and (destination.vnum != self.msdp.room_vnum):
-                to_vnum = destination.vnum
+        if _door != '' or _commands != '' or to_vnum != '':
             self.world.set_exit(vnum, direction, door=_door, to_vnum=to_vnum, commands=_commands)
             self.output(f"Set [{vnum}] {direction} to={to_vnum}, door={_door}, commands={_commands}", highlight=True)
             self.session.output(self.get_table_of_exits(vnum))
@@ -250,11 +226,8 @@ class WorldHelper(LOKPlugin):
         e = room.exits[direction]
         properties = [(name, getattr(e, name)) for name in sorted(e.__slots__)]
 
-        tbl = Table(title=f"\n[{vnum}] {direction}", title_justify="left")
-        tbl.add_column("Property")
-        tbl.add_column("Value", justify="right")
-        for p in properties:
-            tbl.add_row(*map(str, p))
+        tbl = tabulate(properties, headers=("Property", "_Value"),
+                       title=f"\n[{vnum}] {direction}", title_justify="left")
         self.output(tbl)
 
     @command
@@ -276,34 +249,40 @@ class WorldHelper(LOKPlugin):
         border_style = Style(bgcolor="#000040", color="#CCCCCC")
         s1 = Style(bgcolor="#101020", color="white")
         s2 = Style(bgcolor="#202040", color="white")
-        tbl = Table(title=f"SQL: {sql}", title_justify="left", title_style=title_style,
-                    caption=f" Showing first {_max_rows} rows", caption_justify="left", caption_style=caption_style,
-                    row_styles=[s1, s2], header_style=header_style, border_style=border_style)
-
         rows = list(cursor.fetchmany(_max_rows))
-
-        column_types = []
 
         if len(rows) == 0:
             self.output(Panel(Text("No rows returned")))
             return
 
-        for i, column in enumerate(cursor.description):
-            c = Counter([type(row[i]) for row in rows])
-            column_types.append(c.most_common(1)[0][0])
-            justify = "left"
-            if column_types[i] in (int, 'int', float, 'float'):
-                justify = "right"
-            tbl.add_column(column[0], justify=justify)
+        headers = [c[0] for c in cursor.description]
 
-        for row in rows:
-            new_row = []
-            for i, v in enumerate(row):
-                if column_types[i] in (float, 'float'):
-                    new_row.append(format(v, "6.3f"))
-                else:
-                    new_row.append(str(v))
+        title = f"SQL: {sql}"
+        caption = f" Showing first {_max_rows} rows"
 
-            tbl.add_row(*new_row)
+        tbl = tabulate(rows, headers=headers,
+                       title=title, title_justify="left", title_style=title_style,
+                       caption=caption, caption_justify="left", caption_style=caption_style,
+                       row_styles=[s1, s2], header_style=header_style, border_style=border_style)
+        #
+        #
+        # for i, column in enumerate(cursor.description):
+        #     c = Counter([type(row[i]) for row in rows])
+        #     column_types.append(c.most_common(1)[0][0])
+        #     justify = "left"
+        #     if column_types[i] in (int, 'int', float, 'float'):
+        #         justify = "right"
+        #     tbl.add_column(column[0], justify=justify)
+        #     tbl.add
+        #
+        # for row in rows:
+        #     new_row = []
+        #     for i, v in enumerate(row):
+        #         if column_types[i] in (float, 'float'):
+        #             new_row.append(format(v, "6.3f"))
+        #         else:
+        #             new_row.append(str(v))
+        #
+        #     tbl.add_row(*new_row)
 
         self.output(Panel(tbl, style=border_style))
