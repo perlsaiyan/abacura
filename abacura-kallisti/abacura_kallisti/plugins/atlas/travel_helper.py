@@ -1,5 +1,3 @@
-from rich.table import Table
-
 from abacura.plugins import command
 from abacura.plugins.scripts import ScriptResult
 from abacura.utils.timer import Timer
@@ -7,6 +5,7 @@ from abacura_kallisti.atlas.travel_guide import TravelGuide
 from abacura_kallisti.atlas.room import Room
 from abacura_kallisti.plugins import LOKPlugin
 from abacura_kallisti.plugins.scripts.travel import TravelMessage
+from abacura.utils.tabulate import tabulate
 
 
 class TravelHelper(LOKPlugin):
@@ -32,29 +31,21 @@ class TravelHelper(LOKPlugin):
             self.session.output(f"Path to {destination.vnum} is {speedwalk}", highlight=True)
             return
 
-        tbl = Table(title=f"Path to {destination.vnum}: {speedwalk}", title_justify="left",
-                    caption=f"Total Cost [{cost}].  Computed in {1000*path_elapsed_time:6.3f}ms",
-                    caption_justify="right")
-
-        tbl.add_column("Vnum", justify="right")
-        tbl.add_column("To Vnum", justify="right")
-        tbl.add_column("Commands")
-        tbl.add_column("Direction")
-        tbl.add_column("Door")
-        tbl.add_column("Closes")
-        tbl.add_column("Locks")
-        tbl.add_column("Cost")
-        tbl.add_column("Terrain")
-
+        rows = []
         for step in nav_path.steps:
             if step.exit.to_vnum in self.world.rooms:
                 terrain = self.world.rooms[step.exit.to_vnum].terrain_name
                 # area = self.world.rooms[step.exit.to_vnum].area_name
 
-                record = (step.vnum, step.exit.to_vnum, step.exit.get_commands(), step.exit.direction, step.exit.door,
-                          bool(step.exit.closes), bool(step.exit.locks), step.cost, terrain)
-                tbl.add_row(*map(str, record))
+                row = (step.vnum, step.exit.to_vnum, step.exit.get_commands(), step.exit.direction, step.exit.door,
+                       bool(step.exit.closes), bool(step.exit.locks), step.cost, terrain)
+                rows.append(row)
 
+        tbl = tabulate(rows, headers=("_Vnum", "_To Vnum", "Commands", "Direction", "Door",
+                                      "Closes", "Locks", "Cost", "Terrain"),
+                       title=f"Path to {destination.vnum}: {speedwalk}", title_justify="left",
+                       caption=f"Total Cost [{cost}].  Computed in {1000 * path_elapsed_time:6.3f}ms",
+                       caption_justify="right")
         self.output(tbl)
 
     @command

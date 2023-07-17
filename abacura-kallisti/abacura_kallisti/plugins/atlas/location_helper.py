@@ -1,8 +1,7 @@
-from rich.table import Table
-
 from abacura.plugins import command, CommandError
 from abacura_kallisti.atlas.world import Room
 from abacura_kallisti.plugins import LOKPlugin
+from abacura.utils.tabulate import tabulate
 
 
 class LocationHelper(LOKPlugin):
@@ -12,13 +11,8 @@ class LocationHelper(LOKPlugin):
         """View and modify room locations"""
 
         if location is None:
-            tbl = Table(title="Location Categories")
-            tbl.add_column("Category Name")
-
-            for c in self.locations.get_categories():
-                tbl.add_row(c)
-
-            self.session.output(tbl)
+            self.output(tabulate(self.locations.get_categories(), headers=("Category"),
+                                 title="Locations", title_justify="left"))
             return
 
         s = location.split(".")
@@ -53,14 +47,7 @@ class LocationHelper(LOKPlugin):
 
                 rooms.append((a.name, a.vnum, room_name[:30], area_name[:30]))
 
-            tbl: Table = Table(title=f"{category}: locations")
-            tbl.add_column("Name")
-            tbl.add_column("VNUM")
-            tbl.add_column("Room Name")
-            tbl.add_column("Area")
-
-            for r in rooms:
-                tbl.add_row(*r)
+            tbl = tabulate(rooms, headers=("Name", "Vnum", "Room Name", "Area"), title=f"{category}: locations")
             self.session.output(tbl)
             return
 

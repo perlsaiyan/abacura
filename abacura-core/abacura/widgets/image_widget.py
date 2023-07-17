@@ -45,6 +45,7 @@ class ImageWidget(Widget):
     def __init__(self, image_path: str, show_debug: bool=False, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
+        self.image_path = image_path
         self.image: Image = PILImageModule.open(image_path)
         self.frames: List[Image] = [frame.copy() for frame in ImageSequence.Iterator(self.image)]
         self.strip_cache: List[Optional[List[Strip]]] = [None] * len(self.frames)
