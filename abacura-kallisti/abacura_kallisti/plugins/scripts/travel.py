@@ -43,7 +43,7 @@ class TravelScript(LOKPlugin):
     @action(r"^Your mount is too exhausted.")
     def mount_exhausted(self):
         if self.navigation_path:
-            self.cq.add_command(cmd="look", dur=0.1, delay=0, queue_name="Move")
+            self.cq.add(cmd="look", dur=0.1, delay=0, queue_name="Move")
 
     @action(r"^Alas, you cannot go (.*)")
     def cannot_go(self):
@@ -71,7 +71,7 @@ class TravelScript(LOKPlugin):
 
         self.dispatch(AbacuraMessage("lok.travel", "start"))
         self.navigation_path = nav_path
-        self.cq.add_command(cmd="look", dur=0.1, delay=0, queue_name="Move")
+        self.cq.add(cmd="look", dur=0.1, delay=0, queue_name="Move")
 
     def end_nav(self, success: bool, message: str):
         self.output(f"> end_nav: {success} {message}")
@@ -106,7 +106,7 @@ class TravelScript(LOKPlugin):
                 if cmd.startswith("open") and self.msdp.room_exits.get(step.exit.direction) != 'C':
                     continue
 
-                self.cq.add_command(cmd, dur=0, queue_name="Move")
+                self.cq.add(cmd, dur=0, queue_name="Move")
 
     def look_and_retry(self):
         if self.navigation_path:
@@ -116,7 +116,7 @@ class TravelScript(LOKPlugin):
 
             wait = 3
             if self.retries == 2:
-                self.cq.add_command("breakout", dur=3, queue_name="Priority")
+                self.cq.add("breakout", dur=3, queue_name="Priority")
                 wait = 6
 
-            self.cq.add_command("look", dur=0.1, delay=wait, queue_name="Move")
+            self.cq.add("look", dur=0.1, delay=wait, queue_name="Move")
