@@ -52,7 +52,7 @@ class SessionScreen(Screen):
         self.tlid = f"output-{name}"
         # TODO: wrap should be a config file field option
         self.tl = TextLog(highlight=False, markup=False, wrap=True,
-                              name=self.tlid, classes="mudoutput", id=self.tlid)
+                              name=self.tlid, classes="mudoutput", id=self.tlid, max_lines=10000)
         self.tl.can_focus = False
 
     def compose(self) -> ComposeResult:
