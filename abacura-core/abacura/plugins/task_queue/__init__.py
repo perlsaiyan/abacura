@@ -65,6 +65,7 @@ class QueueManager:
             if monotonic() < task.insert_time + task.delay:
                 continue
 
+            # Note, popping mutates the list we are iterating, but we are returning so no problem...
             self._pq.queue.pop(i)
             return task
 

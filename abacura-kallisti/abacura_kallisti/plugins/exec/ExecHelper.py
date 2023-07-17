@@ -83,7 +83,7 @@ class ExecHelper(LOKPlugin):
             result = eval(compiled, exec_globals, self.exec_locals)
 
             if result is not None:
-                pretty = Pretty(result, max_length=20, max_depth=4)
+                pretty = Pretty(result, max_length=100, max_depth=4)
                 panel = Panel(pretty)
                 self.session.output(panel)
 
