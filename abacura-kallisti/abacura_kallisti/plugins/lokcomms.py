@@ -1,14 +1,25 @@
 """LOK Communications plugins"""
 from __future__ import annotations
-from typing import Optional
-from rich.text import Text
+from dataclasses import dataclass
+from datetime import datetime
 import re
+from typing import Optional
 
+from rich.text import Text
 from textual.widgets import TextLog
 
 from abacura.mud import OutputMessage
 from abacura.plugins import action, command, CommandError
+from abacura.plugins.events import AbacuraMessage
 from abacura_kallisti.plugins import LOKPlugin
+
+@dataclass
+class CommsMessage(AbacuraMessage):
+    event_type:str = "lok.comms"
+    channel: str = ""
+    speaker: str = ""
+    message: str = ""
+    datetime: str = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
 
 class LOKComms(LOKPlugin):
     comms_textlog: Optional[TextLog] = None
@@ -86,6 +97,7 @@ class LOKComms(LOKPlugin):
     @action (r"(^\*\*(\w+): '(.*'))", color=False)
     def comms_group_other(self, speaker: str, message: str, msg: OutputMessage):
         channel = 'group'
+        self.dispatch(CommsMessage(channel=channel, speaker=speaker, message=message))
         self.comms_log(channel, speaker, msg)
 
     #You grouptell: huehuehue
