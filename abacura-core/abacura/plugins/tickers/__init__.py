@@ -50,6 +50,7 @@ class TickerManager:
         self.tickers = [t for t in self.tickers if t.source != obj]
 
     def add(self, ticker: Ticker):
+        self.tickers = [t for t in self.tickers if t.name != ticker.name]
         self.tickers.append(ticker)
 
     def remove(self, name: str):
