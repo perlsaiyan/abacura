@@ -108,7 +108,7 @@ class AbacuraSuggester(Suggester):
     async def get_suggestion(self, value: str) -> Coroutine[Any, Any, str] | None:
         if value.startswith(self.command_char):
             value = value[1:]
-            for command in self.session.director.command_manager.commands:
+            for commandstr, command in self.session.director.command_manager.commands.items():
                 if command.name.startswith(value):
                     return f"{self.command_char}{command.name}"
         else:
