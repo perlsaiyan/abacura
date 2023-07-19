@@ -1,10 +1,9 @@
 from abacura.plugins import command
-from abacura.plugins.scripts import ScriptResult
 from abacura.utils.timer import Timer
 from abacura_kallisti.atlas.travel_guide import TravelGuide
 from abacura_kallisti.atlas.room import Room
 from abacura_kallisti.plugins import LOKPlugin
-from abacura_kallisti.plugins.scripts.travel import TravelMessage
+from abacura_kallisti.plugins.scripts.travel import TravelRequest, TravelResult
 from abacura.utils.tabulate import tabulate
 
 
@@ -51,10 +50,10 @@ class TravelHelper(LOKPlugin):
     @command
     def go(self, destination: Room, avoid_home: bool = False):
         """Compute path to a room/location"""
-        def go_done(result: ScriptResult):
+        def go_done(result: TravelResult):
             self.output(f"[bold purple] #go {result.result}", markup=True)
 
-        tm = TravelMessage(destination=destination, avoid_home=avoid_home, callback_fn=go_done)
+        tm = TravelRequest(destination=destination, avoid_home=avoid_home, callback_fn=go_done)
         self.dispatch(tm)
 
         # self.scripts.navigate(go_done, destination, avoid_home)

@@ -30,6 +30,22 @@ class LegendsOfKallisti(LOKPlugin):
         super().__init__()
         self.add_ticker(seconds=60, callback_fn=self.idle_check, repeats=-1, name="idle-watch")
         self.cq.set_qpriorities({"priority": 10, "heal": 20, "combat": 30, "nco": 40, "any": 50, "move": 60})
+        if self.session.ring_buffer:
+            self.session.ring_buffer.set_log_context_provider(self.get_log_context)
+
+        # pass additional globals to the PythonExecutor Plugin
+        exec_globals = {"world": self.world,
+                        "msdp": self.msdp,
+                        "pc": self.pc,
+                        "cq": self.cq,
+                        "locations": self.locations,
+                        "room": self.room
+                        }
+
+        self.dispatch(AbacuraMessage(event_type="core.exec.globals", value=exec_globals))
+
+    def get_log_context(self) -> str:
+        return self.msdp.room_vnum
 
     def idle_check(self):
         if time.monotonic() - 300 > self.session.last_socket_write:

@@ -1,7 +1,7 @@
 """The Event plugin"""
 from abacura.plugins import Plugin, command
-from abacura.plugins.events import event, AbacuraMessage
-from rich.table import Table
+from abacura.plugins.events import AbacuraMessage
+from abacura.utils.tabulate import tabulate
 
 
 class EventPlugin(Plugin):
@@ -13,29 +13,22 @@ class EventPlugin(Plugin):
     @command(name="events")
     def eventscommand(self, detail: bool = False):
         """Show events"""
-        tbl = Table(row_styles=["yellow4", "sky_blue2"])
-        tbl.add_column("Event Name")
-        tbl.add_column("Count", justify="right")
-        if detail:
-            tbl.add_column("Handlers")
-
         event_manager = self.session.director.event_manager
 
-        for key in event_manager.events.keys():
+        rows = []
+        for key, value in event_manager.events.items():
+            row = {"Event Name": key,
+                   "# Handlers": value.qsize(),
+                   "# Events Processed": event_manager.event_counts[key]}
             if detail:
-                handlers = [f"{str(f.handler.__module__)}.{str(f.handler.__name__)}" for f in event_manager.events[key].queue]
-                tbl.add_row(key, str(event_manager.events[key].qsize()), ", ".join(handlers))
-            else:
-                tbl.add_row(key, str(event_manager.events[key].qsize()))
+                row['Handlers'] = [f"{str(f.handler.__module__)}.{str(f.handler.__name__)}" for f in value.queue]
 
-        self.session.output(tbl, markup=True, highlight=True, actionable=False)
+            rows.append(row)
+        self.output(tabulate(rows), actionable=False)
+        # self.session.output(tbl, markup=True, highlight=True, actionable=False)
 
-    @command(name="testevent")
-    def eventsfire(self, trigger: str = "sample"):
-        """Fires a test event to sample"""
-        self.session.output(f"Sending test event to '{trigger}' dispatch")
-        self.dispatch(AbacuraMessage("sample", "TEST OF EVENT FIRING"))
-
-    @event("sample", priority=5)
-    def sampleevent(self, message: AbacuraMessage):
-        self.session.output(f"I just got an event, '{message.value}'")
+    @command(name="dispatch")
+    def dispatch_event(self, trigger: str, value: str = ""):
+        """Dispatch an AbacuraMessage"""
+        self.session.output(f"Sending {trigger} message: {value}")
+        self.dispatch(AbacuraMessage(trigger, value))

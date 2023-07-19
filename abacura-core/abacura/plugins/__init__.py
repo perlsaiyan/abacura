@@ -7,7 +7,6 @@ from serum import Context
 from abacura.plugins.actions import Action
 from abacura.plugins.director import Director
 from abacura.plugins.tickers import Ticker
-from abacura.plugins.scripts import ScriptProvider, Script
 from abacura.plugins.commands import CommandError
 from abacura.plugins.task_queue import QueueManager
 from abacura.utils.fifo_buffer import FIFOBuffer
@@ -107,4 +106,3 @@ def ticker(seconds: int, repeats=-1, name=""):
         return fn
 
     return add_ticker
-

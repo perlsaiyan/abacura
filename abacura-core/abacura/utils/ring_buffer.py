@@ -1,6 +1,7 @@
 import sqlite3
 from datetime import datetime
 from abacura.mud import OutputMessage
+from typing import Callable, Optional
 import time
 
 
@@ -11,6 +12,7 @@ class RingBufferLogSql:
         self.commit_interval = commit_interval
         self.conn = sqlite3.connect(db_filename)
         self.rows_logged = 0
+        self.log_context_provider: Optional[Callable] = None
 
         if wal:
             self.conn.execute("PRAGMA journal_mode=WAL")
@@ -31,13 +33,22 @@ class RingBufferLogSql:
         rows = cur.fetchall()
         return rows[0][0] if len(rows) else 0
 
+    def set_log_context_provider(self, context_provider: Optional[Callable]):
+        # Pass a function to use to provide additional logging context
+        self.log_context_provider = context_provider
+
     def log(self, message: OutputMessage):
         log_epoch_ns = time.time_ns()
 
         if type(message.message) not in [str, 'str']:
             return
 
-        values = (self.ring_number, log_epoch_ns, '', message.message, message.stripped)
+        if self.log_context_provider is not None:
+            log_context = self.log_context_provider()
+        else:
+            log_context = ''
+
+        values = (self.ring_number, log_epoch_ns, log_context, message.message, message.stripped)
         self.conn.execute("insert or replace into ring_log values(?, ?, ?, ?, ?)", values)
 
         self.ring_number = (self.ring_number + 1) % self.ring_size

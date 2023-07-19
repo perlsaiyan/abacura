@@ -8,21 +8,20 @@ from rich.color import Color, ColorType
 from rich.color_triplet import ColorTriplet
 from rich.segment import Segment
 from rich.style import Style
-
 from textual import log
 from textual.app import ComposeResult
+from textual.containers import Container
 from textual.events import Resize
 from textual.strip import Strip
 from textual.widgets import Static
-from textual.containers import Container
 
+from abacura.mud.options.msdp import MSDPMessage, MSDP
+from abacura.plugins.events import event
+from abacura.widgets.resizehandle import ResizeHandle
 from abacura_kallisti.atlas.bfs import BFS
 from abacura_kallisti.atlas.room import Room
 from abacura_kallisti.atlas.world import World
-
-from abacura.mud.options.msdp import MSDPMessage, MSDP
-from abacura.plugins.events import event, AbacuraMessage
-from abacura.widgets.resizehandle import ResizeHandle
+from abacura_kallisti.plugins.scripts.travel import TravelStatus
 
 
 class LOKMapStatic(Static):
@@ -43,6 +42,7 @@ class LOKMapStatic(Static):
     def refresh_strips(self, strips: list[Strip]):
         self.strips = strips
         self.refresh()
+
 
 class LOKMap(Container):
     terrains = {
@@ -107,12 +107,12 @@ class LOKMap(Container):
         self.bfs = BFS(self.world)
         self.msdp = self.screen.session.core_msdp
 
-    def on_resize(self, event: Resize):
+    def on_resize(self, _event: Resize):
         self.update_map()
     
-    @event("lok.travel")
-    def toggle_map_type(self, msg: AbacuraMessage):
-        if msg.value == "start":
+    @event("lok.travel.status")
+    def toggle_map_type(self, status: TravelStatus):
+        if status.steps_remaining > 0:
             self.map_type = "1x1"
             return
         

@@ -29,7 +29,7 @@ def tabulate(tabular_data, headers=(), float_format="9.3f", **kwargs):
     elif isinstance(tabular_data[0], dict):
         keys = tabular_data[0].keys()
         headers = headers if len(headers) else list(keys)
-        tabular_data = [(row.get(k, None) for k in keys) for row in tabular_data]
+        tabular_data = [[row.get(k, None) for k in keys] for row in tabular_data]
         column_types = [type(v) for v in tabular_data[0]]
     elif is_dataclass(tabular_data[0]):
         df = fields(tabular_data[0])

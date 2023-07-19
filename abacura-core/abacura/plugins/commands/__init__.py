@@ -135,8 +135,10 @@ class Command:
 
     def get_description(self) -> str:
         doc = getattr(self.callback, '__doc__', None)
-        doc = "" if doc is None else doc.split("\n")[0]
-        return doc
+        if doc is None:
+            return ""
+        lines = [line.strip() for line in doc.split("\n") if len(line.strip())]
+        return "" if len(lines) == 0 else lines[0]
 
     def get_help(self):
         help_text = []
