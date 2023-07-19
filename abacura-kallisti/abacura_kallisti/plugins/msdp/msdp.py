@@ -22,19 +22,23 @@ class LOKMSDP(LOKPlugin):
         self.msdp_types = {f.name: f.type for f in fields(self.msdp)}
         print(self.msdp_types)
 
-    @command(name="lokmsdp")
-    def lok_msdp_command(self, variable: str = '', reportable: bool = False) -> None:
+    @command(name="msdp", override=True)
+    def lok_msdp_command(self, variable: str = '', reportable: bool = False, core: bool = False) -> None:
         """Dump MSDP values for debugging"""
+
         if not self.msdp.reportable_variables:
             self.session.output("[bold red]# MSDPERROR: MSDP NOT LOADED?", markup=True)
 
+        msdp_values = self.core_msdp.values.copy() if core else asdict(self.msdp)
+
+        if not reportable:
+            msdp_values.pop("reportable_variables", None)
+            msdp_values.pop("REPORTABLE_VARIABLES", None)
+
         if not variable:
-            d = asdict(self.msdp)
-            if not reportable:
-                d.pop("reportable_variables")
-            panel = Panel(Pretty(d), highlight=True)
+            panel = Panel(Pretty(msdp_values), highlight=True)
         else:
-            value = getattr(self.msdp, variable)
+            value = msdp_values.get(variable, None)
             panel = Panel(Pretty(value), highlight=True)
 
         self.session.output(panel, highlight=True, actionable=False)

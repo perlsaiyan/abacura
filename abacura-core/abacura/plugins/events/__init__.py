@@ -3,6 +3,7 @@ import inspect
 from dataclasses import dataclass, field
 from queue import PriorityQueue
 from typing import Dict, Callable
+from collections import Counter
 
 from textual import log
 
@@ -39,6 +40,7 @@ class EventManager:
     def __init__(self):
         log("Booting EventManager")
         self.events: Dict[str, PriorityQueue] = {}
+        self.event_counts = Counter()
 
     def register_object(self, obj: object):
         # self.unregister_object(obj)  # prevent duplicates
@@ -80,6 +82,8 @@ class EventManager:
         """Dispatch events"""
         if message.event_type not in self.events:
             return
+
+        self.event_counts[message.event_type] += 1
 
         results = [task.handler(message) for task in self.events[message.event_type].queue]
         if len(results) == 1:

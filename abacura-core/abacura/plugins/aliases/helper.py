@@ -10,6 +10,7 @@ from abacura.plugins import Plugin, command, CommandError
 class AliasCommand(Plugin):
     @command(name="alias")
     def alias_cmd(self, alias: str = None, value: str = None, _add: bool = False, _delete: bool = False, _temporary: bool = False):
+        """Add an alias that automatically replace text with a value in the inputbar"""
 
         if alias is None:
             tbl = Table(title="Alias Categories")

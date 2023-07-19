@@ -449,7 +449,7 @@ class Session(BaseSession):
 
     @command
     def connect(self, name: str, host: str = '', port: int = 0) -> None:
-        """@connect <name> <host> <port> to connect a game session"""
+        """#connect <name> <host> <port> to connect a game session"""
 
         if not host:
             host = self.config.get_specific_option(name, "host")

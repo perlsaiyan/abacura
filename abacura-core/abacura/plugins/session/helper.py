@@ -157,9 +157,10 @@ class PluginSession(Plugin):
         search = like if not grouped else "distinct " + like
 
         s = f'Searching for {search}: ({len(logs)} matches)\n'
-        for log_time, log_vnum, log_line in logs:
-            s += f"\n{log_time:15s} {log_line:90s}"
-        self.session.output(s, actionable=False, loggable=False)
+
+        for log_time, log_context, log_line in logs:
+            s += f"\n{log_time:15} {log_context:>6} {log_line:90}"
+        self.output(s, actionable=False, loggable=False)
 
     @command()
     def log(self, like: str = "%", limit: int = 40, minutes_ago: int = 30):

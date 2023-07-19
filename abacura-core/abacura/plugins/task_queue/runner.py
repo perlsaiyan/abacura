@@ -37,6 +37,7 @@ class QueueRunner(Plugin):
     def queue_info(self, queue_name: str = '', cmd: str = '', _flush: bool = False,
                    _priority: int = _DEFAULT_PRIORITY, _duration: float = _DEFAULT_DURATION, _delay: int = 0):
 
+        """Show command/task queue details and flush them if desired"""
         if _flush:
             self.cq.flush(queue_name)
             self.output(f"[bold cyan]# QUEUE: flushed '{queue_name or 'all queues'}'", markup=True, highlight=True)
@@ -48,7 +49,3 @@ class QueueRunner(Plugin):
 
         self.cq.add(cmd=cmd, q=queue_name, priority=_priority, dur=_duration, delay=_delay)
         self.output(f"[bold cyan]# Command queued", markup=True, highlight=True)
-
-    @command
-    def priorities(self, n: int = 200):
-        self.cq.set_qpriorities({"priority": n, "heal": 20, "combat": 30, "nco": 40, "any": 50, "move": 60})

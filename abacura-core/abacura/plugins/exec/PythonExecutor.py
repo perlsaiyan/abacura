@@ -4,16 +4,31 @@ import uuid
 from rich.panel import Panel
 from rich.pretty import Pretty
 
-from abacura.plugins import command
-from abacura_kallisti.plugins import LOKPlugin
+from abacura.plugins import command, Plugin
+from abacura.plugins.events import event, AbacuraMessage
 
 
-class ExecHelper(LOKPlugin):
+class PythonExecutor(Plugin):
     """Run an async script"""
 
     def __init__(self):
         super().__init__()
         self.exec_locals = {}
+        self.exec_globals = {"session": self.session,
+                             "plugins": self.session.plugin_loader.plugins,
+                             "respond": self.add_response,
+                             "action": self.add_action,
+                             "ticker": self.add_ticker,
+                             "output": self.output,
+                             "send": self.send,
+                             "input": self.session.player_input,
+                             "history": self.output_history
+                             }
+
+    @event("core.exec.globals")
+    def add_globals(self, message: AbacuraMessage):
+        if isinstance(message.value, dict):
+            self.exec_globals.update(message.value)
 
     def add_response(self, pattern: str, message: str, flags: int = 0):
         name = str(uuid.uuid4())
@@ -31,22 +46,6 @@ class ExecHelper(LOKPlugin):
             if self.exec_locals is None or reset_locals:
                 self.exec_locals = {}
 
-            exec_globals = {"session": self.session,
-                            "respond": self.add_response,
-                            "action": self.add_action,
-                            "ticker": self.add_ticker,
-                            "output": self.output,
-                            "send": self.send,
-                            "input": self.session.player_input,
-                            "world": self.world,
-                            "msdp": self.msdp,
-                            "pc": self.pc,
-                            "cq": self.cq,
-                            "locations": self.locations,
-                            "room": self.room,
-                            "history": self.output_history
-                            }
-
             self.session.output(f"# Running script {filename}", actionable=False)
 
             source_code = open(filename, "r").read()
@@ -55,7 +54,7 @@ class ExecHelper(LOKPlugin):
             source = open(filename, "r").read()
             ast.parse(source)
 
-            result = exec(source_code, exec_globals, self.exec_locals)
+            result = exec(source_code, self.exec_globals, self.exec_locals)
 
             if result is not None:
                 pretty = Pretty(result, max_length=20, max_depth=4)
@@ -74,13 +73,8 @@ class ExecHelper(LOKPlugin):
             if self.exec_locals is None or reset_locals:
                 self.exec_locals = {}
 
-            exec_globals = {"session": self.session, "plugins": self.session.plugin_loader.plugins,
-                            "output": self.output, "cq": self.cq,
-                            "world": self.world, "msdp": self.msdp, "locations": self.locations,
-                            "pc": self.pc, "room": self.room, "history": self.output_history}
-
             compiled = compile(text.strip(), '<string>', 'eval')
-            result = eval(compiled, exec_globals, self.exec_locals)
+            result = eval(compiled, self.exec_globals, self.exec_locals)
 
             if result is not None:
                 pretty = Pretty(result, max_length=100, max_depth=4)

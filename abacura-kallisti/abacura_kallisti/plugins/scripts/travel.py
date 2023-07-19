@@ -3,18 +3,31 @@ from typing import Optional, Callable
 
 from abacura.plugins import action
 from abacura.plugins.events import event, AbacuraMessage
-from abacura.plugins.scripts import ScriptResult
 from abacura_kallisti.atlas.room import RoomMessage, Room
 from abacura_kallisti.atlas.travel_guide import TravelGuide, TravelPath
 from abacura_kallisti.plugins import LOKPlugin
 
 
 @dataclass
-class TravelMessage(AbacuraMessage):
+class TravelRequest(AbacuraMessage):
     destination: Optional[Room] = None
     avoid_home: bool = False
     callback_fn: Optional[Callable] = None
-    event_type: str = "lok.script.travel"
+    event_type: str = "lok.travel.request"
+
+
+@dataclass
+class TravelStatus(AbacuraMessage):
+    destination: Optional[Room] = None
+    steps_remaining: int = 0
+    event_type: str = "lok.travel.status"
+
+
+@dataclass
+class TravelResult(AbacuraMessage):
+    success: bool = True
+    result: str = ''
+    event_type: str = "lok.travel.result"
 
 
 class TravelScript(LOKPlugin):
@@ -25,8 +38,8 @@ class TravelScript(LOKPlugin):
         self.retries = 0
         self.callback_fn: Optional[Callable] = None
 
-    @event(trigger="lok.script.travel")
-    def handle_travel(self, message: TravelMessage):
+    @event(trigger="lok.travel.request")
+    def handle_travel(self, message: TravelRequest):
         self.callback_fn = message.callback_fn
         self.start_nav(message.destination, message.avoid_home)
         self.retries = 0
@@ -69,7 +82,7 @@ class TravelScript(LOKPlugin):
             self.end_nav(False, f"Unable to compute path to {destination.vnum}")
             return
 
-        self.dispatch(AbacuraMessage("lok.travel", "start"))
+        self.dispatch(TravelStatus(destination=destination, steps_remaining=len(nav_path.steps)))
         self.navigation_path = nav_path
         self.cq.add(cmd="look", dur=0.1, delay=0, q="Move")
 
@@ -77,8 +90,9 @@ class TravelScript(LOKPlugin):
         self.output(f"> end_nav: {success} {message}")
         self.travel_guide = None
         self.navigation_path = None
-        self.dispatch(AbacuraMessage("lok.travel", str(success)))
-        self.callback_fn(ScriptResult(success=success, result=message))
+        self.dispatch(TravelStatus("lok.travel.status", steps_remaining=0))
+        if self.callback_fn:
+            self.callback_fn(TravelResult(success=success, result=message))
 
     def continue_nav(self):
         if self.msdp.room_vnum == self.navigation_path.destination.vnum:
@@ -91,7 +105,7 @@ class TravelScript(LOKPlugin):
             return
 
         if not self.navigation_path.truncate_remaining_path(self.msdp.room_vnum):
-            self.session.output("LOST PATH")
+            self.output("LOST PATH")
             self.start_nav(self.navigation_path.destination)
             return
 
@@ -107,6 +121,9 @@ class TravelScript(LOKPlugin):
                     continue
 
                 self.cq.add(cmd, dur=0, q="Move")
+
+        self.dispatch(TravelStatus(destination=self.navigation_path.destination,
+                                   steps_remaining=len(self.navigation_path.steps)))
 
     def look_and_retry(self):
         if self.navigation_path:

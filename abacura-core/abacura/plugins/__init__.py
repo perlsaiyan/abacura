@@ -7,7 +7,6 @@ from serum import Context
 from abacura.plugins.actions import Action
 from abacura.plugins.director import Director
 from abacura.plugins.tickers import Ticker
-from abacura.plugins.scripts import ScriptProvider, Script
 from abacura.plugins.commands import CommandError
 from abacura.plugins.task_queue import QueueManager
 from abacura.utils.fifo_buffer import FIFOBuffer
@@ -87,10 +86,11 @@ def action(pattern: str, flags: int = 0, color: bool = False, priority: int = 0)
     return add_action
 
 
-def command(function=None, name: str = '', hide: bool = False):
+def command(function=None, name: str = '', hide: bool = False, override: bool = False):
     def add_command(fn):
         fn.command_name = name or fn.__name__
         fn.command_hide = hide
+        fn.command_override = override
         return fn
 
     if function:
@@ -107,4 +107,3 @@ def ticker(seconds: int, repeats=-1, name=""):
         return fn
 
     return add_ticker
-

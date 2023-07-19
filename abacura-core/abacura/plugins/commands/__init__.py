@@ -135,8 +135,10 @@ class Command:
 
     def get_description(self) -> str:
         doc = getattr(self.callback, '__doc__', None)
-        doc = "" if doc is None else doc.split("\n")[0]
-        return doc
+        if doc is None:
+            return ""
+        lines = [line.strip() for line in doc.split("\n") if len(line.strip())]
+        return "" if len(lines) == 0 else lines[0]
 
     def get_help(self):
         help_text = []
@@ -193,18 +195,23 @@ class Command:
 class CommandManager:
 
     def __init__(self, session: Session):
-        self.commands: List[Command] = []
+        self.commands: Dict[str, Command] = {}
         self.session = session
 
     def register_object(self, obj: object):
         # self.unregister_object(obj)  #  prevent duplicates
         for name, member in inspect.getmembers(obj, callable):
             if hasattr(member, "command_name"):
-                log(f"Appending command function '{member.command_name}'")
-                self.commands.append(Command(obj, member, member.command_name, member.command_hide))
+                name = member.command_name.lower()
+                if name in self.commands and not member.command_override:
+                    log(f"Skipping duplicate function '{member.command_name}' on {member}")
+                    continue
+
+                log(f"Adding command function '{member.command_name}'")
+                self.commands[name] = Command(obj, member, member.command_name, member.command_hide)
 
     def unregister_object(self, obj: object):
-        self.commands = [a for a in self.commands if a.source != obj]
+        self.commands = {k: v for k, v in self.commands.items() if v.source != obj}
 
     def parse_command_line(self, command_line: str) -> Tuple[Command, str]:
 
@@ -221,8 +228,8 @@ class CommandManager:
             command_str = 'help'
 
         # look for partial matches and exact matches
-        starts = [cmd for cmd in self.commands if cmd.name.lower().startswith(command_str.lower())]
-        exact_matches = [cmd for cmd in self.commands if cmd.name.lower() == command_str.lower()]
+        starts = [cmd for cmd in self.commands.values() if cmd.name.lower().startswith(command_str.lower())]
+        exact_matches = [cmd for cmd in self.commands.values() if cmd.name.lower() == command_str.lower()]
 
         if len(exact_matches) == 1:
             # use the exact match if we have 1

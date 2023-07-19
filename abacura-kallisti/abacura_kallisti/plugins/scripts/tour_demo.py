@@ -9,7 +9,7 @@ from abacura_kallisti.plugins import LOKPlugin
 from rich.table import Table
 
 
-class TourDemo2(LOKPlugin):
+class TourDemo(LOKPlugin):
 
     def __init__(self):
         super().__init__()
@@ -17,7 +17,7 @@ class TourDemo2(LOKPlugin):
         self.steps_taken: int = 0
 
     @command
-    def tour2(self, start: bool = False, stop: bool = False, _route: str = '', reach: bool = False):
+    def tour(self, start: bool = False, stop: bool = False, _route: str = '', reach: bool = False):
         """Visit rooms in current area according to area .toml file
 
         :start Start a tour
