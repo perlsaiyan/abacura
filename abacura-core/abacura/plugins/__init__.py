@@ -86,10 +86,11 @@ def action(pattern: str, flags: int = 0, color: bool = False, priority: int = 0)
     return add_action
 
 
-def command(function=None, name: str = '', hide: bool = False):
+def command(function=None, name: str = '', hide: bool = False, override: bool = False):
     def add_command(fn):
         fn.command_name = name or fn.__name__
         fn.command_hide = hide
+        fn.command_override = override
         return fn
 
     if function:

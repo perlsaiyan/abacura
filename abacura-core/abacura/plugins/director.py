@@ -56,7 +56,7 @@ class Director:
                 detail = f"seconds={tkr.seconds}, repeats={tkr.repeats}"
                 registrations.append(Registration("ticker", tkr.name, tkr.callback, detail))
 
-        for cmd in self.command_manager.commands:
+        for cmd in self.command_manager.commands.values():
             if cmd.source == obj:
                 registrations.append(Registration("command", cmd.name, cmd.callback, cmd.get_description()))
 
