@@ -13,14 +13,11 @@ from typing import TYPE_CHECKING, Optional, List, Any, AnyStr, Generator
 from rich.text import Text
 from rich.segment import Segment, Segments
 from rich.style import Style
-from serum import inject, Context
 from textual import log
 from textual.css.query import NoMatches
-from textual.screen import Screen
 from textual.strip import Strip
 from textual.widgets import TextLog
 
-from abacura.widgets import InputBar
 from abacura.screens import SessionScreen
 from abacura.config import Config
 from abacura.mud import BaseSession, OutputMessage
@@ -58,16 +55,12 @@ def load_class(class_name: str, default=None):
     return cls
 
 
-@inject
 class Session(BaseSession):
     """Main User Session Class"""
 
-    # Injected Objects
-    config: Config
-    abacura: Abacura
-
-    def __init__(self, name: str):
-
+    def __init__(self, name: str, abacura: Abacura, config: Config):
+        self.abacura = abacura
+        self.config = config
         self.name = name
         self.host = None
         self.port = None
@@ -102,7 +95,7 @@ class Session(BaseSession):
                            "sessions": self.abacura.sessions, "core_msdp": self.core_msdp,
                            "cq": QueueManager(),
                            "director": self.director, "buffer": self.output_history}
-        self.core_plugin_context = Context(**core_injections)
+        self.core_plugin_context = core_injections
 
         additional_injections = {}
         session_modules = self.config.get_specific_option(self.name, "modules")
@@ -113,13 +106,13 @@ class Session(BaseSession):
                     ctx = getattr(sm, "__CONTEXT_PROVIDER")
                     sm_cls = load_class(ctx, ContextProvider)
                     additional_injections.update(sm_cls(self.config, self.name).get_injections())
-        self.additional_plugin_context = Context(**core_injections, **additional_injections)
+
+        self.additional_plugin_context = {**core_injections, **additional_injections}
 
         screen_class = load_class(self.config.get_specific_option(self.name, "screen_class", ""), SessionScreen)
 
-        with self.additional_plugin_context:
-            self.screen = screen_class(name)
-            self.abacura.install_screen(self.screen, name=name)
+        self.screen = screen_class(name, self)
+        self.abacura.install_screen(self.screen, name=name)
 
         if ring_filename := self.config.ring_log(name):
             ring_size = self.config.get_specific_option(name, "ring_size", 10000)

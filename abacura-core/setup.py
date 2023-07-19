@@ -19,8 +19,7 @@ setup(
         "asynctelnet~=0.2.5",
         "click==8.1.3",
         "textual>=0.28.0",
-        "tomlkit==0.11.8",
-        "serum==5.1.0"
+        "tomlkit==0.11.8"
         ],
 
     entry_points="""

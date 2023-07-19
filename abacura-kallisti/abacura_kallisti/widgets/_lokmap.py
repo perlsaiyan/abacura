@@ -81,18 +81,18 @@ class LOKMap(Container):
         'Tundra': Color("Tundra", ColorType(3), None, ColorTriplet(220,220,220)),
     }
 
-    strips: list = []
-    world: Optional[World] = None
-    map_type: str = "5x3"
-    start_room: Optional[Room] = None
-    bfs: Optional[BFS] = None
-    msdp: MSDP = None
-
     def __init__(self, resizer: bool=True, id: str = ""):
         super().__init__()
         self.id = id
         self.resizer: bool = resizer
+        self.strips: list = []
+        self.world: Optional[World] = None
+        self.map_type: str = "5x3"
+        self.start_room: Optional[Room] = None
+        self.bfs: Optional[BFS] = None
+        self.msdp: Optional[MSDP] = None
         self.map = LOKMapStatic(self.strips, id = "minimap", classes="lokmap")
+
 
     def compose(self) -> ComposeResult:
         yield self.map
@@ -103,7 +103,7 @@ class LOKMap(Container):
         # Register our listener until we have a RegisterableObject to descend from
         self.screen.session.add_listener(self.recenter_map)
         self.screen.session.add_listener(self.toggle_map_type)
-        self.world = self.screen.world
+        self.world = self.screen.session.additional_plugin_context['world']
         self.bfs = BFS(self.world)
         self.msdp = self.screen.session.core_msdp
 
