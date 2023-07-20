@@ -18,7 +18,7 @@ from abacura.plugins.events import event, AbacuraMessage
 import importlib
 
 
-class WorldHelper(LOKPlugin):
+class WorldController(LOKPlugin):
 
     def __init__(self):
         super().__init__()
