@@ -20,7 +20,7 @@ from abacura_kallisti.mud.mob import Mob
 from abacura_kallisti.plugins import LOKPlugin
 
 item_re = re.compile(r'(\x1b\[0m)?\x1b\[0;37m[^\x1b ]')
-
+item_count_re = re.compile(r'\((\d+)\) $')
 
 class RoomWatcher(LOKPlugin):
 
@@ -222,16 +222,22 @@ class RoomWatcher(LOKPlugin):
 
         return []
 
+    def get_item_count(self, line: str) -> int:
+        count = item_count_re.search(line)
+        if count:
+            return int(count.group(1))
+        return 1
+    
     def match_objects(self, line: str) -> List[item.Item]:
         is_item = item_re.match(line)
         stripped = strip_ansi_codes(line)
         blue = self.is_blue_item(line)
 
         if is_item:
-            count = self.get_mob_count(stripped)
-
-            inc = item.Item(stripped, blue=blue)
-            return [inc] * count
+            count = self.get_item_count(stripped)
+            short = item_count_re.sub("", stripped)
+            inc = item.Item(short, blue=blue, count=count)
+            return [inc]
 
         return []
 
