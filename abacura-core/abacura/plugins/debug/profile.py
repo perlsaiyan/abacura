@@ -15,7 +15,7 @@ class Profiler(Plugin):
         self.heap = None
         self.guppy = None
 
-    @command()
+    @command(hide=True)
     def memory(self, baseline: bool = False, gc: bool = False):
         """Show memory usage"""
 
@@ -41,7 +41,7 @@ class Profiler(Plugin):
             self.session.output(str(self.heap.heap()))
 
     @command(hide=True)
-    def profile2(self, num_functions: int = 40, disable: bool = False):
+    def pyprofile(self, num_functions: int = 40, disable: bool = False):
         """Python implemented profiler"""
         from abacura.utils import profiler
 
@@ -60,11 +60,12 @@ class Profiler(Plugin):
 
         rows = []
         for pfn in sorted(stats_dict.values(), key=lambda x: x.self_time, reverse=True)[:num_functions]:
-            rows.append((pfn.function.get_location(), pfn.call_count, pfn.elapsed_time, pfn.cpu_time, pfn.self_time))
+            rows.append((pfn.function.get_location(), pfn.call_count,
+                         pfn.elapsed_time / 1E9, pfn.cpu_time, pfn.self_time / 1E9))
         tbl = tabulate(rows, headers=("Function", "Calls", "Elapsed", "CPU", "Self Time"))
         self.output(tbl)
 
-    @command()
+    @command(hide=True)
     def profile(self, num_functions: int = 40, disable: bool = False, callers: bool = False, _sort: str = 'time'):
         """Use to profile CPU usage by method
 

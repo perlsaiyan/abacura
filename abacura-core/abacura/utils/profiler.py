@@ -1,4 +1,4 @@
-from time import time
+from time import perf_counter_ns
 from dataclasses import dataclass
 import threading
 import sys
@@ -9,7 +9,6 @@ try:
     from resource import getrusage, RUSAGE_SELF
 except ImportError:
     RUSAGE_SELF = 0
-
 
     def getrusage(_who=0):
         return [0.0, 0.0]  # on non-UNIX platforms cpu_time always 0.0
@@ -78,7 +77,7 @@ def profiler(frame, event, _arg):
 
     # handle call and return #
     if event == 'call':
-        p_stack.append(FunctionCall(function, time(), t_cpu))
+        p_stack.append(FunctionCall(function, perf_counter_ns(), t_cpu))
         return profiler
 
     # return
@@ -95,7 +94,7 @@ def profiler(frame, event, _arg):
         function_stats = FunctionStats(function)
         p_stats[function] = function_stats
 
-    call_time = time() - function_call.start_time
+    call_time = perf_counter_ns() - function_call.start_time
     cpu_time = t_cpu - function_call.start_cpu_time
     function_stats.call_count += 1
     function_stats.elapsed_time += call_time
@@ -114,7 +113,7 @@ def profiler(frame, event, _arg):
 def profile_on():
     global p_stats, p_start_time, p_profiling
     p_stats = {}
-    p_start_time = time()
+    p_start_time = perf_counter_ns()
     threading.setprofile(profiler)
     sys.setprofile(profiler)
     p_profiling = True

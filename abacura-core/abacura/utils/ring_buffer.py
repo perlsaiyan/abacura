@@ -6,7 +6,9 @@ import time
 
 
 class RingBufferLogSql:
-    def __init__(self, db_filename: str, ring_size: int = 10000, wal: bool = True, commit_interval: int = 10):
+    def __init__(self, db_filename: str = ':memory:', ring_size: int = 10000,
+                 wal: bool = True, commit_interval: int = 10):
+
         self.db_filename = db_filename
         self.ring_size = ring_size
         self.commit_interval = commit_interval

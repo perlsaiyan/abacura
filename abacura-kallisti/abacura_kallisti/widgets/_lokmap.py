@@ -15,13 +15,11 @@ from textual.events import Resize
 from textual.strip import Strip
 from textual.widgets import Static
 
-from abacura.mud.options.msdp import MSDPMessage, MSDP
 from abacura.plugins.events import event
 from abacura.widgets.resizehandle import ResizeHandle
-from abacura_kallisti.atlas.bfs import BFS
+from abacura_kallisti.atlas.messages import MapUpdateMessage, MapUpdateRequest
 from abacura_kallisti.atlas.room import Room
-from abacura_kallisti.atlas.world import World
-from abacura_kallisti.plugins.scripts.travel import TravelStatus
+from abacura_kallisti.atlas.bfs import BFS
 
 
 class LOKMapStatic(Static):
@@ -81,18 +79,17 @@ class LOKMap(Container):
         'Tundra': Color("Tundra", ColorType(3), None, ColorTriplet(220,220,220)),
     }
 
-    def __init__(self, resizer: bool=True, id: str = ""):
+    def __init__(self, resizer: bool = True, id: str = ""):
         super().__init__()
         self.id = id
         self.resizer: bool = resizer
         self.strips: list = []
-        self.world: Optional[World] = None
         self.map_type: str = "5x3"
         self.start_room: Optional[Room] = None
         self.bfs: Optional[BFS] = None
-        self.msdp: Optional[MSDP] = None
-        self.map = LOKMapStatic(self.strips, id = "minimap", classes="lokmap")
+        self.current_vnum: str = ''
 
+        self.map = LOKMapStatic(self.strips, id="minimap", classes="lokmap")
 
     def compose(self) -> ComposeResult:
         yield self.map
@@ -101,41 +98,35 @@ class LOKMap(Container):
 
     def on_mount(self) -> None:
         # Register our listener until we have a RegisterableObject to descend from
-        self.screen.session.add_listener(self.recenter_map)
-        self.screen.session.add_listener(self.toggle_map_type)
-        self.world = self.screen.session.additional_plugin_context['world']
-        self.bfs = BFS(self.world)
-        self.msdp = self.screen.session.core_msdp
+        self.screen.session.director.register_object(self)
+        # self.screen.session.dispatch(MapUpdateRequest())
+        # self.screen.session.add_listener(self.recenter_map)
+        # self.screen.session.add_listener(self.toggle_map_type)
 
     def on_resize(self, _event: Resize):
         self.update_map()
     
-    @event("lok.travel.status")
-    def toggle_map_type(self, status: TravelStatus):
-        if status.steps_remaining > 0:
-            self.map_type = "1x1"
-            return
-        
-        self.map_type = "5x3"
-        self.update_map()
-
-    @event("core.msdp.ROOM_VNUM")
-    def recenter_map(self, message: MSDPMessage):
+    @event(MapUpdateMessage.event_type)
+    def process_map_update(self, message: MapUpdateMessage):
         """Event to trigger map redraws on movement"""
-        if self.world is None:
-            return
-        self.start_room = self.world.rooms.get(message.value, None)
+
+        self.start_room = message.start_room
+        self.current_vnum = message.current_vnum
+        if not self.bfs:
+            self.bfs = BFS(message.world)
+        self.map_type = "1x1" if message.traveling else "5x3"
         self.update_map()
 
     def update_map(self):
         if self.start_room is None:
             return
+
         width = self.content_size.width - 1
         height = self.content_size.height
 
-        if self.map_type == "5x3":
+        if self.map_type == '5x3':
             self.generate_5x3_map(self.start_room, width, height)
-        if self.map_type == "1x1":
+        elif self.map_type == '1x1':
             self.generate_1x1_map(self.start_room, width, height)
 
         self.map.refresh_strips(self.strips)
@@ -157,7 +148,7 @@ class LOKMap(Container):
             return [Segment("     ")]
         color = self.color_for_terrain(room.terrain_name)
         segments = [Segment("-[" if "west" in room.exits else " [", Style(bgcolor=color))]
-        segments.append(Segment("@" if room.vnum == self.msdp.values["ROOM_VNUM"] else " ", Style(color="red", bgcolor=color)))
+        segments.append(Segment("@" if room.vnum == self.current_vnum else " ", Style(color="red", bgcolor=color)))
         segments.append(Segment("]-" if "east" in room.exits else "] ", Style(bgcolor=color)))
         return segments
 
@@ -209,7 +200,7 @@ class LOKMap(Container):
                     row.append(Segment(" ", Style(bgcolor="black")))
                     continue
                 color = self.color_for_terrain(cell.terrain_name)
-                if cell.vnum == self.msdp.values["ROOM_VNUM"]:
+                if cell.vnum == self.current_vnum:
                     row.append(Segment("@", Style(color="red", bgcolor=color)))
                 else:
                     row.append(Segment(" ", Style(bgcolor=color)))

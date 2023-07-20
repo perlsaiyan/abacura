@@ -1,30 +1,23 @@
 """Legends of Kallisti Test Screen"""
 from __future__ import annotations
 
-import csv
-import io
 from typing import TYPE_CHECKING
 
-from textual import log, events
+from textual import events
 from textual.app import ComposeResult
 from textual.containers import Container, Grid
+from textual.screen import ModalScreen
+from textual.widgets import Header, Button, Placeholder
 
-from textual.screen import Screen, ModalScreen
-from textual.widgets import Header, TextLog, Button
-
-from abacura_kallisti.widgets import LOKLeft, LOKRight, LOKMap
-
-from abacura.widgets import InputBar
 from abacura.screens import SessionScreen
 from abacura.widgets import CommsLog
-from abacura.widgets.footer import AbacuraFooter
+from abacura.widgets import InputBar
 from abacura.widgets.debug import DebugDock
-
+from abacura.widgets.footer import AbacuraFooter
+from abacura_kallisti.widgets import LOKLeft, LOKRight, LOKMap
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
     from abacura.mud.session import Session
-    from abacura_kallisti.atlas.world import World
 
 
 class KallistiScreen(SessionScreen):
@@ -39,7 +32,7 @@ class KallistiScreen(SessionScreen):
     ]
 
     AUTO_FOCUS = "InputBar"
-    CSS_PATH="css/kallisti.css"
+    CSS_PATH = "css/kallisti.css"
     DEFAULT_CLASSES = "BKS"
 
     def __init__(self, name: str, session: Session):
@@ -98,8 +91,8 @@ class KallistiScreen(SessionScreen):
 
         if not self._map_overlay:
             self._map_overlay = True
-            world = self.session.additional_plugin_context['world']
-            self.app.push_screen(MapScreen(id="LOKMap", session=self.session, world=world), reset_mapkey())
+            self.app.push_screen(MapScreen(id="LOKMap", session=self.session), reset_mapkey())
+
 
 class BetterKallistiScreen(KallistiScreen):
     """
@@ -107,26 +100,21 @@ class BetterKallistiScreen(KallistiScreen):
     """
     DEFAULT_CLASSES = "BKS"
 
-class MapScreen(ModalScreen[bool]):  
+
+class MapScreen(ModalScreen[bool]):
     """Screen with a dialog to quit."""
 
-    CSS_PATH="css/kallisti.css"
+    CSS_PATH = "css/kallisti.css"
 
-    def __init__(self, session: Session, world: World, **kwargs):
-        super().__init__(id=kwargs["id"],*kwargs)
+    def __init__(self, session: Session, **kwargs):
+        super().__init__(id=kwargs["id"], *kwargs)
         self.session = session
-        self.world = world
 
     def compose(self) -> ComposeResult:
-        
         bigmap = LOKMap(id="bigmap", resizer=False)
-        bigmap.START_ROOM = str(self.session.core_msdp.values.get("ROOM_VNUM", ""))
-        yield Grid(
-                bigmap, 
-                id="MapGrid"
-        )
+        yield Grid(Container(bigmap), id="MapGrid")
 
-    def on_key(self, event: events.Key) -> None:
+    def on_key(self, _event: events.Key) -> None:
         self.dismiss(True)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
