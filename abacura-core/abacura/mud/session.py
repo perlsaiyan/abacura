@@ -2,35 +2,33 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
-from pathlib import Path
 import re
-import shlex
 import time
+from datetime import datetime
 from importlib import import_module
-from typing import TYPE_CHECKING, Optional, List, Any, AnyStr, Generator
+from typing import TYPE_CHECKING, Optional, Any, Generator
 
-from rich.text import Text
 from rich.segment import Segment, Segments
 from rich.style import Style
+from rich.text import Text
 from textual import log
 from textual.css.query import NoMatches
 from textual.strip import Strip
 from textual.widgets import TextLog
 
-from abacura.screens import SessionScreen
 from abacura.config import Config
 from abacura.mud import BaseSession, OutputMessage
-from abacura.mud.options import GA
 from abacura.mud.logger import LOKLogger
+from abacura.mud.options import GA
 from abacura.mud.options.msdp import MSDP
 from abacura.plugins import command, ContextProvider
 from abacura.plugins.director import Director
 from abacura.plugins.events import AbacuraMessage
 from abacura.plugins.loader import PluginLoader
 from abacura.plugins.task_queue import QueueManager
-from abacura.utils.ring_buffer import RingBufferLogSql
+from abacura.screens import SessionScreen
 from abacura.utils.fifo_buffer import FIFOBuffer
+from abacura.utils.ring_buffer import RingBufferLogSql
 from abacura.widgets.footer import AbacuraFooter
 
 if TYPE_CHECKING:
@@ -71,9 +69,7 @@ class Session(BaseSession):
         self.core_msdp: MSDP = MSDP(self.output, self.send, self)
         self.options = {}
 
-        self.plugin_loader: Optional[PluginLoader] = None
-        self.ring_buffer: Optional[RingBufferLogSql] = None
-
+        self.plugin_loader: PluginLoader = PluginLoader()
         self.last_socket_write: float = time.monotonic()
         self.outb = b''
         self.writer = None
@@ -114,9 +110,9 @@ class Session(BaseSession):
         self.screen = screen_class(name, self)
         self.abacura.install_screen(self.screen, name=name)
 
-        if ring_filename := self.config.ring_log(name):
-            ring_size = self.config.get_specific_option(name, "ring_size", 10000)
-            self.ring_buffer = RingBufferLogSql(ring_filename, ring_size)
+        ring_filename = self.config.ring_log(name) or ":memory:"
+        ring_size = self.config.get_specific_option(name, "ring_size", 10000)
+        self.ring_buffer = RingBufferLogSql(ring_filename, ring_size)
 
         self.abacura.push_screen(name)
         self.screen.set_interval(interval=0.01, callback=self.director.ticker_manager.process_tick, name="tickers")
@@ -131,7 +127,6 @@ class Session(BaseSession):
         except NoMatches:
             pass
 
-        self.plugin_loader = PluginLoader()
         self.plugin_loader.load_plugins(modules=["abacura"], plugin_context=self.core_plugin_context)
 
         session_modules = self.config.get_specific_option(self.name, "modules")

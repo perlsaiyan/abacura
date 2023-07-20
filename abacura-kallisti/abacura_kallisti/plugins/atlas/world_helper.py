@@ -8,8 +8,15 @@ import abacura.utils.tabulate as tblt
 from abacura.utils.tabulate import tabulate
 from abacura_kallisti.atlas.wilderness import WildernessGrid
 from abacura_kallisti.atlas.world import Room, Exit
+from abacura_kallisti.atlas.messages import MapUpdateMessage
 from abacura_kallisti.plugins import LOKPlugin
+from abacura_kallisti.plugins.scripts.travel import TravelStatus
+
+from abacura.plugins.events import event, AbacuraMessage
+
+
 import importlib
+
 
 class WorldHelper(LOKPlugin):
 
@@ -17,6 +24,25 @@ class WorldHelper(LOKPlugin):
         super().__init__()
         self.wild_grid = WildernessGrid()
         importlib.reload(tblt)
+        self.traveling = False
+
+    @event("core.msdp.ROOM_VNUM")
+    def update_room_vnum(self, message: AbacuraMessage):
+        vnum = message.value
+        room = self.world.rooms.get(vnum, "")
+        msg = MapUpdateMessage(start_room=room, world=self.world, current_vnum=vnum, traveling=self.traveling)
+        self.dispatch(msg)
+
+        self.r_vnum = message.value
+        self.display = True
+
+    @event(TravelStatus.event_type)
+    def update_travel_status(self, message:TravelStatus):
+        self.traveling = message.steps_remaining > 0
+        vnum = self.msdp.room_vnum
+        room = self.world.rooms.get(vnum, "")
+        msg = MapUpdateMessage(start_room=room, world=self.world, current_vnum=vnum, traveling=self.traveling)
+        self.dispatch(msg)
 
     def get_table_of_exits(self, vnum: str):
         exits = []
