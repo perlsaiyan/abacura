@@ -5,8 +5,6 @@ import csv
 import io
 from typing import TYPE_CHECKING
 
-from serum import inject
-
 from textual import log, events
 from textual.app import ComposeResult
 from textual.containers import Container, Grid
@@ -16,15 +14,11 @@ from textual.widgets import Header, TextLog, Button
 
 from abacura_kallisti.widgets import LOKLeft, LOKRight, LOKMap
 
-from abacura.config import Config
 from abacura.widgets import InputBar
 from abacura.screens import SessionScreen
 from abacura.widgets import CommsLog
 from abacura.widgets.footer import AbacuraFooter
 from abacura.widgets.debug import DebugDock
-
-
-
 
 
 if TYPE_CHECKING:
@@ -33,11 +27,8 @@ if TYPE_CHECKING:
     from abacura_kallisti.atlas.world import World
 
 
-@inject
 class KallistiScreen(SessionScreen):
     """Default Screen for sessions"""
-    world: World
-
     BINDINGS = [
 
         ("f2", "toggle_left_sidebar", "F2"),
@@ -51,9 +42,9 @@ class KallistiScreen(SessionScreen):
     CSS_PATH="css/kallisti.css"
     DEFAULT_CLASSES = "BKS"
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, session: Session):
 
-        super().__init__(name)
+        super().__init__(name, session)
         self._map_overlay = False
 
     def compose(self) -> ComposeResult:
@@ -75,7 +66,7 @@ class KallistiScreen(SessionScreen):
                 self.tl.can_focus = False
                 yield self.tl
             yield InputBar(id="playerinput")
-        yield AbacuraFooter()
+        yield AbacuraFooter(id="footer")
         if self.session.abacura.inspector:
             from abacura.widgets._inspector import Inspector
             inspector = Inspector()
@@ -107,7 +98,8 @@ class KallistiScreen(SessionScreen):
 
         if not self._map_overlay:
             self._map_overlay = True
-            self.app.push_screen(MapScreen(id="LOKMap", session=self.session, world=self.world), reset_mapkey())
+            world = self.session.additional_plugin_context['world']
+            self.app.push_screen(MapScreen(id="LOKMap", session=self.session, world=world), reset_mapkey())
 
 class BetterKallistiScreen(KallistiScreen):
     """

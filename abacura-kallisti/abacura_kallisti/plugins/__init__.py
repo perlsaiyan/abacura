@@ -5,7 +5,6 @@ import sys
 from importlib import import_module
 from typing import TYPE_CHECKING
 
-from serum import inject
 from textual import log
 from textual.widget import Widget
 

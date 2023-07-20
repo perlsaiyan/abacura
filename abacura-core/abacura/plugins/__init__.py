@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable
-
-from serum import Context
+from typing import TYPE_CHECKING, Callable, Dict
 
 from abacura.plugins.actions import Action
 from abacura.plugins.director import Director
@@ -29,7 +27,7 @@ class ContextProvider:
 
 class Plugin:
     """Generic Plugin Class"""
-    _context: Context
+    _context: Dict = {}
 
     def __init__(self):
         # super().__init__()
@@ -43,6 +41,10 @@ class Plugin:
         self.debuglog = self.session.debuglog
         self.dispatch = self.director.event_manager.dispatch
         self.register_actions = True
+
+    @classmethod
+    def set_context(cls, context: Dict):
+        cls._context = context
 
     def get_name(self):
         return self.__class__.__name__

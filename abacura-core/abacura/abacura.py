@@ -1,30 +1,24 @@
 """Main Textual App and Entrypoint"""
-from pathlib import Path
 import sys
-from typing import TYPE_CHECKING, Dict, Optional
 from collections import OrderedDict
+from pathlib import Path
+from typing import TYPE_CHECKING, Dict, Optional
 
 import click
-from serum import Context, inject
 from textual.app import App
 from textual.binding import Binding
 from textual.screen import Screen
-
 
 from abacura.config import Config
 from abacura.mud.session import Session
 from abacura.utils import pycharm
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
+    pass
 
-@inject
+
 class Abacura(App):
     """A Textual mudclient"""
-    screens: Dict[Session, Screen]
-    config: Config
-    inspector: bool = False
-
     AUTO_FOCUS = "InputBar"
     CSS_PATH = ["./css/abacura.css"]
     SCREENS = {}
@@ -34,11 +28,15 @@ class Abacura(App):
         Binding("ctrl+q", "quit", "Quit", priority=True),
         Binding("ctrl+c", "null", "Toggle Dark Mode"),
         Binding("f3", "reload_config", "f3"),
-        Binding("f12", "toggle_inspector", ("Toggle Inspector")),
+        Binding("f12", "toggle_inspector", "Toggle Inspector"),
         Binding("f10", "screenshot", "")
     ]
 
-    def __init__(self):
+    def __init__(self, config: Config, inspector: bool = False):
+        self.screens: Dict[Session, Screen]
+        self.config: Config = config
+        self.inspector = inspector
+
         super().__init__()
         # App.BINDINGS = []
         self.sessions: OrderedDict[str, Session] = OrderedDict()
@@ -50,17 +48,15 @@ class Abacura(App):
         if self.START_SESSION:
             self.sessions["null"].connect(self.START_SESSION)
 
-
     def create_session(self, name: str) -> None:
         """Create a session"""
-        with Context(config=self.config, abacura=self):
-            self.sessions[name] = Session(name)
+        self.sessions[name] = Session(name, abacura=self, config=self.config)
         self.session = name
 
     def set_session(self, id: str) -> None:
         self.session = id
         self.push_screen(id)
-        self.query_one(AbacuraFooter).session = id
+        self.query_one("footer").session = id
 
     def action_reload_config(self) -> None:
         tl = self.sessions[self.session].tl
@@ -106,8 +102,7 @@ def main(config, debug, start, inspector):
         usercss.extend(Abacura.CSS_PATH)
         Abacura.CSS_PATH = usercss
 
-    with Context(config=_config, inspector=inspector):
-        app = Abacura()
+    app = Abacura(_config, inspector)
 
     Abacura.START_SESSION = start
 

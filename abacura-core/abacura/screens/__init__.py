@@ -2,37 +2,24 @@
 from __future__ import annotations
 
 # TODO: screen and widget definitions should go under the hierarchy, not in __init__
-import csv
-import io
-import os
-from typing import TYPE_CHECKING, Coroutine, Any
+from typing import TYPE_CHECKING
 
-from serum import inject
-
-from textual import log, on
 from textual.app import ComposeResult
 from textual.containers import Container
-from textual.message import Message
-
 from textual.screen import Screen
 from textual.widgets import Header, TextLog
-from abacura.widgets.debug import DebugDock
 
-from abacura.config import Config
 from abacura.widgets import CommsLog, InputBar
-
-from abacura.widgets.sidebar import Sidebar
+from abacura.widgets.debug import DebugDock
 from abacura.widgets.footer import AbacuraFooter
+from abacura.widgets.sidebar import Sidebar
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
     from abacura.mud.session import Session
 
-@inject
+
 class SessionScreen(Screen):
     """Default Screen for sessions"""
-    config: Config
-    session: Session
 
     BINDINGS = [
         ("pageup", "pageup", "PageUp"),
@@ -45,9 +32,10 @@ class SessionScreen(Screen):
 
     AUTO_FOCUS = "InputBar"
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, session: Session):
         super().__init__()
 
+        self.session = session
         self.id = f"screen-{name}"
         self.tlid = f"output-{name}"
         # TODO: wrap should be a config file field option
@@ -67,7 +55,7 @@ class SessionScreen(Screen):
             with Container(id="mudoutputs"):
                 yield self.tl
             yield InputBar(id="playerinput")
-        yield AbacuraFooter()
+        yield AbacuraFooter(id="footer")
         if self.session.abacura.inspector:
             from abacura.widgets._inspector import Inspector
             inspector = Inspector()
@@ -101,6 +89,8 @@ class SessionScreen(Screen):
     def action_toggle_sidebar(self) -> None:
         sidebar = self.query_one("#sidebar")
         sidebar.display = not sidebar.display
+
+## session.abacura.screen.query_one("app-grid").query_one("playerinput").password
 
     def action_toggle_commslog(self) -> None:
         commslog = self.query_one("#commslog")

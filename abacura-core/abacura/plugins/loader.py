@@ -8,7 +8,6 @@ import importlib
 from importlib.util import find_spec
 from typing import Dict, TYPE_CHECKING, List
 
-from serum import Context
 from textual import log
 
 from abacura.plugins import Plugin
@@ -23,13 +22,13 @@ class LoadedPlugin:
     package: str
     package_file: str
     modified_time: float
-    context: Context
+    context: Dict
 
 
 @dataclass
 class Failure:
     package: str
-    context: Context
+    context: Dict
     error: str
 
 
@@ -43,9 +42,9 @@ class PluginLoader:
         self.total_time = 0
         self.failures = []
 
-    def load_package(self, package: str, plugin_context: Context, reload: bool = False):
+    def load_package(self, package: str, plugin_context: Dict, reload: bool = False):
         module_start_time = datetime.utcnow()
-        context: Context
+        context: Dict
 
         try:
             module = importlib.import_module(package)
@@ -88,7 +87,7 @@ class PluginLoader:
         mname = module.__name__
         self.times[mname] = self.times.get(mname, 0) + elapsed
 
-    def load_plugins(self, modules: List, plugin_context: Context) -> None:
+    def load_plugins(self, modules: List, plugin_context: Dict) -> None:
         """Load plugins"""
 
         start_time = datetime.utcnow()
