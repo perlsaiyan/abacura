@@ -17,7 +17,7 @@ from textual.widgets import Static
 
 from abacura.plugins.events import event
 from abacura.widgets.resizehandle import ResizeHandle
-from abacura_kallisti.atlas.messages import MapUpdateMessage
+from abacura_kallisti.atlas.messages import MapUpdateMessage, MapUpdateRequest
 from abacura_kallisti.atlas.room import Room
 from abacura_kallisti.atlas.bfs import BFS
 
@@ -99,6 +99,7 @@ class LOKMap(Container):
     def on_mount(self) -> None:
         # Register our listener until we have a RegisterableObject to descend from
         self.screen.session.director.register_object(self)
+        # self.screen.session.dispatch(MapUpdateRequest())
         # self.screen.session.add_listener(self.recenter_map)
         # self.screen.session.add_listener(self.toggle_map_type)
 
@@ -106,7 +107,7 @@ class LOKMap(Container):
         self.update_map()
     
     @event(MapUpdateMessage.event_type)
-    def recenter_map(self, message: MapUpdateMessage):
+    def process_map_update(self, message: MapUpdateMessage):
         """Event to trigger map redraws on movement"""
 
         self.start_room = message.start_room

@@ -13,3 +13,8 @@ class MapUpdateMessage(AbacuraMessage):
     world: Optional[World] = None
     traveling: bool = False
     event_type: str = "lok.map.update"
+
+
+@dataclass
+class MapUpdateRequest(AbacuraMessage):
+    event_type: str = "lok.map.update_request"
