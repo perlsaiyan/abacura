@@ -16,7 +16,7 @@ class LOKRight(Sidebar):
         with Container(id="rightsidecontainer", classes="SidebarContainer"):
             yield LOKMap(id="lokmap")
             yield LOKZone(id="lokzone")
-            yield LOKGroup()
+            yield LOKGroup(id="lokgroup")
             yield LOKCombat(id="lokcombat")
             yield Static("Action Queues", classes="WidgetTitle")
             yield Static("[green]Priority: [white]0 [green]Heal: [white]0  [green]Any: [white]0\n" + \
