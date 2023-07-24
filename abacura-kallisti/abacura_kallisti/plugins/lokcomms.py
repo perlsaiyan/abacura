@@ -18,7 +18,10 @@ class CommsMessage(AbacuraMessage):
     event_type:str = "lok.comms"
     channel: str = ""
     speaker: str = ""
+    speaker_account: str = ""
+    target: str = ""
     message: str = ""
+    stripped: str = ""
     datetime: str = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
 
 class LOKComms(LOKPlugin):
@@ -218,17 +221,21 @@ class LOKComms(LOKPlugin):
         channel = 'tell'
         listener = 'You'
         _speaker = speaker.split()
+        acct = ""
         if len(_speaker) > 1:
-            acct  = speaker[1]
+            acct  = _speaker[1]
             acct = re.sub("\(|\)", '', acct)
             speaker = _speaker[0]
-        self.comms_log(channel, speaker, msg)  
-    
-    @action (r"^The winds whisper, '(.*)'", color=False)
-    def comms_world(self, message: str, msg: OutputMessage):
-        channel = 'world'
-        speaker = 'world'
         self.comms_log(channel, speaker, msg)
+        cm = CommsMessage(
+            value = msg.message,
+            stripped = msg.stripped,
+            message = message,
+            channel=channel,
+            speaker = _speaker[0],
+            speaker_account=acct,
+        )
+        self.dispatch(cm)
 
     #commsgag <channel/speaker> <arg> <on/off>
     @command(name='commstog')
