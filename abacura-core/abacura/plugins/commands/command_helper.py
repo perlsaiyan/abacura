@@ -1,6 +1,5 @@
-from __future__ import annotations
-
 from abacura.plugins import Plugin, command
+import re
 
 
 class CommandHelper(Plugin):
@@ -10,7 +9,7 @@ class CommandHelper(Plugin):
         super().__init__()
 
     @command(hide=True)
-    def help(self, hidden: bool=False):
+    def help(self, hidden: bool = False):
         """Show available commands"""
         help_text = ["Plugin Commands", "\nUsage: @command <arguments>", "\nAvailable Commands: "]
 
@@ -27,3 +26,17 @@ class CommandHelper(Plugin):
         """Display list of commands"""
         self.help()
 
+    @command(hide=True)
+    def repeat(self, n: int, text: str):
+
+        if n <= 0:
+            return
+
+        m = re.match(r"(\d+)(.*)", text)
+        if m:
+            cmd = m.groups()[1]
+
+            def do_repeat():
+                self.session.player_input(cmd.strip())
+
+            self.add_ticker(0.1, do_repeat, repeats=n, name="_repeat")
