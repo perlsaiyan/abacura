@@ -10,8 +10,10 @@ from textual.widget import Widget
 
 from abacura.plugins import Plugin, CommandError
 from abacura_kallisti.atlas.world import World
-from abacura_kallisti.atlas.room import ScannedRoom
-from abacura_kallisti.plugins.msdp import TypedMSDP
+from abacura_kallisti.atlas.room import ScannedRoom, ScannedRoom2
+from abacura_kallisti.metrics.odometer import Odometer
+from abacura_kallisti.metrics import MudMetrics
+from abacura_kallisti.mud.msdp import TypedMSDP
 from abacura_kallisti.atlas.location import LocationList
 from abacura_kallisti.mud.player import PlayerCharacter
 
@@ -19,12 +21,10 @@ from ..case import camel_to_snake
 
 if TYPE_CHECKING:
     from .lokcomms import LOKComms
-    from .queue import LOKQueueRunner, QueueManager
 
 
 __all__ = [
     "LOKComms",
-    "LOKQueueRunner",
     "LOKPlugin"
 ]
 
@@ -42,6 +42,12 @@ class LOKPlugin(Plugin):
         self.pc: PlayerCharacter = self._context['pc']
         self.locations: LocationList = self._context['locations']
         self.room: ScannedRoom = self._context['room']
+        self.room2: ScannedRoom2 = self._context['room2']
+        self.odometer: Odometer = self._context['odometer']
+
+    @property
+    def metrics(self) -> MudMetrics:
+        return self.odometer.metrics
 
     # @staticmethod
     # def parse_direction(direction: str):

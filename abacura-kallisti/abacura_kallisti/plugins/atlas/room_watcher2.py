@@ -1,22 +1,241 @@
 import os
 import re
 import unicodedata
-from typing import List, Optional
-
-import tomlkit
+from dataclasses import fields
+from typing import List, Pattern
+from itertools import takewhile
 
 # from atlas.known_areas import KNOWN_AREAS
 from abacura.mud import OutputMessage
-from abacura.plugins import action
-from abacura.utils.fifo_buffer import FIFOBuffer
+from abacura.plugins import command, action
 from abacura.plugins.events import event, AbacuraMessage
-from abacura_kallisti.atlas import encounter, item
-from abacura_kallisti.atlas.world import strip_ansi_codes
+from abacura_kallisti.atlas.room import RoomHeader, RoomPlayer, RoomMob, RoomItem, RoomCorpse
+from abacura_kallisti.atlas.room import ScannedMiniMap, ScannedRoom2
 from abacura_kallisti.mud.area import Area
-from abacura_kallisti.mud.mob import Mob
 from abacura_kallisti.plugins import LOKPlugin
+from abacura.utils.tabulate import tabulate
+from rich.panel import Panel
+from rich.text import Text
 
-item_re = re.compile(r'(\x1b\[0m)?\x1b\[0;37m[^\x1b ]')
+
+class RoomMessageParser:
+
+    re_item_qty = re.compile("\\(([0-9]+)\\)")
+    re_mob_qty = re.compile("\\[([0-9]+)\\]")
+
+    re_normal_white = re.compile("^\\x1b\\[22;37m")
+    re_item = re.compile("^\\x1b\\[0;37m.*")
+    re_mob = re.compile("^(?:\\x1b\\[1;37m|\\x1b\\[0;37m\\x1b\\[1;3[0-9]m)+.*")
+    re_quest = re.compile("\\x1b\\[0;37m\\.\\.\\..*may have a \\x1b\\[22;36mquest\\x1b\\[0m for you")
+    re_player = re.compile("^(?:\\x1b\\[[01](?:;[0-9]+)*m)+\\x1b\\[1;33m([A-Z]\\w+)\\x1b\\[0m")
+    re_race_ride_fight = re.compile(r"^[A-Za-z]+ the (.*) is .*here(?:, riding (.*)(?:\.|and))*")
+
+    ITEM_FLAGS = {"glows", "magic", "damaged"}
+
+    MOB_FLAGS = {"ranged", "sneaking", "hiding", "evil", "good",
+                 "grim ward", "fireshield", "acidshield", "iceshield", "shockshield",
+                 "mount", "blur", "wraith", "sanc", "unholy aura", "invis", "trainer"}
+
+    KEYWORDS = {"mortally wounded", "fighting YOU", "fighting", "resting", "incapacitated",
+                "standing", "sitting", "lying", "stunned", "hovering", "your follower"}
+
+    def __init__(self, messages: List[OutputMessage]):
+        self.messages = messages
+        self.has_quest: bool = False
+        self.header: RoomHeader = RoomHeader('')
+        self.items: List[RoomItem] = []
+        self.players: List[RoomPlayer] = []
+        self.mobs: List[RoomMob] = []
+        self.corpses: List[RoomCorpse] = []
+        self.blood_trail: str = ''
+        self.hunt_tracks: str = ''
+
+        self._parse_messages()
+
+    @staticmethod
+    def _get_quantity(stripped: str, re_qty: Pattern) -> int:
+        for n in re_qty.findall(stripped):
+            try:
+                return int(n)
+            except ValueError:
+                continue
+
+        return 1
+
+    @staticmethod
+    def _parse_junk(msg):
+        recalled = "^You find yourself.*"
+        if re.match(recalled, msg.message):
+            return "recall"
+        elif msg.stripped.strip() == '':
+            return "blank"
+        elif msg.stripped.startswith('>'):
+            return "junk"
+        elif msg.stripped.startswith('<'):
+            return "prompt"
+        elif msg.stripped.startswith('WARNING!  You have entered a HARDCORE zone'):
+            return "hardcore"
+
+        return False
+
+    def _parse_player(self, msg):
+
+        m = self.re_player.match(msg.message)
+        if m:
+            flags = {k for k in self.KEYWORDS if msg.stripped.find(k) >= 0}
+            for text in re.findall("\\[([^\\]]+)\\]", msg.stripped):
+                flags.update({f for f in self.MOB_FLAGS if text.find(f" {f} ") >= 0})
+
+            r = self.re_race_ride_fight.match(msg.stripped)
+            rg = r.groups() if r else ()
+            race = rg[0] if len(rg) >= 1 else ""
+            riding = rg[1] if len(rg) >= 2 else ""
+
+            p = RoomPlayer(line=msg.message, name=m.groups()[0], flags=flags, race=race, riding=riding)
+            self.players.append(p)
+            return p
+
+    def _parse_mob(self, msg: OutputMessage):
+
+        # TODO: Test as Imm
+        # starts with bold white, or starts with white followed by bold color
+
+        if self.re_quest.match(msg.message):
+            self.has_quest = True
+            return "quest"
+
+        if self.re_mob.match(msg.message):
+            qty = self._get_quantity(msg.stripped, self.re_mob_qty)
+
+            flags = {f for f in re.findall("\\[ ([^\\]]+) \\]", msg.stripped) if f in self.MOB_FLAGS}
+            flags.update({k for k in self.KEYWORDS if msg.stripped.find(k) >= 0})
+
+            fighting = "fighting" in flags or "fighting YOU" in flags
+            alert = "alert" in flags or fighting
+
+            mob = RoomMob(line=msg.message,
+                          description=msg.stripped, has_quest=self.has_quest, flags=flags, quantity=qty,
+                          fighting=fighting, fighting_you="fighting YOU" in flags,
+                          following_you="your follower" in flags,
+                          alert=alert, paralyzed="paralyzed" in flags)
+
+            self.has_quest = False
+            self.mobs.append(mob)
+            return mob
+
+    def _parse_item(self, msg):
+        # TODO: Test as Imm
+
+        if self.re_item.match(msg.message):
+            qty = self._get_quantity(msg.stripped, self.re_item_qty)
+            corpse = msg.stripped.find("corpse") >= 0 and msg.stripped.find("lying") >= 0
+            ashes = msg.stripped.find("pile of ashes lie here") >= 0
+            if corpse or ashes:
+                corpse_type = "ashes" if ashes else "corpse"
+                c = RoomCorpse(line=msg.message, description=msg.stripped, quantity=qty, corpse_type=corpse_type)
+                self.corpses.append(c)
+                return c
+
+            item_flags = {f for f in re.findall("\\(([^\\)]+)\\)", msg.stripped) if f in self.ITEM_FLAGS}
+
+            blue = msg.message.find('\x1b[22;36m') >= 0
+            short = self.re_item_qty.sub(msg.stripped, "")
+            item = RoomItem(line=msg.message, description=msg.stripped, short=short, blue=blue,
+                            quantity=qty, flags=item_flags)
+            self.items.append(item)
+            return item
+
+    @staticmethod
+    def _parse_any(_msg):
+        return "any"
+
+    def _parse_blood(self, msg: OutputMessage):
+        re_blood = re.compile(r"^There is a trail of fresh blood here leading (.*)\.")
+        if m := re_blood.match(msg.stripped):
+            self.blood_trail = m.groups()[0]
+            return "blood"
+
+    def _parse_tracks(self, msg: OutputMessage):
+        re_tracks = re.compile(r"^\[\* You see your target's tracks leading (.*)\. ")
+        re_found = re.compile(r"\[\* You found ")
+
+        if m := re_tracks.match(msg.stripped):
+            self.hunt_tracks = m.groups()[0]
+            return "tracks"
+
+        if re_found.match(msg.stripped):
+            self.hunt_tracks = "here"
+            return "tracks"
+
+    def _parse_room_header(self) -> int:
+        if len(self.messages) == 0:
+            return 0
+
+        name = time = terrain_name = weather = exits = flags = ""
+        if self.messages[0].stripped.find("|") >= 0 and len(self.messages) >= 3:
+            # compass
+            compass = True
+            re_compass0 = r"^(.*)  +([0-9]+[ap]m)* \| (.*)"
+            re_compass1 = r"^(.*) +( .* )\| ([^\|]+)"
+            re_compass2 = r"^(\[[^\]]+\])* +\| (.*)"
+
+            exits0 = exits1 = exits2 = ""
+            if m0 := re.match(re_compass0, self.messages[0].stripped):
+                name, time, exits0 = m0.groups()
+            if m1 := re.match(re_compass1, self.messages[1].stripped):
+                terrain_name, weather, exits1 = m1.groups()
+            if m2 := re.match(re_compass2, self.messages[2].stripped):
+                flags, exits2 = m2.groups()
+            exits = exits0 + exits1 + exits2
+
+        else:
+            compass = False
+            re_header = r"^([^\[]+)( \[ .* \])*( \[ .* \])"
+            if m0 := re.match(re_header, self.messages[0].stripped):
+                name, flags, exits = m0.groups()
+
+        weather = weather or ''
+        time = time or ''
+        terrain_name = terrain_name or ''
+        flags = flags or ''
+
+        if exits.lower().find("no exits") >= 0:
+            exit_list = []
+        else:
+            exit_list = [d for d in "NSEWUD" if exits.find(d) >= 0]
+
+        header_flags = ["RegenHp", "RegenMp", "RegenSp", "Wild Magic", "NoMagic", "SetRecall", "Warded", "Bank"]
+        # "House", "Sanctum", "Vault", "Donation", "Private", "Stables", "Public", "Postern", "Shop",
+        # "Entry", "Throneroom", "Altar", "Inn"
+
+        flag_set = {f for f in header_flags if flags.find(f) >= 0}
+        self.header = RoomHeader(line=self.messages[0].message, name=name.strip(), exits=exit_list,
+                                 flags=flag_set, compass=compass,
+                                 terrain_name=terrain_name.strip(), weather=weather.strip(), time=time.strip())
+        return 3 if compass else 1
+
+    def _parse_messages(self):
+        header_lines = self._parse_room_header()
+
+        parsers = [self._parse_junk, self._parse_tracks, self._parse_player, self._parse_mob,
+                   self._parse_item, self._parse_blood, self._parse_any]
+
+        # process messages from bottom up
+        for msg in reversed(self.messages[header_lines:]):
+            # Strip leading \x1b[22;37m that happens in wilderness
+            msg.message = self.re_normal_white.sub("", msg.message)
+
+            for i, parser in enumerate(parsers):
+                if parser(msg):
+                    if parser != self._parse_any:
+                        parsers = parsers[i:]
+                    break
+
+        # reverse things back to top down
+        self.corpses.reverse()
+        self.items.reverse()
+        self.mobs.reverse()
+        self.players.reverse()
 
 
 class RoomWatcherNew(LOKPlugin):
@@ -24,24 +243,16 @@ class RoomWatcherNew(LOKPlugin):
     def __init__(self):
         super().__init__()
 
+        self.minimap: ScannedMiniMap = ScannedMiniMap([])
+        self.last_room_messages = []
         self.re_room_no_compass = re.compile(r"^.* (\[ [ NSWEUD<>v^\|\(\)\[\]]* \] *$)")
         self.re_room_compass = re.compile(r"^.* \|")
         # self.re_room_here = re.compile(r"^Here +- ")
         self.re_room_no_exits = re.compile(r"^.* \[ No exits! \]")
 
-        self.re_player = re.compile(r"\x1b\[1;33m(\w+)")  # yellow
-        self.re_mob_count = re.compile(r"\[(\d+)\]")
-        self.re_corpse_count = re.compile(r"\((\d+)\)")
-
-        self.flags = ['corpse', 'resting', 'incapacitated', 'sitting', 'lying', 'paralyzed', 'stunned', 'alert',
-                      'ranged', 'mortally wounded', 'fighting YOU', 'fighting', 'sneaking', 'evil', 'good', 'grim ward',
-                      'fireshield', 'acidshield', 'iceshield', 'shockshield', 'blur', 'wraith', 'sanc']
-        self.flag_checks = [" %s " % f for f in self.flags]
-        self.flag_checks += [" %s." % f for f in self.flags]
-
         self.room_header_entry_id = -1
-        self.room_header = ''
 
+    # TODO: Enable these once we remove the old room watcher
     # @action("^Not here!")
     # def no_magic(self):
     #     if self.msdp.room_vnum in self.world.rooms:
@@ -61,7 +272,7 @@ class RoomWatcherNew(LOKPlugin):
     #             self.output(f'[orange1]Marked room silent [{r.vnum}]', markup=True)
     #             self.world.save_room(r.vnum)
 
-    @action("\x1b\[1;35m", color=True)
+    @action("\x1b\\[1;35m", color=True)
     def bold_magenta(self, message: OutputMessage):
 
         # here_matched = self.re_room_here.match(message.stripped) is not None
@@ -70,168 +281,10 @@ class RoomWatcherNew(LOKPlugin):
         room_compass = self.re_room_compass.match(message.stripped) is not None
         room_no_exits = self.re_room_no_exits.match(message.stripped) is not None
         room_wilderness = all([self.msdp.area_name == 'The Wilderness', len(message.stripped) <= 40,
-                               message.message.find("\x1b[1;35m") <= 5])
+                               message.message.find("\x1b[1;35m") <= 5, message.stripped.find(" - ") == -1])
 
         if any([room_compass, room_no_compass, room_no_exits, room_wilderness]):
             self.room_header_entry_id = self.output_history.entry_id
-            self.room_header = message
-
-    # @lru_cache(maxsize=512)
-    def get_mob_re_for_area(self, area_name: str) -> List:
-        if area_name == self.room.area.name:
-            mobs = self.room.area.mobs
-            names = [mob.name for mob in mobs if mob.starts_with == '']
-
-            wildcard = ".*?" if self.room.area.greedy_match else ".*"
-
-            # In is for Thalos golems
-            grp = "|".join(names)
-            mob_re = "^(You see )*(A|The|This|An|a|the|an|In|in|His|There is an|,)%s (%s)[ .,']" % (wildcard, grp)
-            compiled_mob_re = re.compile(mob_re)
-            self.debuglog("mob re %s" % mob_re)
-            # for mobs with fancy names
-            start_names = [mob.starts_with for mob in mobs if mob.starts_with != '']
-            start_re = "^(%s)[, ]" % "|".join(start_names)
-            compiled_start_re = re.compile(start_re, flags=re.IGNORECASE)
-            # self.session.debug("starts re %s" % start_re, show=True)
-
-            return [compiled_mob_re, compiled_start_re]
-        return []
-
-    # @lru_cache(maxsize=1024)
-    def get_mob_name(self, area_name: str, stripped: str) -> Optional[str]:
-        mob_re_list = self.get_mob_re_for_area(area_name)
-        # self.session.debug('area %s stripped %s' % (area_name, stripped), show=True )
-
-        if len(mob_re_list) == 0:
-            return None
-
-        for mob_re in mob_re_list:
-            m = mob_re.match(stripped)
-            if m is not None:
-                # self.session.debug('M: %s' % m.groups()[-1], show=True)
-                return m.groups()[-1]
-
-        return None
-
-    # @lru_cache(maxsize=1024)
-    def get_mob_flags(self, stripped: str) -> List[str]:
-        flags = [c.strip(" ").strip(".") for c in self.flag_checks if stripped.find(c) >= 0]
-        return flags
-
-    # @lru_cache(maxsize=1024)
-    def get_mob_count(self, stripped: str) -> int:
-        cm = self.re_mob_count.search(stripped)
-        if cm is None:
-            return 1
-
-        return int(cm.groups()[0])
-
-    # @lru_cache(maxsize=1024)
-    def get_player_name(self, line: str) -> Optional[str]:
-        pm = self.re_player.search(line)
-        exclude = {'a', 'an', 'the', 'damaged',
-                   # baramon yellow highlights
-                   'hope', 'east', 'south', 'north', 'up', 'down', 'west', 'rgr', 'rock'}
-        if pm is None:
-            return None
-
-        player = pm.groups()[0]
-        # baramon has some mobs in the yellow color
-        if player.lower() in exclude or len(player) <= 1:
-            return None
-        return player
-
-    @staticmethod
-    # @lru_cache(maxsize=1024)
-    def has_white_color(s: str) -> bool:
-        # Note this is true even in Baramon where the mobs have colorized text
-        # It first sends out the code, then changes it
-        return s.find('\x1b[1;37m') >= 0
-
-    @staticmethod
-    def is_blue_item(s: str) -> bool:
-        return s.find('\x1b[0;36m') >= 0
-
-    # @staticmethod
-    # # @lru_cache(maxsize=1024)
-    # def get_known_mob(area_name: str, mob_name):
-    #
-    #     if area_name not in KNOWN_AREAS:
-    #         return None
-    #
-    #     for m in KNOWN_AREAS[area_name].known_mobs:
-    #         if m.name == mob_name or m.attack_name == mob_name or m.starts_with == mob_name:
-    #             return m
-
-    # @lru_cache(maxsize=2048)
-    def get_corpses(self, area_name: str, stripped: str) -> List[str]:
-        flags = self.get_mob_flags(stripped)
-        is_corpse = "corpse" in flags and "lying" in flags
-        mob_name = self.get_mob_name(area_name, stripped)
-
-        if not is_corpse:  # or mob_name is None:
-            return []
-
-        if mob_name:
-            self.debuglog("corpse mob is %s" % mob_name)
-        cm = self.re_corpse_count.search(stripped)
-        if cm is None:
-            count = 1
-        else:
-            count = int(cm.groups()[0])
-
-        return [stripped] * count
-
-    # @lru_cache(maxsize=2048)
-    def match_encounters(self, area_name: str, line: str) -> List[encounter.Encounter]:
-        has_mob_color = self.has_white_color(line[:20])
-        stripped = strip_ansi_codes(line)
-        mob_name = self.get_mob_name(area_name, stripped)
-
-        # print(stripped, mob_name)
-        # self.session.debug('mob_name %s' % mob_name, show=True)
-        # matched name and (White or stunned or incapacitated) and not Corpse
-        if mob_name is None:
-            return []
-
-        # self.session.debug("mob name %s" % mob_name, True)
-
-        flags = self.get_mob_flags(stripped)
-        is_corpse = ("corpse" in flags and "lying" in flags) or "ashes" in flags
-        is_stunned = "stunned" in flags or "incapacitated" in flags
-        your_follower = stripped.find("your follower") >= 0
-
-        # self.session.show_block("enc %s %s %s %s %s" % (has_mob_color, mob_name, flags, is_corpse, is_stunned),
-        #                         transmit_immediately=True)
-
-        if (has_mob_color or is_stunned) and not is_corpse and not your_follower:
-            count = self.get_mob_count(stripped)
-            # known_mob = self.get_known_mob(area_name, mob_name)
-            paralyzed = "paralyzed" in flags
-            ranged = "ranged" in flags
-            fighting = "fighting" in flags or "fighting YOU" in flags
-            alert = "alert" in flags or fighting
-
-            enc = encounter.Encounter(mob_name, ranged=ranged, paralyzed=paralyzed, flags=flags,
-                                      alert=alert, fighting=fighting)
-            # session.debug("encounter: %s" % mob_name, show=True )
-            return [enc] * count
-
-        return []
-
-    def match_objects(self, line: str) -> List[item.Item]:
-        is_item = item_re.match(line)
-        stripped = strip_ansi_codes(line)
-        blue = self.is_blue_item(line)
-
-        if is_item:
-            count = self.get_mob_count(stripped)
-
-            inc = item.Item(stripped, blue=blue)
-            return [inc] * count
-
-        return []
 
     # @action(r"^There is a trail of fresh blood here leading (.*)\.")
     # def blood_trail(self, direction: str):
@@ -248,16 +301,6 @@ class RoomWatcherNew(LOKPlugin):
     #     if self.scanned_room:
     #         self.scanned_room.hunt_tracks = "here"
 
-        # regen_hp = scan_room and scan_room.room_header.find("RegenHp") >= 0
-        # regen_mp = scan_room and scan_room.room_header.find("RegenMp") >= 0
-        # regen_sp = scan_room and scan_room.room_header.find("RegenSp") >= 0
-        # wild_magic = scan_room and scan_room.room_header.find('Wild Magic') >= 0
-        # no_magic = scan_room and scan_room.room_header.find('NoMagic') >= 0
-        # set_recall = scan_room and scan_room.room_header.find('SetRecall') >= 0
-        # no_recall = scan_room and scan_room.room_header.find('Warded') >= 0
-        # bank = scan_room and scan_room.room_header.find('Bank') >= 0
-        # terrain = strip_ansi_codes(terrain)
-
     @staticmethod
     def slugify(value):
         """
@@ -269,71 +312,179 @@ class RoomWatcherNew(LOKPlugin):
         return re.sub(r'[-\s]+', '-', value).strip('-_')
 
     def load_area(self, area_name: str) -> Area:
+        # TODO: Handle case where area is in the list of included areas
         data_dir = self.config.data_directory(self.session.name)
-
-        new_area = Area()
-        filename = os.path.join(data_dir, "areas", self.slugify(area_name) + ".toml")
-
-        if not os.path.exists(filename):
-            return new_area
-
-        with open(filename, "r") as f:
-            doc = tomlkit.load(f)
-
-        for attribute, value in doc['area'].items():
-            if hasattr(new_area, attribute):
-                setattr(new_area, attribute, value)
-
-        new_area.room_exclude = set(new_area.room_exclude)
-        new_area.rooms_to_scout = set(new_area.rooms_to_scout)
-
-        for mob_name, mob_dict in doc['mobs'].items():
-            mob = Mob(name=mob_name)
-            for attribute, value in mob_dict.items():
-                if hasattr(mob, attribute):
-                    setattr(mob, attribute, value)
-            new_area.mobs.append(mob)
-
+        filename = os.path.join(data_dir, "areas", self.slugify(area_name) + ".toml")        
+        new_area = Area.load_from_toml(filename)
         self.debuglog(msg=f"Loaded area file '{filename}'")
         return new_area
 
-    def get_minimap(self):
-        minimap = []
-
-        num_room_lines = self.output_history.entry_id - self.room_header_entry_id + 1
-
-        for msg in self.output_history[-num_room_lines:-num_room_lines - 30:-1]:
-            if type(msg.message) not in (str, 'str'):
-                continue
-
-            if msg == self.room_header:
-                continue
-
-            if msg.stripped.startswith(' ') and msg.stripped.strip(' ') != '':
-                minimap.append(msg)
-            else:
-                break
-
-        return list(reversed(minimap))
-
     def get_last_room_messages(self) -> List[OutputMessage]:
-        if self.room_header_entry_id < 0:
+        num_lines = self.output_history.entry_id - self.room_header_entry_id + 1
+
+        if self.room_header_entry_id < 0 or 1 > num_lines > 100:
             return []
 
-        num_room_lines = self.output_history.entry_id - self.room_header_entry_id
+        return [m for m in self.output_history[-num_lines:] if type(m.message) in (str, 'str')]
 
-        if 1 > num_room_lines > 100:
-            return []
+    def get_minimap_messages(self) -> List[OutputMessage]:
+        n = self.output_history.entry_id - self.room_header_entry_id + 1
 
-        return [m for m in self.output_history[-num_room_lines:-1] if type(m.message) in (str, 'str')]
+        if self.msdp.area_name == 'The Wilderness':
+            minimap_lines = takewhile(lambda m: m.stripped.startswith(" "), self.output_history[-n + 1:])
+            return list(minimap_lines)
 
+        # traverse lines above room header in reverse order
+        past_50_lines = [m for m in self.output_history[-n - 1:-n - 50:-1] if type(m.message) in (str, 'str')]
 
-    # @event("core.prompt", priority=1)
-    # def got_prompt(self, _: AbacuraMessage):
-    #     if self.room_header_entry_id >= 0:
-    #         room_messages = self.get_last_room_messages()
-    #         self.output([m.stripped[:5] for m in room_messages])
-    #         minimap = self.get_minimap()
-    #         self.room_header_entry_id = -1
-    #         self.output([m.stripped for m in minimap])
-    #         pass
+        # if compass is on, first line above room header will be blank, skip it
+        if len(past_50_lines) > 0 and past_50_lines[0].stripped.strip(" ") == '':
+            past_50_lines = past_50_lines[1:]
+
+        past_50_lines.reverse()
+        return past_50_lines
+
+    @event("core.prompt", priority=10)
+    def got_prompt(self, _: AbacuraMessage):
+        if self.room_header_entry_id >= 0:
+            try:
+                self.last_room_messages = self.get_last_room_messages()
+                rmp = RoomMessageParser(self.last_room_messages)
+                minimap = ScannedMiniMap(self.get_minimap_messages())
+            except Exception as e:
+                self.debuglog(str(e))
+                return
+
+            self.room_header_entry_id = -1
+
+            # TODO: Match mobs against area / mob database
+
+            sr2 = ScannedRoom2(vnum=self.msdp.room_vnum, name=self.msdp.room_name, minimap=minimap,
+                               terrain_name=self.msdp.room_terrain, msdp_exits=self.msdp.room_exits,
+                               blood_trail=rmp.blood_trail, hunt_tracks=rmp.hunt_tracks,
+                               room_header=rmp.header, room_items=rmp.items, room_mobs=rmp.mobs,
+                               room_corpses=rmp.corpses, room_players=rmp.players)
+
+            if self.msdp.area_name == 'The Wilderness':
+                self.world.load_wilderness()
+
+            if self.msdp.room_vnum in self.world.rooms:
+                room = self.world.rooms[self.msdp.room_vnum]
+                # copy the room attributes into the new ScanndRoom instance
+                for f in fields(room):
+                    setattr(sr2, f.name, getattr(room, f.name))
+
+            # TODO: After removing old Roomwatcher - call visited room, update roomflags using flags set
+            # self.world.visited_room(area_name=self.msdp.area_name, name=self.msdp.room_name, vnum=self.msdp.room_vnum,
+            #                         terrain=self.msdp.room_terrain, room_exits=self.msdp.room_exits,
+            #                         scan_room=self.scanned_room)
+
+            if sr2.vnum in self.world.rooms:
+                room = self.world.rooms[self.msdp.room_vnum]
+                missing_msdp_exits = any([d for d in self.msdp.room_exits if d not in room.exits])
+                extra_room_exits = any([d for d in room.exits if d not in self.msdp.room_exits])
+                if missing_msdp_exits or extra_room_exits:
+                    self.session.output(Text(f"\nROOM WATCHER2: Mismatch between MSDP & Room exits\n", style="purple"))
+
+            # Load the new area if it has changed
+            sr2.area = self.room.area
+            if sr2.area.name != self.msdp.area_name:
+                sr2.area = self.load_area(self.msdp.area_name)
+
+            # TODO: Change lokplugin.room to a property so we can replace the object
+            # Do not create a new instance of self.room since a reference is held by all plugins
+            for f in fields(ScannedRoom2):
+                setattr(self.room2, f.name, getattr(sr2, f.name))
+
+            # TODO: After removing old RoomWatcher - dispatch method from here
+            # self.dispatch(RoomMessage(vnum=self.scanned_room.vnum, room=self.scanned_room))
+
+    def save_room_messages(self):
+        from pathlib import Path
+        import pickle
+
+        data_dir = Path(self.config.data_directory(self.session.name)).expanduser()
+        data_dir.mkdir(exist_ok=True)
+
+        file = data_dir / f"{self.msdp.room_vnum}.pkl"
+        with open(file, "wb") as f:
+            pickle.dump(self.last_room_messages, f)
+        self.output(f"Dumped [{self.msdp.room_vnum}] messages into {file}")
+
+    def test_room_messages(self, vnum: str):
+        from pathlib import Path
+        import pickle
+        data_dir = Path(self.config.data_directory(self.session.name)).expanduser()
+        file = data_dir / f"{vnum}.pkl"
+
+        if not file.exists():
+            self.output(f"{file} does not exist")
+            return
+
+        with open(file, "rb") as f:
+            messages = pickle.load(f)
+
+        for msg in messages:
+            self.output(Text.from_ansi(msg.message))
+
+        rmp = RoomMessageParser(messages)
+        self.output(rmp.header)
+        self.output(rmp.corpses)
+        self.output(rmp.items)
+        self.output(rmp.players)
+        if rmp.blood_trail:
+            self.output(f"blood={rmp.blood_trail}")
+        if rmp.hunt_tracks:
+            self.output(f"tracks={rmp.hunt_tracks}")
+
+    @command(name="room2")
+    def room_command(self, save: bool = False, _load: str = ""):
+        """Display details from new room watcher,  Optionally save a file with room messages for debugging"""
+        if save:
+            self.save_room_messages()
+            return
+
+        if _load:
+            self.test_room_messages(_load)
+            return
+
+        text = Text.assemble((f"Scanned Room ", "purple"), "[", (self.room2.vnum, "bright cyan"), "]")
+        self.output(text)
+
+        properties = []
+        for f in fields(self.room2.room_header):
+            if f.name == 'line':
+                continue
+            t = Text.assemble((f"{f.name:>12.12s}: ", "bold white"),
+                              (str(getattr(self.room2.room_header, f.name, '')), "white"))
+            properties.append(t)
+
+        blood = Text.assemble((f"{'blood':>12.12s}: ", "bold white"), (self.room2.blood_trail, "bold red"))
+        hunt = Text.assemble((f"{'tracks':>12.12s}: ", "bold white"), (self.room2.hunt_tracks, "bold green"))
+        from rich.columns import Columns
+
+        self.output(Columns(properties + [hunt, blood], width=60))
+
+        self.output(Text(" "))
+
+        rows = []
+        for corpse in self.room2.room_corpses:
+            rows.append(("corpse", f"{corpse.description:20.20}", corpse.quantity, "", corpse.corpse_type))
+
+        for item in self.room2.room_items:
+            rows.append(("item", f"{item.description:20.20}", item.quantity,
+                         f"{'blue item' if item.blue else ''}", item.flags))
+            # self.output(f"{str(item):30.30}    " + item.line)
+
+        for mob in self.room2.room_mobs:
+            rows.append(("mob", f"{mob.description:20.20}", mob.quantity,
+                         f"{'has_quest' if mob.has_quest else ''}", mob.flags))
+            # self.output(f"{str(mob):30.30}    " + mob.line)
+
+        for player in self.room2.room_players:
+            rows.append(("player", f"{player.name:20.20}", '', player.race, player.flags))
+            self.output(f"{str(player):30.30}    " + player.line)
+
+        if len(rows) > 0:
+            self.output(tabulate(rows, headers=["Type", "Description", "Qty", "Misc", "Flags"],
+                                 title="Room Contents", title_justify="left"))

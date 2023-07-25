@@ -25,13 +25,15 @@ class BaseSession:
             self.output(Panel(buf), markup=True, highlight=True, actionable=False)
 
 
+ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
+
 class OutputMessage:
-    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
     def __init__(self, message: str, gag: bool):
         self.message: str = message
         if type(message) is str:
-            self.stripped = self.ansi_escape.sub('', message)
+            self.stripped = ansi_escape.sub('', message)
         else:
             self.stripped = message
         self.gag: bool = gag

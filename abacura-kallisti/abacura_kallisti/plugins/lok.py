@@ -6,6 +6,8 @@ from dataclasses import dataclass
 
 from abacura_kallisti.plugins import LOKPlugin
 
+from typing import Dict
+
 from abacura.mud.options.msdp import MSDPMessage
 from abacura.plugins import action
 from abacura.plugins.events import event, AbacuraMessage
@@ -34,16 +36,21 @@ class LegendsOfKallisti(LOKPlugin):
         if self.session.ring_buffer:
             self.session.ring_buffer.set_log_context_provider(self.get_log_context)
 
-        # pass additional globals to the PythonExecutor Plugin
-        exec_globals = {"world": self.world,
-                        "msdp": self.msdp,
-                        "pc": self.pc,
-                        "cq": self.cq,
-                        "locations": self.locations,
-                        "room": self.room
-                        }
+        self.dispatch(AbacuraMessage(event_type="core.exec.globals", value={"lok": self.provide_lok_globals}))
 
-        self.dispatch(AbacuraMessage(event_type="core.exec.globals", value=exec_globals))
+    def provide_lok_globals(self) -> Dict:
+        # pass additional globals to the PythonExecutor Plugin
+        _globals = {"world": self.world,
+                    "msdp": self.msdp,
+                    "odometer": self.odometer,
+                    "metrics": self.odometer.metrics,
+                    "pc": self.pc,
+                    "cq": self.cq,
+                    "locations": self.locations,
+                    "room": self.room,
+                    "room2": self.room2
+                    }
+        return _globals
 
     def get_log_context(self) -> str:
         return self.msdp.room_vnum

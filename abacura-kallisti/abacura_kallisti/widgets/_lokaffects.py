@@ -10,7 +10,7 @@ from textual.widgets import Static, DataTable
 from abacura.mud.options.msdp import MSDPMessage
 from abacura.plugins.events import event
 
-from abacura_kallisti.plugins.msdp import Affect
+from abacura_kallisti.mud.affect import Affect
 
 class LOKAffects(Static):
     can_focus_children = False
