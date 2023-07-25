@@ -98,17 +98,21 @@ class SessionScreen(Screen):
 
     def action_pageup(self) -> None:
         self.tl.auto_scroll = False
-        self.tl.action_page_up()
+        self.tl.scroll_page_up(duration=0.3)
+        # self.tl.action_page_up()
 
     def action_pagedown(self) -> None:
-        self.tl.action_page_down()
-        if self.tl.scroll_offset.x == 0:
+        self.tl.scroll_page_down(duration=0.3)
+        # self.tl.action_page_down()
+        if self.tl.scroll_offset.y >= self.tl.virtual_size.height - self.tl.content_size.height:
             self.tl.auto_scroll = True
 
     def action_scroll_home(self) -> None:
         self.tl.auto_scroll = False
-        self.tl.action_scroll_home()
+        self.tl.scroll_home(duration=0.3)
+        # self.tl.action_scroll_home()
 
     def action_scroll_end(self) -> None:
         self.tl.auto_scroll = True
-        self.tl.action_scroll_end()
+        # self.tl.action_scroll_end()
+        self.tl.scroll_end(duration=0.3)
