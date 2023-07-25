@@ -93,3 +93,18 @@ class OdometerController(LOKPlugin):
     def deposit_coins(self, coins: int):
         if self.metrics.stop_time is None:
             self.metrics.counters['deposit'] += coins
+
+    @event("core.msdp.EXPERIENCE")
+    def msdp_xp(self, m: AbacuraMessage):
+        if self.metrics.stop_time is None:
+            self.metrics.end_xp = self.msdp.experience
+
+    @event("core.msdp.GOLD")
+    def msdp_gold(self, _: AbacuraMessage):
+        if self.metrics.stop_time is None:
+            self.metrics.end_gold = self.msdp.gold
+
+    @event("core.msdp.BANK_GOLD")
+    def msdp_bank(self, _: AbacuraMessage):
+        if self.metrics.stop_time is None:
+            self.metrics.end_bank = self.msdp.bank_gold

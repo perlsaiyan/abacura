@@ -4,7 +4,7 @@ from typing import Optional, List, Dict
 from collections import Counter
 
 
-@dataclass
+@dataclass(slots=True)
 class EarnedXP:
     source: str = ""
     area: str = ""
@@ -13,7 +13,7 @@ class EarnedXP:
     xp: int = 0
 
 
-@dataclass
+@dataclass(slots=True)
 class EarnedGold:
     source: str = ""
     area: str = ""
