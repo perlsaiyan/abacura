@@ -1,6 +1,9 @@
+from datetime import datetime
+
 from abacura.plugins import command, action
 from abacura.plugins.events import AbacuraMessage
 from abacura.plugins.events import event
+from abacura.utils import human_format
 from abacura.utils.tabulate import tabulate
 from abacura_kallisti.plugins import LOKPlugin
 
@@ -34,9 +37,13 @@ class OdometerController(LOKPlugin):
 
         rows = []
         for i, m in enumerate(self.odometer.metric_history):
-            rows.append((i, m.mission, m.elapsed, m.xp_per_hour / 1000, m.gold_per_hour / 1000))
+            rows.append((i, m.mission,
+                         datetime.utcfromtimestamp(m.elapsed).strftime('%H:%M:%S'),
+                         m.kills_per_hour,
+                         human_format(m.xp_per_hour), human_format(m.gold_per_hour)
+                         ))
 
-        headers = ["#", "Mission", "Elapsed", "XP (k)/h", "$ (k)/h"]
+        headers = ["#", "Mission", "Elapsed", "Kills/h", "XP/h", "$/h"]
         self.output(tabulate(rows, headers=headers))
 
     @action(r"^(.*) is dead!.*R.I.P.")
