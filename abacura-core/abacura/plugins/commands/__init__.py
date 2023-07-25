@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import shlex
 from typing import List, Dict, TYPE_CHECKING, Callable, Tuple
+import re
 
 from rich.markup import escape
 from textual import log
@@ -252,6 +253,10 @@ class CommandManager:
         command: Command | None = None
 
         try:
+            if m := re.match(r"#(\d+)(.*)", command_line):
+                repeats, cmd = m.groups()
+                command_line = f"#repeat {repeats} {cmd}"
+
             command, arg_str = self.parse_command_line(command_line)
             self.session.output(f"[green][italic]> {escape(command_line)}", markup=True, highlight=True)
             message = command.execute(arg_str)
