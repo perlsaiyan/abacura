@@ -118,7 +118,7 @@ class ScannedMiniMap:
         if messages is None:
             return
 
-        self.messages = list(messages)
+        self.messages = list(reversed(messages))
 
         for y, msg in enumerate(self.messages):
             if msg.stripped.strip() == '':
