@@ -68,7 +68,7 @@ class TelnetPlugin(Plugin):
                 return
             except asyncio.TimeoutError:
                 if len(self.outb) > 0:
-                    self.output(self.outb.decode("UTF-8", errors="ignore"), ansi=True)
+                    self.output(self.outb.decode("UTF-8", errors="ignore").replace("\r", " ").replace("\t", "        "), ansi=True)
                     self.outb = b''
                     self.poll_timeout = 0.001
                 else:
@@ -84,7 +84,7 @@ class TelnetPlugin(Plugin):
 
             # End of a MUD line in buffer, send for processing
             elif data == b'\n':
-                self.output(self.outb.decode("UTF-8", errors="ignore").replace("\r", " "), ansi=True)
+                self.output(self.outb.decode("UTF-8", errors="ignore").replace("\r", " ").replace("\t", "        "), ansi=True)
                 self.outb = b''
 
             # handle IAC sequences
