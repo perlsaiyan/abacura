@@ -2,11 +2,12 @@ import os
 
 from abacura.plugins import ContextProvider
 from abacura_kallisti.atlas.world import World
-from abacura_kallisti.plugins.msdp import TypedMSDP
+from abacura_kallisti.mud.msdp import TypedMSDP
+from abacura_kallisti.metrics.odometer import Odometer
 from abacura.config import Config
 from abacura_kallisti.mud.player import PlayerCharacter
 from abacura_kallisti.atlas.location import LocationList
-from abacura_kallisti.atlas.room import ScannedRoom
+from abacura_kallisti.atlas.room import ScannedRoom, ScannedRoom2
 
 
 class LOKContextProvider(ContextProvider):
@@ -18,9 +19,11 @@ class LOKContextProvider(ContextProvider):
         self.pc: PlayerCharacter = PlayerCharacter()
         self.locations: LocationList = LocationList(os.path.join(data_dir, "locations.toml"))
         self.room: ScannedRoom = ScannedRoom()
+        self.odometer: Odometer = Odometer(self.msdp)
+        self.room2: ScannedRoom2 = ScannedRoom2()
 
     def get_injections(self) -> dict:
-        lok_context = {"world": self.world, "msdp": self.msdp, "pc": self.pc,
-                       "locations": self.locations, "room": self.room}
+        lok_context = {"world": self.world, "msdp": self.msdp, "pc": self.pc, "odometer": self.odometer,
+                       "locations": self.locations, "room": self.room, "room2": self.room2}
 
         return lok_context

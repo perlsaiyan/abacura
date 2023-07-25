@@ -1,5 +1,6 @@
 import ast
 import uuid
+from typing import Dict, Callable
 
 from rich.panel import Panel
 from rich.pretty import Pretty
@@ -13,22 +14,31 @@ class PythonExecutor(Plugin):
 
     def __init__(self):
         super().__init__()
+        self.global_providers: Dict[str, Callable] = {"core": self.provide_core_globals}
         self.exec_locals = {}
-        self.exec_globals = {"session": self.session,
-                             "plugins": self.session.plugin_loader.plugins,
-                             "respond": self.add_response,
-                             "action": self.add_action,
-                             "ticker": self.add_ticker,
-                             "output": self.output,
-                             "send": self.send,
-                             "input": self.session.player_input,
-                             "history": self.output_history
-                             }
+
+    def provide_core_globals(self) -> Dict:
+        return {"session": self.session,
+                "plugins": self.session.plugin_loader.plugins,
+                "respond": self.add_response,
+                "action": self.add_action,
+                "ticker": self.add_ticker,
+                "output": self.output,
+                "send": self.send,
+                "input": self.session.player_input,
+                "history": self.output_history
+                }
+
+    def get_globals(self) -> Dict:
+        _globals = {}
+        for provider in self.global_providers.values():
+            _globals.update(provider())
+        return _globals
 
     @event("core.exec.globals")
-    def add_globals(self, message: AbacuraMessage):
+    def add_globals_provider(self, message: AbacuraMessage):
         if isinstance(message.value, dict):
-            self.exec_globals.update(message.value)
+            self.global_providers.update(message.value)
 
     def add_response(self, pattern: str, message: str, flags: int = 0):
         name = str(uuid.uuid4())
@@ -54,7 +64,7 @@ class PythonExecutor(Plugin):
             source = open(filename, "r").read()
             ast.parse(source)
 
-            result = exec(source_code, self.exec_globals, self.exec_locals)
+            result = exec(source_code, self.get_globals(), self.exec_locals)
 
             if result is not None:
                 pretty = Pretty(result, max_length=20, max_depth=4)
@@ -74,7 +84,7 @@ class PythonExecutor(Plugin):
                 self.exec_locals = {}
 
             compiled = compile(text.strip(), '<string>', 'eval')
-            result = eval(compiled, self.exec_globals, self.exec_locals)
+            result = eval(compiled, self.get_globals(), self.exec_locals)
 
             if result is not None:
                 pretty = Pretty(result, max_length=100, max_depth=4)

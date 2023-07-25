@@ -1,7 +1,11 @@
+import os
 from dataclasses import dataclass, field
-from typing import Optional, List, Set, Dict, Tuple
-from .mob import Mob
 from functools import lru_cache
+from typing import Optional, List, Set, Dict
+
+import tomlkit
+
+from .mob import Mob
 
 
 @dataclass()
@@ -61,3 +65,28 @@ class Area:
 
     def is_allowed_area(self, area_name) -> bool:
         return area_name in [self.name] + self.include_areas
+
+    @classmethod
+    def load_from_toml(cls, filename: str) -> "Area":
+        new_area = cls()
+
+        if not os.path.exists(filename):
+            return new_area
+
+        with open(filename, "r") as f:
+            doc = tomlkit.load(f)
+
+        for attribute, value in doc['area'].items():
+            if hasattr(new_area, attribute):
+                setattr(new_area, attribute, value)
+
+        new_area.room_exclude = set(new_area.room_exclude)
+        new_area.rooms_to_scout = set(new_area.rooms_to_scout)
+
+        for mob_name, mob_dict in doc['mobs'].items():
+            mob = Mob(name=mob_name)
+            for attribute, value in mob_dict.items():
+                if hasattr(mob, attribute):
+                    setattr(mob, attribute, value)
+            new_area.mobs.append(mob)
+        pass

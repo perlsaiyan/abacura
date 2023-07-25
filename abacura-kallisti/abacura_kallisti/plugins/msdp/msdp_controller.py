@@ -15,7 +15,7 @@ from abacura.plugins.events import event
 
 
 # TODO: disable the abacura @msdp command and let's implement it here
-class LOKMSDP(LOKPlugin):
+class LOKMSDPController(LOKPlugin):
 
     def __init__(self):
         super().__init__()

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field, fields
 from datetime import datetime
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Iterable, Set
 from functools import lru_cache
 
 from . import encounter
@@ -10,6 +10,7 @@ from .terrain import TERRAIN, Terrain
 from abacura.plugins.events import AbacuraMessage
 from abacura_kallisti.atlas.wilderness import WildernessGrid
 from abacura_kallisti.mud.area import Area
+from abacura.mud import OutputMessage
 
 
 @dataclass(slots=True)
@@ -108,6 +109,36 @@ class Room:
         return result
 
 
+class ScannedMiniMap:
+    def __init__(self, messages: Iterable[OutputMessage] = None):
+        self.you: Optional[tuple] = None
+        self.grid: Dict[tuple, str] = {}
+        self.messages: List[OutputMessage] = []
+
+        if messages is None:
+            return
+
+        self.messages = list(messages)
+
+        for y, msg in enumerate(self.messages):
+            if msg.stripped.strip() == '':
+                break
+
+            for x, symbol in enumerate(msg.stripped):
+                if symbol == '@':
+                    self.you = (x, y)
+
+                if symbol != ' ':
+                    self.grid[(x, y)] = symbol
+
+        # recalculate points relative to the @ symbol
+        if self.you is not None:
+            self.grid = {(k[0] - self.you[0], k[1] - self.you[1]): v for k, v in self.grid.items()}
+
+    def __repr__(self):
+        return f"ScannedMiniMap({self.messages})"
+
+
 @dataclass
 class ScannedRoom(Room):
     area: Area = field(default_factory=Area)
@@ -118,6 +149,7 @@ class ScannedRoom(Room):
     room_charmies: List[str] = field(default_factory=list)
     room_players: List[str] = field(default_factory=list)
     room_lines: List[str] = field(default_factory=list)
+    minimap: ScannedMiniMap = field(default_factory=ScannedMiniMap)
     blood_trail: str = ''
     hunt_tracks: str = ''
     msdp_exits: Dict[str, str] = field(default_factory=dict)
@@ -138,3 +170,76 @@ class RoomMessage(AbacuraMessage):
     vnum: str = ""
     room: ScannedRoom = None
     event_type: str = "lok.room"
+
+
+@dataclass
+class RoomHeader:
+    line: str = field(repr=False, default='')
+    name: str = ''
+    exits: List[str] = field(default_factory=list)
+    flags: Set[str] = field(default_factory=set)
+    compass: bool = False
+    terrain_name: str = ''
+    time: str = ''
+    weather: str = ''
+
+
+@dataclass(repr=True)
+class RoomPlayer:
+    line: str = field(repr=False, default='')
+    name: str = ''
+    race: str = ''
+    flags: Set[str] = field(default_factory=set)
+    # evil sanc (same list as mobs)
+    riding: str = ''
+
+
+@dataclass
+class RoomItem:
+    line: str = field(repr=False, default='')
+    description: str = ''
+    short: str = ''
+    quantity: int = 1
+    blue: bool = False
+    flags: Set[str] = field(default_factory=set)
+
+
+@dataclass
+class RoomCorpse:
+    line: str = field(repr=False, default='')
+    description: str = ''
+    quantity: int = 1
+    corpse_type: str = ''
+    # related mob from atlas/area
+
+
+@dataclass
+class RoomMob:
+    line: str = field(repr=False, default='')
+    description: str = ''
+    quantity: int = 1
+    position: str = ''
+    has_quest: bool = False
+    alert: bool = False
+    paralyzed: bool = False
+    fighting: bool = False
+    fighting_you: bool = False
+    following_you: bool = False
+    ranged: bool = False
+    flags: Set[str] = field(default_factory=set)
+
+    # related mob from atlas
+
+
+@dataclass
+class ScannedRoom2(Room):
+    room_header: RoomHeader = field(default_factory=RoomHeader)
+    area: Area = field(default_factory=Area)
+    room_items: List[RoomItem] = field(default_factory=list)
+    room_corpses: List[RoomCorpse] = field(default_factory=list)
+    room_mobs: List[RoomMob] = field(default_factory=list)
+    room_players: List[RoomPlayer] = field(default_factory=list)
+    minimap: ScannedMiniMap = field(default_factory=ScannedMiniMap)
+    blood_trail: str = ''
+    hunt_tracks: str = ''
+    msdp_exits: Dict[str, str] = field(default_factory=dict)
