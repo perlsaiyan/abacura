@@ -3,6 +3,7 @@ from textual import log
 from typing import TYPE_CHECKING
 
 from abacura.mud.options import GA, TelnetOption
+from abacura.mud.options.ttype import TerminalTypeOption
 from abacura.plugins import Plugin
 from abacura.plugins.events import AbacuraMessage
 
@@ -22,6 +23,9 @@ class TelnetPlugin(Plugin):
         # TODO swap to context?
         for handler in handlers:
             self.options[handler.code] = handler
+
+        ttype = TerminalTypeOption(self.session.writer)
+        self.options[ttype.code] = ttype
 
     # TODO move this into a separate thing, it's getting too long
     async def telnet_client(self, host: str, port: int, handlers: list[TelnetOption]) -> None:
@@ -86,20 +90,16 @@ class TelnetPlugin(Plugin):
             # handle IAC sequences
             elif data == b'\xff':
                 data = await reader.read(1)
-                log.debug(f"IAC {data}")
+                
                 # IAC DO
                 if data == b'\xfd':
                     data = await reader.read(1)
 
                     if ord(data) in self.options:
+                        log.debug(f"IAC DO for {self.options[ord(data)].name}")
                         self.options[ord(data)].do()
                     else:
-                        if data == b'\x18':
-                            # TTYPE
-
-                            writer.write(b'\xff\xfb\x18')
-                            #self.output("IAC WILL TTYPE")
-                        elif data == b'\x1f':
+                        if data == b'\x1f':
                             # IAC WON'T NAWS
                             writer.write(b'\xff\xfc\x1f')
                             #self.output("IAC WON'T NAWS")
@@ -110,24 +110,29 @@ class TelnetPlugin(Plugin):
                 # IAC DONT
                 if data == b'\xfe':
                     data = await reader.read(1)
-                    #self.output(f"IAC DONT {data}")
-
+                    if ord(data) in self.options:
+                        log.debug(f"IAC DONT for {self.options[ord(data)].name}")
+                        self.options[ord(data)].dont()
                 # IAC WILL
                 elif data == b'\xfb':
                     data = await reader.read(1)
                     if ord(data) in self.options:
+                        log.debug(f"IAC WILL for {self.options[ord(data)].name}")
                         self.options[ord(data)].will()
                     elif ord(data) == 1:
                         self.dispatch(AbacuraMessage(event_type="core.password_mode", value="on"))
                     else:
-                        pass
-                        #self.output(f"IAC WILL {ord(data)}")
+                        writer.write(b'\xff\xfb' + data)
+                        log.debug(f"IAC WILL for Unknown ({ord(data)})")
 
                 # IAC WONT
                 elif data == b'\xfc':
                     data = await reader.read(1)
                     #self.output(f"IAC WONT {data}")
-                    if ord(data) == 1:
+                    if ord(data) in self.options:
+                        log.debug(f"IAC WILL for {self.options[ord(data)].name}")
+                        self.options[ord(data)].wont()
+                    elif ord(data) == 1:
                         self.dispatch(AbacuraMessage(event_type="core.password_mode", value="off"))
                 # SB
                 elif data == b'\xfa':
@@ -138,15 +143,15 @@ class TelnetPlugin(Plugin):
                         buf = buf + c
                         c = await reader.read(1)
                     if ord(data) in self.options:
+                        log.debug(f"IAC SB for {self.options[ord(data)].name}")
                         self.options[ord(data)].sb(buf)
                     else:
-                        pass
-                        #self.output(f"IAC SB {buf}")
+                        log.debug(f"IAC SB for Unknown ({ord(data)})")
 
                 # TTYPE
-                elif data == b'\x18':
-                    pass
-                    #self.output(f"IAC TTYPE")
+                #elif data == b'\x18':
+                #    writer.write(b'{IAC}')
+                #    #self.output(f"IAC TTYPE")
 
                 # NAWS
                 elif data == b'\x1f':
@@ -163,7 +168,7 @@ class TelnetPlugin(Plugin):
 
                 # IAC UNKNOWN
                 else:
-                    pass
+                    log.debug(f"IAC unknown {data}")
                     #self.output(f"IAC UNKNOWN {ord(data)}")
 
             # Catch everything else in our buffer and hold it
