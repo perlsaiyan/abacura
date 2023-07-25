@@ -36,9 +36,10 @@ class MSDPMessage(AbacuraMessage):
 # TODO all these need to use the regular socket to trap send instead of calling writer directly
 class MSDP(TelnetOption):
     """Handle MSDP TelnetOptions"""
+    code: int = 69
+    name: str = "MSDP"
 
     def __init__(self, handler, writer, session):
-        self.code = 69
         self.hexcode = b'\x45'
         self.handler = handler
         self.writer = writer
@@ -127,12 +128,12 @@ class MSDP(TelnetOption):
         buf = IAC + SB + self.hexcode + VAR + bytes("REPORT", "UTF-8") + VAL
         msdp_vals = [VAL + bytes(f, "UTF-8") for f in self.values["REPORTABLE_VARIABLES"]]
         buf += VAL.join(msdp_vals) + IAC + SE
-        self.writer(buf, raw=True, echo_color='')
+        self.writer(buf, echo_color='')
 
     def will(self):
-        self.writer(b"\xff\xfd\x45", raw=True, echo_color='')
+        self.writer(b"\xff\xfd\x45", echo_color='')
         response = [IAC,SB,self.hexcode,VAR,b"LIST",VAL,b"REPORTABLE_VARIABLES",IAC,SE]
-        self.writer(b''.join(response), raw=True, echo_color='')
+        self.writer(b''.join(response), echo_color='')
 
     def sb(self, sb):
         log.debug("MSDP SB parsing")

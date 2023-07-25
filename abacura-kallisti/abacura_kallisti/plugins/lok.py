@@ -1,15 +1,16 @@
+"""Main Legends of Kallisti Module"""
 import os
 import re
 import time
 from dataclasses import dataclass
 
+from abacura_kallisti.plugins import LOKPlugin
+
 from abacura.mud.options.msdp import MSDPMessage
 from abacura.plugins import action
 from abacura.plugins.events import event, AbacuraMessage
-from abacura_kallisti.plugins import LOKPlugin
 
 xp_kill_re = re.compile("(.*) is dead!")
-
 
 @dataclass
 class LOKKillMessage(AbacuraMessage):
@@ -72,7 +73,7 @@ class LegendsOfKallisti(LOKPlugin):
         # PC_FIELDS = ["level"]
         # if msg.type in PC_FIELDS:
         #     setattr(self.pc, msg.type, msg.value)
-        
+
         # reload config, we've changed people
         if msg.subtype == "CHARACTER_NAME":
             self.debuglog(facility="info", msg=f"Reloading player conf for '{msg.value}'")
@@ -84,6 +85,7 @@ class LegendsOfKallisti(LOKPlugin):
         res = self.session.ring_buffer.query(limit=1, like="%is dead!  R.I.P%")
         k_name = xp_kill_re.match(res[0][2])
         if k_name:
-            msg = LOKKillMessage(victim=k_name.groups(1)[0], experience=experience, rare_bonus=rare_bonus)
+            msg = LOKKillMessage(victim=k_name.groups(1)[0],
+                                 experience=experience, rare_bonus=rare_bonus)
             self.debuglog("info",msg)
             self.dispatch(msg)

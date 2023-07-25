@@ -6,7 +6,7 @@ import re
 import time
 from datetime import datetime
 from importlib import import_module
-from typing import TYPE_CHECKING, Optional, Any, Generator
+from typing import TYPE_CHECKING, Optional, Union, Any, Generator
 
 from rich.segment import Segment, Segments
 from rich.style import Style
@@ -19,11 +19,9 @@ from textual.widgets import TextLog
 from abacura.config import Config
 from abacura.mud import BaseSession, OutputMessage
 from abacura.mud.logger import LOKLogger
-from abacura.mud.options import GA
 from abacura.mud.options.msdp import MSDP
 from abacura.plugins import command, ContextProvider
 from abacura.plugins.director import Director
-from abacura.plugins.events import AbacuraMessage
 from abacura.plugins.loader import PluginLoader
 from abacura.plugins.task_queue import QueueManager
 from abacura.screens import SessionScreen
@@ -33,6 +31,7 @@ from abacura.widgets.footer import AbacuraFooter
 
 if TYPE_CHECKING:
     from abacura.abacura import Abacura
+    from asyncio import StreamWriter
 
 speedwalk_pattern = r'^(\d*[neswud])+$'
 speedwalk_step_pattern = r'\d*[neswud]'
@@ -60,8 +59,9 @@ class Session(BaseSession):
         self.abacura = abacura
         self.config = config
         self.name = name
-        self.host = None
-        self.port = None
+        self.host: Optional[str] = None
+        self.port: Optional[int] = None
+        self.writer: Optional[asyncio.StreamWriter] = None
         self.tl: Optional[TextLog] = None
         self.debugtl: Optional[TextLog] = None
         self.output_history: FIFOBuffer = FIFOBuffer(1000)
@@ -71,7 +71,7 @@ class Session(BaseSession):
 
         self.plugin_loader: PluginLoader = PluginLoader()
         self.last_socket_write: float = time.monotonic()
-        self.outb = b''
+
         self.writer = None
         self.connected = False
         self.command_char = self.config.get_specific_option(self.name, "command_char", "#")
@@ -133,11 +133,15 @@ class Session(BaseSession):
         if isinstance(session_modules, list):
             self.plugin_loader.load_plugins(session_modules, plugin_context=self.additional_plugin_context)
 
-    # TODO: Need a better way of handling this, possibly an autoloader
-    def register_options(self):
-        """Set up telnet options handlers"""
-        # TODO swap to context?
-        self.options[self.core_msdp.code] = self.core_msdp
+        telnet_client = self.plugin_loader.plugins["TelnetPlugin"].plugin.telnet_client
+        if self.host and self.port:
+            log.warning(f"Attempting connection to {self.host} and {self.port} for {self.name}")
+            self.abacura.run_worker(
+                telnet_client(self.host, self.port, handlers=[self.core_msdp]),
+                name=f"socket-{self.name}", group=self.name,
+                description=f"Mud connection for {self.name} ({self.host}:{self.port})")
+        else:
+            log(f"Session: {self.name} created in disconnected state due to no host or port")
 
     def input_splitter(self, line) -> Generator[str, Any, Any]:
         buf: str = ""
@@ -173,7 +177,6 @@ class Session(BaseSession):
             else:
                 cmd = sl.split()[0]
 
-            log(f"Yo do {cmd} from {sl} from {line}")
             if cmd.startswith(self.command_char) and self.director.command_manager.execute_command(sl):
                 continue
 
@@ -197,14 +200,16 @@ class Session(BaseSession):
 
             self.output(f"[bold red]# NO SESSION CONNECTED - pi {sl}", markup=True)
 
-    def send(self, msg: str, raw: bool = False, echo_color: str = "orange1") -> None:
-        """Send to writer (socket), raw will send the message without byte translation"""
+    # TODO raw can come out now that we isinstance
+    def send(self, msg: Union[str,bytes], raw: bool = False, echo_color: str = "orange1") -> None:
+        """Send to writer (socket)"""
         if self.writer is not None:
             try:
-                if raw:
-                    self.writer.write(msg)
-                else:
+                if isinstance(msg,str):
                     self.writer.write(bytes(msg + "\n", "UTF-8"))
+                elif isinstance(msg,bytes):
+                    self.writer.write(msg)
+
                 self.last_socket_write = time.monotonic()
 
                 if echo_color:
@@ -212,7 +217,7 @@ class Session(BaseSession):
 
             except BrokenPipeError:
                 self.connected = False
-                self.output(f"[bold red]# Lost connection to server.", markup=True)
+                self.output("[bold red]# Lost connection to server.", markup=True)
         else:
             self.output(f"[bold red]# NO-SESSION SEND: {msg}", markup=True, highlight=True)
 
@@ -285,155 +290,6 @@ class Session(BaseSession):
             self.tl.markup = False
             self.tl.highlight = False
 
-    # TODO move this into a separate thing, it's getting too long
-    async def telnet_client(self, host: str, port: int) -> None:
-        """async worker to handle input/output on socket"""
-        self.host = host
-        self.port = port
-
-        while self.tl is None:
-            log.warning("TL not available, sleeping 0.1 second before connection")
-            await asyncio.sleep(0.1)
-
-        log.info(f"Session {self.name} connecting to {host} {port}")
-        try:
-            reader, self.writer = await asyncio.open_connection(host, port)
-            self.connected = True
-        except TimeoutError:
-            self.loklog.warn(f"Connection timeout from {host}:{port}")
-            self.output(f"[bold red]# Connection refused {host}:{port}", markup=True)
-        except ConnectionRefusedError:
-            self.loklog.warn(f"Connection refused from {host}:{port}")
-            self.output(f"[bold red]# Connection refused {host}:{port}", markup=True)
-
-        self.register_options()
-        self.poll_timeout = 0.001
-        self.go_ahead = self.config.get_specific_option(self.name, "ga")
-
-        while self.connected is True:
-
-            # We read one character at a time so that we can find IAC sequences
-            # We use wait_for() so we can work with muds that don't use GA
-            try:
-                if self.go_ahead:
-                    data = await reader.read(1)
-                else:
-                    data = await asyncio.wait_for(reader.read(1), self.poll_timeout)
-            except BrokenPipeError:
-                self.output("[bold red]# Lost connection to server.", markup=True)
-                self.connected = False
-                return
-            except ConnectionResetError:
-                self.output("[bold red]# Connection reset by peer.", markup=True)
-                self.connected = False
-                return
-            except asyncio.TimeoutError:
-                if len(self.outb) > 0:
-                    self.output(self.outb.decode("UTF-8", errors="ignore"), ansi=True)
-                    self.outb = b''
-                    self.poll_timeout = 0.001
-                else:
-                    if self.poll_timeout < 0.05:
-                        self.poll_timeout *= 2
-                        log.debug(f"timeout {self.poll_timeout}")
-                continue
-
-            # Empty string means we lost our connection
-            if data == b'':
-                self.output("[bold red]# Lost connection to server.", markup=True)
-                self.connected = False
-
-            # End of a MUD line in buffer, send for processing
-            elif data == b'\n':
-                self.output(self.outb.decode("UTF-8", errors="ignore").replace("\r", " "), ansi=True)
-                self.outb = b''
-
-            # handle IAC sequences
-            elif data == b'\xff':
-                data = await reader.read(1)
-                log.debug(f"IAC {data}")
-                # IAC DO
-                if data == b'\xfd':
-                    data = await reader.read(1)
-
-                    if ord(data) in self.options:
-                        self.options[ord(data)].do()
-                    else:
-                        if data == b'\x18':
-                            # TTYPE
-
-                            self.writer.write(b'\xff\xfb\x18')
-                            #self.output("IAC WILL TTYPE")
-                        elif data == b'\x1f':
-                            # IAC WON'T NAWS
-                            self.writer.write(b'\xff\xfc\x1f')
-                            #self.output("IAC WON'T NAWS")
-                        else:
-                            pass
-                            #self.output(f"IAC DO {ord(data)}")
-
-                # IAC DONT
-                if data == b'\xfe':
-                    data = await reader.read(1)
-                    #self.output(f"IAC DONT {data}")
-
-                # IAC WILL
-                elif data == b'\xfb':
-                    data = await reader.read(1)
-                    if ord(data) in self.options:
-                        self.options[ord(data)].will()
-                    elif ord(data) == 1:
-                        self.dispatch(AbacuraMessage(event_type="core.password_mode", value="on"))
-                    else:
-                        pass
-                        #self.output(f"IAC WILL {ord(data)}")
-
-                # IAC WONT
-                elif data == b'\xfc':
-                    data = await reader.read(1)
-                    #self.output(f"IAC WONT {data}")
-                    if ord(data) == 1:
-                        self.dispatch(AbacuraMessage(event_type="core.password_mode", value="off"))
-                # SB
-                elif data == b'\xfa':
-                    c = await reader.read(1)
-                    data = c
-                    buf = b''
-                    while c != b'\xf0':
-                        buf = buf + c
-                        c = await reader.read(1)
-                    if ord(data) in self.options:
-                        self.options[ord(data)].sb(buf)
-                    else:
-                        pass
-                        #self.output(f"IAC SB {buf}")
-
-                # TTYPE
-                elif data == b'\x18':
-                    pass
-                    #self.output(f"IAC TTYPE")
-
-                # NAWS
-                elif data == b'\x1f':
-                    #self.output(f"IAC NAWS")
-                    pass
-
-                # telnet GA sequence, likely end of prompt
-                elif data == GA:
-                    self.output(self.outb.decode("UTF-8", errors="ignore"), ansi=True)
-                    self.dispatch(AbacuraMessage("core.prompt", self.outb.decode("UTF-8", errors="ignore")))
-                    self.output("")
-
-                    self.outb = b''
-
-                # IAC UNKNOWN
-                else:
-                    pass
-                    #self.output(f"IAC UNKNOWN {ord(data)}")
-
-            # Catch everything else in our buffer and hold it
-            else:
-                self.outb = self.outb + data
 
     @command
     def connect(self, name: str, host: str = '', port: int = 0) -> None:
@@ -444,23 +300,21 @@ class Session(BaseSession):
             try:
                 port = int(self.config.get_specific_option(name, "port"))
             except TypeError:
-                port = None
+                port = 0
 
         log(f"connect: {name} {host}:{port}")
 
         if name in self.abacura.sessions:
             self.output("[bold red]# SESSION ALREADY EXISTS", markup=True)
         elif name not in self.config.config and (not host or not port):
-            self.output(" [bold red]#connect <session name> <host> <port>", markup=True, highlight=True)
+            self.output(" [bold red]#connect <session name> <host> <port>",
+                        markup=True, highlight=True)
         else:
             self.abacura.create_session(name)
-            if host and port:
-                self.abacura.run_worker(self.abacura.sessions[name].telnet_client(host, port),
-                                        name=f"socket-{name}", group=name,
-                                        #exit_on_error=False,
-                                        description=f"Mud connection for {name} ({host}:{port})")
-            else:
-                log(f"Session: {name} created in disconnected state due to no host or port")
+
+        new_ses = self.abacura.sessions[name]
+        new_ses.host = host
+        new_ses.port = port
 
     @command(name="session")
     # Do not name this function "session" or you'll overwrite self.session :)

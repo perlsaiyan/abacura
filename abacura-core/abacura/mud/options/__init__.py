@@ -10,6 +10,9 @@ GA = b'\xf9'
 
 class TelnetOption():
     """Base class for Telnet Option handling"""
+    code: int = 0
+    name: str = "TelnetOption"
+
     def __init__(self, code: int):
         pass
 

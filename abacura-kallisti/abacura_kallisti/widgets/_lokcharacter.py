@@ -2,33 +2,20 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from textual import log
 from textual.app import ComposeResult, RenderResult
 from textual.reactive import reactive
 from textual.widgets import Static
 
 import rich.box as box
-from rich.pretty import Pretty
 from rich.table import Table
 
 from abacura.mud.options.msdp import MSDPMessage
 from abacura.plugins.events import event
-
+from abacura.utils import human_format
 if TYPE_CHECKING:
-    from abacura import Session
     from abacura_kallisti.screens import BetterKallistiScreen
     from textual.screen import Screen
     from typing import Self
-
-def human_format(num):
-    if isinstance(num, str):
-        num = int(num)
-    num = float('{:.3g}'.format(num))
-    magnitude = 0
-    while abs(num) >= 1000:
-        magnitude += 1
-        num /= 1000.0
-    return '{}{}'.format('{:f}'.format(num).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude])
 
 class LOKCharacter(Static):
     """Tintin-helper style character information block"""
@@ -39,6 +26,7 @@ class LOKCharacter(Static):
 
 class LOKCharacterStatic(Static):
     """Subwidget to display current Character details"""
+
     c_name: reactive[str | None] = reactive[str | None](None)
     c_race: reactive[str | None] = reactive[str | None](None)
     c_class: reactive[str | None] = reactive[str | None](None)
@@ -50,12 +38,12 @@ class LOKCharacterStatic(Static):
     c_dex: reactive[int | None] = reactive[int | None](None)
     c_con: reactive[int | None] = reactive[int | None](None)
     c_luk: reactive[int | None] = reactive[int | None](None)
-    c_heros: reactive[int | None] = reactive[int | None](None)
-    c_heros_tnl: reactive[int | None] = reactive[int | None](None)
-    c_xp: reactive[int | None] = reactive[int | None](None)
-    c_xp_tnl: reactive[int | None] = reactive[int | None](None)    
-    c_gold: reactive[int | None] = reactive[int | None](None)
-    c_gold_bank: reactive[int | None] = reactive[int | None](None)
+    c_heros: reactive[int] = reactive[int](0)
+    c_heros_tnl: reactive[int] = reactive[int](0)
+    c_xp: reactive[int] = reactive[int](0)
+    c_xp_tnl: reactive[int] = reactive[int](0)
+    c_gold: reactive[int] = reactive[int](0)
+    c_gold_bank: reactive[int] = reactive[int](0)
 
     def on_mount(self):
         # Register our listener until we have a RegisterableObject to descend from
@@ -84,7 +72,7 @@ class LOKCharacterStatic(Static):
 
         return table
 
-    @event("core.msdp")
+    @event(MSDPMessage.event_type)
     def update_reactives(self, message: MSDPMessage):
         MY_REACTIVES = {
          "CHARACTER_NAME": "c_name",

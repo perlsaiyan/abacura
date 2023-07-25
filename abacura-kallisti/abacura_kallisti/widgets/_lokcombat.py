@@ -71,8 +71,8 @@ class LOKCombat(Static):
     c_opponent_stamina = 0
     c_opponent_stamina_max = 0
 
-    def __init__(self, **kwargs):
-        super().__init__(*kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.combat_title = Static("Combat",classes="WidgetTitle")
         self.combat_top = LOKCombatTop()
         self.combat_stats = LOKCombatStatus()

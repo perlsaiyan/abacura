@@ -56,7 +56,7 @@ class Abacura(App):
     def set_session(self, id: str) -> None:
         self.session = id
         self.push_screen(id)
-        self.query_one("footer").session = id
+        #self.query_one("#footer").session = id
 
     def action_reload_config(self) -> None:
         tl = self.sessions[self.session].tl
