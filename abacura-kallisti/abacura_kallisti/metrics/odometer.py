@@ -10,13 +10,9 @@ class Odometer:
         self.metric_history: List[MudMetrics] = []
         self.msdp = msdp
 
-        # DONE TODO: start_time should be none initially
-        # DONE TODO: add metrics to history upon starting them
-
     def start(self, mission: str):
         self.stop()
 
-        # DONE TODO: Set Start time here, don't default it
         self.metrics = MudMetrics(mission=mission, character_name=self.msdp.character_name,
                                   start_time=datetime.now(),
                                   start_xp=self.msdp.experience, start_gold=self.msdp.gold,
@@ -25,15 +21,16 @@ class Odometer:
         self.metric_history.append(self.metrics)
 
     def stop(self):
-        # DONE TODO: If there is no start time then there is nothing to stop
         if self.metrics.start_time is None:
             return
 
         if self.metrics.stop_time is None:
+            self.metrics.end_exp = self.msdp.experience
+            self.metrics.end_gold = self.msdp.gold
+            self.metrics.end_bank = self.msdp.bank_gold
             self.metrics.stop_time = datetime.now()
 
     def reset_history(self):
-        # DONE TODO: create brand new metrics when resetting, don't put them into history
         self.metrics = MudMetrics()
         self.metric_history = []
 
