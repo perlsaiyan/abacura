@@ -85,6 +85,8 @@ class AutoBuff(LOKPlugin):
             if method:
                 if method.startswith("-"):
                     self.cq.remove(cmd=method[1:])
+                    return
+
                 self.cq.add(cmd=method, dur=1.0, q="NCO")
             #else:
             #    self.output(f"[bold red]# No method of acquisition for {buf}!", markup=True)

@@ -66,7 +66,7 @@ SKILL_LIST: List[Skill] = [
     Skill("smount", "Call Mount", "", train={"Druid": 26}),
     Skill("impale", train={"Ranger": 33, "Valkyrie": 36, "Samurai": 37}),
     Skill("prayer", "Prayer", "", train={"Paladin": 40}),
-    Skill("bushido", "Spirit of bushido", renewal="renew", train={"Samurai": 55}),
+    Skill("Spirit of bushido", "bushido", affect_name="spirit of bushido", train={"Samurai": 55}),
     Skill("charge", train={"Valkyrie": 42, "Fighter": 42, "Dreadlord": 42, "Ranger": 42, "Paladin": 42,
                            "Barbarian": 42, "Samurai": 50}),
     Skill("werewolf", affect_name="shapechange"),
