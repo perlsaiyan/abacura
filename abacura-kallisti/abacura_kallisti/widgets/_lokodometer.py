@@ -14,12 +14,15 @@ from abacura.plugins.events import event
 from abacura.utils import human_format
 from abacura_kallisti.metrics.odometer import OdometerMessage
 
-class LOKOdometerDetail(Static):
+class LOKOdometerDetail(ScrollableContainer):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, odometer: MudMetrics, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._moving: bool = False
+        self.odometer = odometer
 
+    def compose(self) -> ComposeResult:
+        yield Static(Pretty(self.odometer))
     def on_mouse_down(self, event: MouseDown):
         if self.disabled or self._moving:
             return
@@ -57,8 +60,7 @@ class LOKOdometer(Static):
 
     def compose(self) -> ComposeResult:
         yield Static("Odometers",classes="WidgetTitle", id="tq_title")
-        with ScrollableContainer():
-            yield self.queue_display
+        yield self.queue_display
 
     def on_mount(self):
         self.screen.session.add_listener(self.update_odometers)
@@ -90,5 +92,5 @@ class LOKOdometer(Static):
         
         row = event.y-1
         if row >= 0 and row < len(self.odometers):
-            detail = LOKOdometerDetail(Pretty(self.odometers[row]), classes="popover odometer-detail")
+            detail = LOKOdometerDetail(odometer = self.odometers[row], classes="popover odometer-detail")
             self.screen.mount(detail)
