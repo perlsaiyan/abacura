@@ -36,7 +36,7 @@ class OdometerController(LOKPlugin):
 
         if _mission:
             self.metrics.mission = _mission
-            self.output(f"[orange1]Odometer Mission set to '{_mission}", markup=True)
+            self.output(f"[orange1]Odometer Mission set to '{_mission}'", markup=True)
             return
 
         rows = []
