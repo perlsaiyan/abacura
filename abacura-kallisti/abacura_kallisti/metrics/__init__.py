@@ -78,6 +78,13 @@ class MudMetrics:
         return xp_gained / (secs / 3600)
 
     @property
+    def kills_per_hour(self) -> float:
+        secs = self.elapsed
+        if secs == 0:
+            return 0
+        return self.kills / (secs / 3600)
+
+    @property
     def gold_per_hour(self) -> float:
         secs = self.elapsed
         if secs == 0:
