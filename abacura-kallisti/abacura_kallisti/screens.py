@@ -39,7 +39,8 @@ class KallistiScreen(SessionScreen):
 
         super().__init__(name, session)
         self._map_overlay = False
-
+        self.can_focus_children = False
+        
     def compose(self) -> ComposeResult:
         """Create child widgets for the session"""
         commslog = CommsLog(id="commslog")

@@ -3,11 +3,23 @@ App {
 }
 
 Screen {
-    
+    layers: below above;
 }
 
 #LOKMap {
     align: center middle;
+}
+
+.odometer-detail {
+    width: 50%;
+    max-height: 80%;
+    border: white tall;
+    overflow-y: auto;
+}
+
+.popover {
+    layer: above;
+    background: rgb(27, 75, 75);
 }
 
 #map_progress {
@@ -58,11 +70,11 @@ QuitScreen#LOKMap {
 }
 .BKS #leftsidebar {
     dock: left;
-    width: 30;
+    width: 45;
 }
 .BKS #rightsidebar {
     dock: right;
-    width: 45;
+    width: 62;
     height: 100%;
 }
 
