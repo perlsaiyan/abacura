@@ -337,7 +337,6 @@ class RoomWatcherNew(LOKPlugin):
         return re.sub(r'[-\s]+', '-', value).strip('-_')
 
     def load_area(self, area_name: str) -> Area:
-        # TODO: Handle case where area is in the list of included areas
         data_dir = self.config.data_directory(self.session.name)
         filename = os.path.join(data_dir, "areas", self.slugify(area_name) + ".toml")        
         new_area = Area.load_from_toml(filename)
@@ -412,8 +411,8 @@ class RoomWatcherNew(LOKPlugin):
                     self.session.output(Text(f"\nROOM WATCHER2: Mismatch between MSDP & Room exits\n", style="purple"))
 
             # Load the new area if it has changed
-            sr2.area = self.room.area
-            if sr2.area.name != self.msdp.area_name:
+            sr2.area = self.room2.area
+            if self.msdp.area_name not in [sr2.area.name] + sr2.area.include_areas:
                 sr2.area = self.load_area(self.msdp.area_name)
 
             # TODO: Change lokplugin.room to a property so we can replace the object
