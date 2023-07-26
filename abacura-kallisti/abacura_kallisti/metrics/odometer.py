@@ -37,7 +37,7 @@ class Odometer:
 
     def clear_history(self):
         self.metrics = MudMetrics()
-        self.metric_history = self.metric_history[:]
+        self.metric_history.clear()
         self.start(mission=self.msdp.area_name)
 
     @staticmethod
