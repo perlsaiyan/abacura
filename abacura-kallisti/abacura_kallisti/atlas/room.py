@@ -113,12 +113,10 @@ class ScannedMiniMap:
     def __init__(self, messages: Iterable[OutputMessage] = None):
         self.you: Optional[tuple] = None
         self.grid: Dict[tuple, str] = {}
-        self.messages: List[OutputMessage] = []
+        self.messages: List[OutputMessage] = messages
 
         if messages is None:
             return
-
-        self.messages = list(reversed(messages))
 
         for y, msg in enumerate(self.messages):
             if msg.stripped.strip() == '':
