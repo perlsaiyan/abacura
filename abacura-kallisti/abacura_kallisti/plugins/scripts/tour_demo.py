@@ -65,7 +65,7 @@ class TourDemo(LOKPlugin):
         self.output(tbl)
 
     @event("lok.room")
-    def got_room2(self, _message: RoomMessage):
+    def got_room(self, _message: RoomMessage):
         if not self.tour_guide:
             return
 

@@ -1,16 +1,13 @@
 from dataclasses import dataclass, field, fields
 from datetime import datetime
-from typing import List, Dict, Optional, Iterable, Set
 from functools import lru_cache
+from typing import List, Dict, Optional, Set
 
-from . import encounter
-from . import item
-from .terrain import TERRAIN, Terrain
-
+from abacura.mud import OutputMessage
 from abacura.plugins.events import AbacuraMessage
 from abacura_kallisti.atlas.wilderness import WildernessGrid
 from abacura_kallisti.mud.area import Area
-from abacura.mud import OutputMessage
+from .terrain import TERRAIN, Terrain
 
 
 @dataclass(slots=True)
@@ -110,7 +107,7 @@ class Room:
 
 
 class ScannedMiniMap:
-    def __init__(self, messages: Iterable[OutputMessage] = None):
+    def __init__(self, messages: List[OutputMessage] = None):
         self.you: Optional[tuple] = None
         self.grid: Dict[tuple, str] = {}
         self.messages: List[OutputMessage] = messages
@@ -131,39 +128,6 @@ class ScannedMiniMap:
 
     def __repr__(self):
         return f"ScannedMiniMap({[m.stripped for m in self.messages]})"
-
-
-@dataclass
-class ScannedRoom(Room):
-    area: Area = field(default_factory=Area)
-    room_header: str = ''
-    room_items: List[item.Item] = field(default_factory=list)
-    room_corpses: List[str] = field(default_factory=list)
-    room_encounters: List[encounter.Encounter] = field(default_factory=list)
-    room_charmies: List[str] = field(default_factory=list)
-    room_players: List[str] = field(default_factory=list)
-    room_lines: List[str] = field(default_factory=list)
-    minimap: ScannedMiniMap = field(default_factory=ScannedMiniMap)
-    blood_trail: str = ''
-    hunt_tracks: str = ''
-    msdp_exits: Dict[str, str] = field(default_factory=dict)
-    room_flags: Dict[str, bool] = field(default_factory=dict)
-    # minimap: List[str] = field(default_factory=list)
-
-    # def get_hash(self):
-    #     header = self.room_header
-    #     for c in "[]()|":
-    #         header = header.replace(c, "")
-    #     # TODO: strip out hidden exits that appear sometimes instead of just stripping the () characters
-    #     return hash(self.room_vnum + "\n" + self.room_header + "\n".join(self.minimap))
-
-
-@dataclass
-class RoomMessage(AbacuraMessage):
-    """Message when a room is viewed"""
-    vnum: str = ""
-    room: ScannedRoom = None
-    event_type: str = "lok.room"
 
 
 @dataclass
@@ -226,7 +190,7 @@ class RoomMob:
 
 
 @dataclass
-class ScannedRoom2(Room):
+class ScannedRoom(Room):
     room_header: RoomHeader = field(default_factory=RoomHeader)
     area: Area = field(default_factory=Area)
     room_items: List[RoomItem] = field(default_factory=list)
@@ -234,6 +198,15 @@ class ScannedRoom2(Room):
     room_mobs: List[RoomMob] = field(default_factory=list)
     room_players: List[RoomPlayer] = field(default_factory=list)
     minimap: ScannedMiniMap = field(default_factory=ScannedMiniMap)
+    warded: bool = False
     blood_trail: str = ''
     hunt_tracks: str = ''
     msdp_exits: Dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
+class RoomMessage(AbacuraMessage):
+    """Message when a room is viewed"""
+    vnum: str = ""
+    room: ScannedRoom = None
+    event_type: str = "lok.room"

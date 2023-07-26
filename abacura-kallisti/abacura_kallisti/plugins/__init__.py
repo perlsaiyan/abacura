@@ -10,7 +10,7 @@ from textual.widget import Widget
 
 from abacura.plugins import Plugin, CommandError
 from abacura_kallisti.atlas.world import World
-from abacura_kallisti.atlas.room import ScannedRoom, ScannedRoom2
+from abacura_kallisti.atlas.room import ScannedRoom
 from abacura_kallisti.metrics.odometer import Odometer
 from abacura_kallisti.metrics import MudMetrics
 from abacura_kallisti.mud.msdp import TypedMSDP
@@ -42,7 +42,6 @@ class LOKPlugin(Plugin):
         self.pc: PlayerCharacter = self._context['pc']
         self.locations: LocationList = self._context['locations']
         self.room: ScannedRoom = self._context['room']
-        self.room2: ScannedRoom2 = self._context['room2']
         self.odometer: Odometer = self._context['odometer']
 
     @property

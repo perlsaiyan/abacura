@@ -86,7 +86,7 @@ class World:
             self.load_wilderness()
 
         # can't do much with a '?' vnum for now
-        if vnum == '?':
+        if vnum == '?' or vnum == '':
             return
 
         if vnum in self.rooms:
@@ -123,24 +123,21 @@ class World:
 
             new_exits[d] = e
 
-        regen_hp = scan_room and scan_room.room_header.find("RegenHp") >= 0
-        regen_mp = scan_room and scan_room.room_header.find("RegenMp") >= 0
-        regen_sp = scan_room and scan_room.room_header.find("RegenSp") >= 0
-        wild_magic = scan_room and scan_room.room_header.find('Wild Magic') >= 0
-        no_magic = scan_room and scan_room.room_header.find('NoMagic') >= 0
-        set_recall = scan_room and scan_room.room_header.find('SetRecall') >= 0
-        no_recall = scan_room and scan_room.room_header.find('Warded') >= 0
-        bank = scan_room and scan_room.room_header.find('Bank') >= 0
         terrain = strip_ansi_codes(terrain)
 
         # TODO: Should we really be creating a new room, or just updating the existing one with new values
         new_room = Room(area_name=area_name, vnum=vnum, name=name, terrain_name=terrain,
-                        _exits=new_exits, bank=bank,
-                        regen_hp=regen_hp, regen_mp=regen_mp, regen_sp=regen_sp, wild_magic=wild_magic,
-                        silent=existing_room.silent, no_magic=existing_room.no_magic or no_magic,
-                        no_recall=existing_room.no_recall or no_recall, set_recall=set_recall,
-                        deathtrap=existing_room.deathtrap, peaceful=existing_room.peaceful,
-                        last_visited=str(datetime.utcnow()), last_harvested=existing_room.last_harvested)
+                        _exits=new_exits,
+                        bank=scan_room.bank, set_recall=scan_room.set_recall, wild_magic=scan_room.wild_magic,
+                        regen_hp=scan_room.regen_hp, regen_mp=scan_room.regen_mp, regen_sp=scan_room.regen_sp,
+                        no_magic=existing_room.no_magic or scan_room.no_magic,
+                        # Note we track no_recall which is sometimes from being warded but not always
+                        no_recall=existing_room.no_recall or scan_room.warded,
+                        deathtrap=existing_room.deathtrap,
+                        peaceful=existing_room.peaceful,
+                        silent=existing_room.silent,
+                        last_visited=str(datetime.utcnow()),
+                        last_harvested=existing_room.last_harvested)
 
         self.rooms[vnum] = new_room
         self.save_room(vnum)
