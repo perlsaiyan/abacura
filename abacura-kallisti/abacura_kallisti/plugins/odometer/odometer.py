@@ -18,38 +18,46 @@ class OdometerController(LOKPlugin):
         self.last_skill = ""
 
     @command(name="odometer")
-    def odometer_command(self, reset: bool = False, _start: str = "", _stop: bool = False) -> None:
+    def odometer_command(self, clear: bool = False, _start: bool = False, _mission: str = "") -> None:
         """Display Odometer History"""
 
-        if reset:
-            self.odometer.reset_history()
+        if clear:
+            self.odometer.clear_history()
             self.output("[orange1]Odometer Reset!", markup=True)
             return
 
-        if _start != "":
-            self.odometer.start(mission=_start)
-            self.output(f"[orange1]Odometer Started! ({_start})", markup=True)
+        if _start:
+            if _mission == '':
+                _mission = self.msdp.area_name
+
+            self.odometer.start(mission=_mission)
+            self.output(f"[orange1]Odometer started! ({_mission})", markup=True)
             return
 
-        if _stop:
-
-            self.odometer.stop()
-            self.output("[orange1]Odometer Stopped!", markup=True)
+        if _mission:
+            self.metrics.mission = _mission
+            self.output(f"[orange1]Odometer Mission set to '{_mission}", markup=True)
             return
 
         rows = []
-        for i, m in enumerate(self.odometer.metric_history):
-            rows.append((i, m.mission,
+        for i, m in enumerate(reversed(self.odometer.metric_history)):
+            rows.append((len(self.odometer.metric_history) - i,
+                         m.mission,
+                         m.start_time.strftime("%H:%M:%S"),
                          datetime.utcfromtimestamp(m.elapsed).strftime('%H:%M:%S'),
                          m.kills_per_hour,
                          human_format(m.xp_per_hour), human_format(m.gold_per_hour)
                          ))
 
-        headers = ["#", "Mission", "Elapsed", "Kills/h", "XP/h", "$/h"]
+        headers = ["#", "Mission", "Start", "Elapsed", "Kills/h", "XP/h", "$/h"]
         self.output(tabulate(rows, headers=headers))
 
     @ticker(seconds=1, name="Odometer")
     def odometer_ticker(self):
+        if len(self.odometer.metric_history) == 0 and self.msdp.character_name != '':
+            self.debuglog("Starting initial odometer")
+            self.odometer.start(mission=self.msdp.area_name)
+
         om = OdometerMessage()
         om.odometer = self.odometer.metric_history
         self.dispatch(om)
@@ -89,11 +97,10 @@ class OdometerController(LOKPlugin):
     @action(r"^You (mine|gather|chop down|catch|skin|butcher|extract) some (.*) " +
             "(herbs|cotton|silk|ore|wood|fish|meat|hide|bone)")
     def harvested(self, skill: str, quality: str, _material: str):
-        if self.metrics.stop_time is None:
-            self.metrics.craft_attempted += 1
-            self.metrics.craft_successful += 1
-            self.metrics.craft_qualities[quality] += 1
-            self.last_skill = skill
+        self.metrics.craft_attempted += 1
+        self.metrics.craft_successful += 1
+        self.metrics.craft_qualities[quality] += 1
+        self.last_skill = skill
 
     @action(r"^You earn (.*) experience points")
     def exp(self, xp: int):
@@ -101,25 +108,20 @@ class OdometerController(LOKPlugin):
 
     @action(r"^You can't seem to find anything nearby.")
     def nothing_nearby(self):
-        if self.metrics.stop_time is None:
-            self.metrics.craft_attempted += 1
+        self.metrics.craft_attempted += 1
 
     @action(r"^You deposit (.*) coins.")
     def deposit_coins(self, coins: int):
-        if self.metrics.stop_time is None:
-            self.metrics.counters['deposit'] += coins
+        self.metrics.counters['deposit'] += coins
 
     @event("core.msdp.EXPERIENCE")
-    def msdp_xp(self, m: AbacuraMessage):
-        if self.metrics.stop_time is None:
-            self.metrics.end_xp = self.msdp.experience
+    def msdp_xp(self, _: AbacuraMessage):
+        self.metrics.end_xp = self.msdp.experience
 
     @event("core.msdp.GOLD")
     def msdp_gold(self, _: AbacuraMessage):
-        if self.metrics.stop_time is None:
-            self.metrics.end_gold = self.msdp.gold
+        self.metrics.end_gold = self.msdp.gold
 
     @event("core.msdp.BANK_GOLD")
     def msdp_bank(self, _: AbacuraMessage):
-        if self.metrics.stop_time is None:
-            self.metrics.end_bank = self.msdp.bank_gold
+        self.metrics.end_bank = self.msdp.bank_gold
