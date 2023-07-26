@@ -89,4 +89,5 @@ class Area:
                 if hasattr(mob, attribute):
                     setattr(mob, attribute, value)
             new_area.mobs.append(mob)
-        pass
+
+        return new_area
