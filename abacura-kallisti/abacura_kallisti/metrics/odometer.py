@@ -15,8 +15,9 @@ class Odometer:
 
         self.metrics = MudMetrics(mission=mission, character_name=self.msdp.character_name,
                                   start_time=datetime.now(),
-                                  start_xp=self.msdp.experience, start_gold=self.msdp.gold,
-                                  start_bank=self.msdp.bank_gold)
+                                  start_xp=self.msdp.experience, end_xp=self.msdp.experience,
+                                  start_gold=self.msdp.gold, end_gold = self.msdp.gold,
+                                  start_bank=self.msdp.bank_gold, end_bank = self.msdp.bank_gold)
 
         self.metric_history.append(self.metrics)
 

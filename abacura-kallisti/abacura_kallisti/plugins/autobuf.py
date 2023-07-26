@@ -5,81 +5,162 @@ from typing import Dict, Optional
 from rich.panel import Panel
 from rich.table import Table
 
+from abacura.plugins import command, action
+from abacura.plugins.events import event, AbacuraMessage
+from abacura_kallisti.mud.player import PlayerSkill
+from abacura_kallisti.mud.skills import SKILLS, Skill, SKILL_COMMANDS
 from abacura_kallisti.plugins import LOKPlugin
-from abacura_kallisti.mud.skills import SKILLS
-
-from abacura.plugins import command
 
 
-class AutoBuf(LOKPlugin):
+class AutoBuff(LOKPlugin):
     """Handle application of bufs"""
     _RUNNER_INTERVAL: float = 2.0
-    _RENEWABLE_BUFS = ["true seeing", "sanctuary"]
-    _EXPIRING_BUFS = ["focus dex", "bushido"]
+    # _RENEWABLE_BUFS = ["true seeing", "sanctuary"]
+    # _EXPIRING_BUFS = ["focus dex", "bushido"]
 
     def __init__(self):
         super().__init__()
+        self.getting_skills: bool = False
+        self.player_skills: dict[str, PlayerSkill] = {}
         self.last_attempt: Dict[str, float] = {}
-        # Gods don't need bufs :)
+        # Gods don't need buffs :)
         if self.msdp.level < 200:
             self.add_ticker(self._RUNNER_INTERVAL,
-                            callback_fn=self.bufcheck, repeats=-1, name="Autobuf")
+                            callback_fn=self.buff_check, repeats=-1, name="autobuff")
 
-    def bufcheck(self):
+    def get_player_buffs(self) -> set[Skill]:
+        buffs: set[Skill] = set()
+
+        for buff in self.pc.buffs:
+            skill = SKILL_COMMANDS.get(buff.lower(), None)
+
+            if skill is None:
+                self.debuglog(f"Unknown autobuff '{buff}'")
+                continue
+
+            buffs.add(skill)
+
+        for pc_skill in self.pc.skills.values():
+            if pc_skill.rank == 0:
+                continue
+
+            if pc_skill.skill.lower() not in SKILLS:
+                continue
+
+            skill: Skill = SKILLS[pc_skill.skill.lower()]
+            if skill.renewal == "":
+                continue
+
+            if skill.command in buffs:
+                continue
+
+            buffs.add(skill)
+
+        return buffs
+
+    def buff_check(self):
         """Ticker to loop through all the buffs we know of, and renew or add ones we need"""
         if self.msdp.character_name == "" or self.msdp.level > 199:
             return
 
-        for buf in self._RENEWABLE_BUFS:
-            if self.msdp.get_affect_hours(buf) < 2:
-                self.acquire_buf(buf)
-        for buf in self._EXPIRING_BUFS:
-            if self.msdp.get_affect_hours(buf) < 1:
-                self.acquire_buf(buf)             
+        for buff in self.get_player_buffs():
+            hours = 2 if buff.renewal == 'renew' else 1
+            if self.msdp.get_affect_hours(buff.affect_name or buff.skill_name) < hours:
+                self.acquire_buff(buff)
 
-    def acquire_buf(self, buf):
+        # for buf in self._RENEWABLE_BUFS:
+        #     if self.msdp.get_affect_hours(buf) < 2:
+        #         self.acquire_buf(buf)
+        # for buf in self._EXPIRING_BUFS:
+        #     if self.msdp.get_affect_hours(buf) < 1:
+        #         self.acquire_buf(buf)
+
+    def acquire_buff(self, buff: Skill):
         """Figure out how to get buf and if possible, acquire it"""
         # Only try once every 10 seconds
-        if monotonic() - self.last_attempt.get(buf, 0) > 10:
-            self.last_attempt[buf] = monotonic()
-            method = self.acquisition_method(buf)
+        if monotonic() - self.last_attempt.get(buff.command, 0) > 10:
+            self.last_attempt[buff.command] = monotonic()
+            method = self.acquisition_method(buff)
 
+            if method.startswith("-"):
+                self.cq.remove_command(cmd=method[1:])
             if method:
                 self.cq.add(cmd=method, dur=1.0, q="NCO")
             #else:
             #    self.output(f"[bold red]# No method of acquisition for {buf}!", markup=True)
 
-    def acquisition_method(self, spell: str) -> Optional[str]:
+    def acquisition_method(self, buff: Skill) -> Optional[str]:
         """Returns likely acquisition method"""
-        if self.room.vnum in ["13200"] or self.room.no_magic:
-            return
+        if self.room.vnum in ["13200"] or self.room.no_magic or self.room.silent:
+            return None
 
-        meth = SKILLS.get(spell.split(" ")[0], None)
-        if meth:
-            if meth.command == "focus":
-                return spell
-            return meth.command
-        return None
+        if buff.offensive and len(self.room2.room_mobs) > 0:
+            # Nuke this command if there are mobs present as it may trigger combat
+            self.debuglog(f"Skipping offensive buff '{buff.command}' when mobs present")
+            return f"-{buff.command}"
 
-    @command(name="autobuf")
+        if buff.command == "focus":
+            return buff.command + " dex"
+
+        return buff.command
+
+    @command(name="autobuff")
     def list_autobufs(self):
         """Show known buffs, will add current or expected buffs or something"""
         tbl = Table(title="Known Buff Affects")
         tbl.add_column("Buff")
         tbl.add_column("Hours Left")
         tbl.add_column("AcquisitionMethod")
+        tbl.add_column("Affect")
 
-        for buf in [*self._EXPIRING_BUFS, *self._RENEWABLE_BUFS]:
-            remaining = self.msdp.get_affect_hours(buf)
+        for buff in self.get_player_buffs():
+            remaining = self.msdp.get_affect_hours(buff.affect_name or buff.skill_name)
             if remaining > 5:
-                tbl.add_row(buf, str(remaining),
-                            self.acquisition_method(buf) or "None", style="green")
+                color = "green"
             elif remaining > 0:
-                tbl.add_row(buf,
-                            str(remaining), self.acquisition_method(buf) or "None", style="yellow")
-            elif self.acquisition_method(buf):
-                tbl.add_row(buf,
-                            "-", self.acquisition_method(buf) or "None", style="orange1")
+                color = "yellow"
+            elif self.acquisition_method(buff):
+                color = "orange1"
+                remaining = "-"
             else:
-                tbl.add_row(buf, "-", self.acquisition_method(buf) or "None", style="red")
+                color = "red"
+                remaining = "-"
+
+            acq = self.acquisition_method(buff) or "None"
+            tbl.add_row(buff.skill_name, str(remaining), acq, buff.affect_name, style=color)
+
         self.output(Panel(tbl), actionable=False)
+
+    @action(r"Skill/Spell +Cast Level +Mp.Sp +Skilled +Rank +Bonus +Damage")
+    def skill_start(self):
+        if not self.getting_skills:
+            self.getting_skills = True
+            self.player_skills = {}
+
+    @action(r"^([a-z]+ *[a-z]*) +(\d+)* +(?:\[([^]]+)\])* +(\d+)% +(\d+)/(\d+) +\( \+*(\d+)* +\) *(\{locked\})*")
+    def got_skill(self, skill: str, clevel: int, mp_sp: int, skilled: int, rank: int, trained_rank: int,
+                  bonus: int, locked: str):
+        if self.getting_skills:
+            locked = locked is not None
+
+            p_skill = PlayerSkill(skill.strip(), clevel, mp_sp, skilled, rank, trained_rank, bonus, locked)
+            self.player_skills[p_skill.skill] = p_skill
+
+    @action("Spell Fail Modifier: .*Skill Fail Modifier: .*")
+    def end_skills(self):
+        self.getting_skills = False
+        self.pc.skills = self.player_skills
+
+    @event("core.prompt", priority=10)
+    def got_prompt(self, _: AbacuraMessage):
+        self.getting_skills = False
+
+    def affects(self):
+        from rich.text import Text
+        from rich.columns import Columns
+
+        affects = []
+        for affect in self.msdp.affects:
+            affects.append(Text.assemble((f"{affect.name:15.15s}", "purple"), (f"{affect.hours:2d}", "cyan")))
+
+        self.output(Columns(affects, width=20))
