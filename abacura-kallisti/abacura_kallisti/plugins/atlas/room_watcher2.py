@@ -27,6 +27,9 @@ class RoomMessageParser:
     re_item = re.compile("^\\x1b\\[0;37m.*")
     re_mob = re.compile("^(?:\\x1b\\[1;37m|\\x1b\\[0;37m\\x1b\\[1;3[0-9]m)+.*")
     re_quest = re.compile("\\x1b\\[0;37m\\.\\.\\..*may have a \\x1b\\[22;36mquest\\x1b\\[0m for you")
+    re_followers = re.compile(
+        r"(\w+) (?:(?:sneaks|flies|swims|crawls|stumbles|rides|arrives) (?:in)?)+(?: on(.*))? from")
+
     re_player = re.compile("^(?:\\x1b\\[[01](?:;[0-9]+)*m)+\\x1b\\[1;33m([A-Z]\\w+)\\x1b\\[0m")
     re_race_ride_fight = re.compile(r"^[A-Za-z]+ the (.*) is .*here(?:, riding (.*)(?:\.|and))*")
 
@@ -78,6 +81,13 @@ class RoomMessageParser:
 
         return False
 
+    def _parse_follower_arriving(self, msg):
+        if m := self.re_followers.match(msg.stripped):
+            player_name, mount_name = m.groups()
+            p = RoomPlayer(line=msg.message, name=player_name, riding=mount_name)
+            self.players.append(p)
+            return p
+
     def _parse_player(self, msg):
 
         m = self.re_player.match(msg.message)
@@ -107,7 +117,13 @@ class RoomMessageParser:
         if self.re_mob.match(msg.message):
             qty = self._get_quantity(msg.stripped, self.re_mob_qty)
 
-            flags = {f for f in re.findall("\\[ ([^\\]]+) \\]", msg.stripped) if f in self.MOB_FLAGS}
+            flags = set()
+
+            m = re.match(".*\\[ ([^\\]]+) \\]", msg.stripped)
+            if m:
+                flag_text = m.groups()[0]
+                flags = {f for f in self.MOB_FLAGS if f in flag_text}
+
             flags.update({k for k in self.KEYWORDS if msg.stripped.find(k) >= 0})
 
             fighting = "fighting" in flags or "fighting YOU" in flags
@@ -123,7 +139,16 @@ class RoomMessageParser:
             self.mobs.append(mob)
             return mob
 
-    def _parse_item(self, msg):
+    def _parse_player_mob(self, msg: OutputMessage):
+        if p := self._parse_follower_arriving(msg):
+            return p
+
+        if p := self._parse_player(msg):
+            return p
+
+        return self._parse_mob(msg)
+
+    def _parse_item(self, msg: OutputMessage):
         # TODO: Test as Imm
 
         if self.re_item.match(msg.message):
@@ -217,7 +242,7 @@ class RoomMessageParser:
     def _parse_messages(self):
         header_lines = self._parse_room_header()
 
-        parsers = [self._parse_junk, self._parse_tracks, self._parse_player, self._parse_mob,
+        parsers = [self._parse_junk, self._parse_tracks, self._parse_player_mob,
                    self._parse_item, self._parse_blood, self._parse_any]
 
         # process messages from bottom up

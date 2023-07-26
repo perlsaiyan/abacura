@@ -83,7 +83,7 @@ class AutoBuff(LOKPlugin):
             method = self.acquisition_method(buff)
 
             if method.startswith("-"):
-                self.cq.remove_command(cmd=method[1:])
+                self.cq.remove(cmd=method[1:])
             if method:
                 self.cq.add(cmd=method, dur=1.0, q="NCO")
             #else:
