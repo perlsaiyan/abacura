@@ -337,6 +337,9 @@ class RoomWatcherNew(LOKPlugin):
         return re.sub(r'[-\s]+', '-', value).strip('-_')
 
     def load_area(self, area_name: str) -> Area:
+        if area_name.lower() == 'Unknown':
+            return Area()
+
         data_dir = self.config.data_directory(self.session.name)
         filename = os.path.join(data_dir, "areas", self.slugify(area_name) + ".toml")        
         new_area = Area.load_from_toml(filename)
@@ -365,8 +368,13 @@ class RoomWatcherNew(LOKPlugin):
         if len(past_50_lines) > 0 and past_50_lines[0].stripped.strip(" ") == '':
             past_50_lines = past_50_lines[1:]
 
-        past_50_lines.reverse()
-        return past_50_lines
+        def looks_like_minimap(m):
+            return m.stripped.strip() != "" and m.stripped.startswith(" ")
+
+        minimap_lines = list(takewhile(looks_like_minimap, past_50_lines))
+        minimap_lines.reverse()
+
+        return minimap_lines
 
     @event("core.prompt", priority=10)
     def got_prompt(self, _: AbacuraMessage):

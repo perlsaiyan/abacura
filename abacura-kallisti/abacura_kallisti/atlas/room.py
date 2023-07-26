@@ -113,22 +113,16 @@ class ScannedMiniMap:
     def __init__(self, messages: Iterable[OutputMessage] = None):
         self.you: Optional[tuple] = None
         self.grid: Dict[tuple, str] = {}
-        self.messages: List[OutputMessage] = []
+        self.messages: List[OutputMessage] = messages
 
         if messages is None:
             return
 
-        self.messages = list(reversed(messages))
-
         for y, msg in enumerate(self.messages):
-            if msg.stripped.strip() == '':
-                break
-
             for x, symbol in enumerate(msg.stripped):
                 if symbol == '@':
                     self.you = (x, y)
-
-                if symbol != ' ':
+                elif symbol != ' ':
                     self.grid[(x, y)] = symbol
 
         # recalculate points relative to the @ symbol
@@ -136,7 +130,7 @@ class ScannedMiniMap:
             self.grid = {(k[0] - self.you[0], k[1] - self.you[1]): v for k, v in self.grid.items()}
 
     def __repr__(self):
-        return f"ScannedMiniMap({self.messages})"
+        return f"ScannedMiniMap({[m.stripped for m in self.messages]})"
 
 
 @dataclass
