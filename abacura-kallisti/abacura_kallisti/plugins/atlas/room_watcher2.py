@@ -368,9 +368,13 @@ class RoomWatcherNew(LOKPlugin):
         if len(past_50_lines) > 0 and past_50_lines[0].stripped.strip(" ") == '':
             past_50_lines = past_50_lines[1:]
 
-        minimap_lines = list(takewhile(lambda m: m.stripped.strip() != "", past_50_lines))
+        def looks_like_minimap(m):
+            return m.stripped.strip() != "" and m.stripped.startswith(" ")
 
-        return reversed(minimap_lines)
+        minimap_lines = list(takewhile(looks_like_minimap, past_50_lines))
+        minimap_lines.reverse()
+
+        return minimap_lines
 
     @event("core.prompt", priority=10)
     def got_prompt(self, _: AbacuraMessage):
