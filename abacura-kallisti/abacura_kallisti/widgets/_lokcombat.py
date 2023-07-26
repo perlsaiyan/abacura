@@ -81,15 +81,11 @@ class LOKCombat(Static):
         self.shield = Static("[cyan]Shi:")
         self.quick = Static("[cyan]Qck:")
         self.mount_name = Static("[cyan]Mount:")
-        self.mount_name.display = False
         self.mount_block = DataTable(show_header=False,show_cursor=False, show_row_labels=False)
         self.mount_block.add_columns("H","hval","S","sval")
-        self.mount_block.display = False
         self.opponent_name = Static("[cyan]Opp:")
-        self.opponent_name.display = False
         self.opponent_block = DataTable(show_header=False,show_cursor=False, show_row_labels=False)
         self.opponent_block.add_columns("H","hval","S","sval")
-        self.opponent_block.display = False
 
     def on_mount(self):
         self.screen.session.add_listener(self.update_combat_values)
@@ -150,9 +146,7 @@ class LOKCombat(Static):
                 "[cyan] SP:",
                 f"[{percent_color(spct)}]{spct}%"
             )
-            self.mount_block.display = True
-            return
-        self.mount_block.display = False
+
 
     def opponent_block_update(self):
         self.opponent_block.clear()
@@ -162,8 +156,15 @@ class LOKCombat(Static):
             if self.c_opponent_stamina_max == 0:
                 self.c_opponent_stamina_max = 100
 
-            hpct = int(self.c_opponent_health * 100/ self.c_opponent_health_max)
-            spct = int(self.c_opponent_stamina * 100/ self.c_opponent_stamina_max)
+            if self.c_opponent_health_max > 0:
+                hpct = int(self.c_opponent_health * 100/ self.c_opponent_health_max)
+            else:
+                hpct = 0
+            
+            if self.c_opponent_stamina_max > 0:
+                spct = int(self.c_opponent_stamina * 100/ self.c_opponent_stamina_max)
+            else:
+                spct = 0
 
             self.opponent_block.add_row(
                 "[cyan] HP:",
@@ -171,10 +172,8 @@ class LOKCombat(Static):
                 "[cyan] SP:",
                 f"[{percent_color(spct)}]{spct}%"
             )
-            self.opponent_block.display = True
-            return
-        self.opponent_block.display = False
-
+        else:
+            self.opponent_block.add_row("", "", "",  "")
 
     @event("core.msdp")
     def update_combat_values(self, msg: MSDPMessage):
@@ -238,10 +237,6 @@ class LOKCombat(Static):
         elif msg.subtype == "MOUNT_NAME":
             self.c_mount_name = msg.value
             self.mount_name.update(f"\n[cyan] Mnt: [white]{msg.value}")
-            if msg.value == "":
-                self.mount_name.display = False
-            else:
-                self.mount_name.display = True
             self.mount_block_update()
         elif msg.subtype == "MOUNT_HEALTH":
             self.c_mount_health = int(msg.value)
@@ -258,11 +253,7 @@ class LOKCombat(Static):
 
         elif msg.subtype == "OPPONENT_NAME":
             self.c_opponent_name = msg.value
-            self.opponent_name.update(f"\n[cyan]Opp: [white]{msg.value}")
-            if msg.value == "":
-                self.opponent_name.display = False
-            else:
-                self.opponent_name.display = True
+            self.opponent_name.update(f"\n[cyan] Opp: [white]{msg.value}")
             self.opponent_block_update()
         elif msg.subtype == "OPPONENT_HEALTH":
             self.c_opponent_health = int(msg.value)

@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from ._lokzone import LOKZone
     from ._lokgroup import LOKGroup
     from ._lokaffects import LOKAffects
+    from ._loktask_queue import LOKTaskQueue
 
 __all__ = [
     "LOKAffects",
@@ -30,6 +31,7 @@ __all__ = [
     "LOKRight",
     "LOKZone",
     "LOKGroup",
+    "LOKTaskQueue",
     "IndeterminateProgressBar",
 ]
 

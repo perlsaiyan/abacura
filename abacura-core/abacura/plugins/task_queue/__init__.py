@@ -12,6 +12,7 @@ from typing import Optional, Callable, Dict
 
 from textual import log
 
+from abacura.plugins.events import AbacuraMessage
 
 class InvalidQueueName(Exception):
     pass
@@ -37,6 +38,11 @@ class QueueTask:
     def __lt__(self, other):
         return self.overall_priority() < other.overall_priority()
 
+@dataclass
+class CQMessage(AbacuraMessage):
+    event_type: str = "lok.cqmessage"
+    value: str = ""
+    queue: list[QueueTask] = field(default_factory=list)
 
 class QueueManager:
     """Manage action queues by priority"""

@@ -101,7 +101,7 @@ def command(function=None, name: str = '', hide: bool = False, override: bool = 
     return add_command
 
 
-def ticker(seconds: int, repeats=-1, name=""):
+def ticker(seconds: float, repeats=-1, name=""):
     def add_ticker(fn):
         fn.ticker_seconds = seconds
         fn.ticker_repeats = repeats

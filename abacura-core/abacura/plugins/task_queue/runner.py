@@ -4,20 +4,21 @@ Command Queue running routines
 Tracks last command, calculates delay, and issues commands in priority order,
 depending on the combat situation.
 """
+from abacura.plugins import command, Plugin, ticker
+from abacura.plugins.task_queue import CQMessage
 
-from abacura.plugins import command, Plugin
 from abacura.plugins.task_queue import _DEFAULT_PRIORITY, _DEFAULT_DURATION
 from abacura.utils.tabulate import tabulate
 
+_RUNNER_INTERVAL: float = 0.1
 
 class QueueRunner(Plugin):
     """Manage action queues by priority"""
-    _RUNNER_INTERVAL: float = 0.1
 
     def __init__(self):
         super().__init__()
         self.cq.set_command_inserter(self.insert_command)
-        self.add_ticker(self._RUNNER_INTERVAL, callback_fn=self.cq.run_queues, repeats=-1, name="Queue Runner")
+        #self.add_ticker(_RUNNER_INTERVAL, callback_fn=self.cq.run_queues, repeats=-1, name="Queue Runner")
 
     def insert_command(self, cmd: str):
         self.session.player_input(cmd, echo_color="orange1")
@@ -32,6 +33,13 @@ class QueueRunner(Plugin):
         tbl = tabulate(rows, headers=("Queue", "Command", "Priority", "Duration", "Delay"),
                        title=f"Queued Commands for {q or 'all queues'}", title_justify="left")
         self.output(tbl)
+
+    @ticker(seconds=_RUNNER_INTERVAL, name="Queue Runner", repeats=-1)
+    def queue_runner(self):
+        self.cq.run_queues()
+        cqm = CQMessage()
+        cqm.queue = self.cq._pq.queue
+        self.dispatch(cqm)
 
     @command(name="queue")
     def queue_info(self, queue_name: str = '', cmd: str = '', _flush: bool = False,
@@ -48,4 +56,4 @@ class QueueRunner(Plugin):
             return
 
         self.cq.add(cmd=cmd, q=queue_name, priority=_priority, dur=_duration, delay=_delay)
-        self.output(f"[bold cyan]# Command queued", markup=True, highlight=True)
+        self.output("[bold cyan]# Command queued", markup=True, highlight=True)
