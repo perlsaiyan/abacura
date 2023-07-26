@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from abacura_kallisti.mud.group import Group
 from abacura_kallisti.mud.affect import Affect
-from abacura_kallisti.mud.skills import SKILLS
+from abacura_kallisti.mud.skills import SKILL_COMMANDS, SKILLS
 from typing import List, Dict
 import re
 
@@ -188,15 +188,19 @@ class TypedMSDP:
     def mount_sp_max(self) -> int:
         return self.mount_stamina_max
 
-    def get_affect_hours(self, affect_name: str) -> int:
+    def get_affect_hours(self, name: str) -> int:
         # lowercase and drop anything after the first space to handle 'focus dex', 'warpaint crimson', etc
-        affect_name = affect_name.split(' ')[0]
+        name = name.split(' ')[0].lower()
+
+        # allow lookup by exact affect name, by a skill name (valmeyjar), or by a skill command (darmor)
+        affect_pattern = name
+        if name in SKILLS:
+            affect_pattern = SKILLS[name].affect_name
+        elif name in SKILL_COMMANDS:
+            affect_pattern = SKILL_COMMANDS[name].affect_name
 
         # handle case where command is different from spell name
         # darmor -> Divine Armor, aura -> Unholy Aura, etc
-
-        skill = SKILLS.get(affect_name.lower(), None)
-        affect_pattern: str = skill.affect_name if skill is not None else affect_name
 
         for a in self.affects:
             # print(a, a.hours, affect_name)

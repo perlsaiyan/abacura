@@ -108,3 +108,8 @@ class QueueManager:
 
     def set_command_inserter(self, f: Callable):
         self._command_inserter = f
+
+    def remove_command(self, cmd: str):
+        for task in self._pq.queue:
+            if task.cmd.lower() == cmd.lower():
+                self._pq.queue.remove(task)

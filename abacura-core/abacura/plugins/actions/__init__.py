@@ -97,9 +97,19 @@ class ActionManager:
                 value = match
             elif arg_type == OutputMessage or arg_type == 'OutputMessage':
                 value = message
+            elif arg_type == int:
+                try:
+                    value = int(g.pop(0))
+                except (ValueError, TypeError):
+                    value = 0
+            elif arg_type == float:
+                try:
+                    value = float(g.pop(0))
+                except (ValueError, TypeError):
+                    value = float(0)
             elif callable(arg_type) and arg_type.__name__ != '_empty':
                 # fancy type conversion
-                value = arg_type(g.pop(0))
+                 value = arg_type(g.pop(0))
             else:
                 value = g.pop(0)
 
