@@ -83,8 +83,15 @@ class PythonExecutor(Plugin):
             if self.exec_locals is None or reset_locals:
                 self.exec_locals = {}
 
-            compiled = compile(text.strip(), '<string>', 'eval')
-            result = eval(compiled, self.get_globals(), self.exec_locals)
+            if text.strip().startswith("def "):
+                result = exec(text, self.get_globals(), self.exec_locals)
+                return
+
+            # compile(text.strip(), '<string>', 'eval')
+            # result = eval(compiled, self.get_globals(), self.exec_locals)
+
+            exec("__result = " + text, self.get_globals(), self.exec_locals)
+            result = self.exec_locals.get('__result', None)
 
             if result is not None:
                 pretty = Pretty(result, max_length=100, max_depth=4)
@@ -92,5 +99,5 @@ class PythonExecutor(Plugin):
                 self.session.output(panel)
 
         except Exception as ex:
-            self.session.show_exception(f"[bold red] # ERROR: {repr(ex)}", ex)
+            self.session.show_exception(f"[bold red] # ERROR: {repr(ex)}", ex, show_tb=False)
             return False
