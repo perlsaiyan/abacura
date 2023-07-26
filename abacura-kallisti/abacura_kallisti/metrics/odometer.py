@@ -13,6 +13,7 @@ class OdometerMessage(AbacuraMessage):
     value: str = ""
     odometer: List[MudMetrics] = field(default_factory=list)
 
+
 class Odometer:
     def __init__(self, msdp: TypedMSDP):
         self.metrics: MudMetrics = MudMetrics()
@@ -20,29 +21,24 @@ class Odometer:
         self.msdp = msdp
 
     def start(self, mission: str):
-        self.stop()
-
-        self.metrics = MudMetrics(mission=mission, character_name=self.msdp.character_name,
-                                  start_time=datetime.now(),
-                                  start_xp=self.msdp.experience, end_xp=self.msdp.experience,
-                                  start_gold=self.msdp.gold, end_gold = self.msdp.gold,
-                                  start_bank=self.msdp.bank_gold, end_bank = self.msdp.bank_gold)
-
-        self.metric_history.append(self.metrics)
-
-    def stop(self):
-        if self.metrics.start_time is None:
-            return
-
         if self.metrics.stop_time is None:
             self.metrics.end_exp = self.msdp.experience
             self.metrics.end_gold = self.msdp.gold
             self.metrics.end_bank = self.msdp.bank_gold
             self.metrics.stop_time = datetime.now()
 
-    def reset_history(self):
+        self.metrics = MudMetrics(mission=mission, character_name=self.msdp.character_name,
+                                  start_time=datetime.now(),
+                                  start_xp=self.msdp.experience, end_xp=self.msdp.experience,
+                                  start_gold=self.msdp.gold, end_gold=self.msdp.gold,
+                                  start_bank=self.msdp.bank_gold, end_bank=self.msdp.bank_gold)
+
+        self.metric_history.append(self.metrics)
+
+    def clear_history(self):
         self.metrics = MudMetrics()
-        self.metric_history = []
+        self.metric_history = self.metric_history[:]
+        self.start(mission=self.msdp.area_name)
 
     @staticmethod
     def get_quality_number(quality: str):
