@@ -67,12 +67,19 @@ class WorldController(LOKPlugin):
                         headers=["Direction", "_To", "Door", "Commands", "Closes",
                                  "Locks", "Deathtrap", "Known", "Visited", "Terrain"])
 
-    @command(name="room")
-    def room_command(self, location: Room = None, delete: bool = False):
+    @command(name="room", hide=True)
+    def room_command(self, location: Room = None, delete: bool = False,
+                     silent: bool = False, deathtrap: bool = False, peaceful: bool = False,
+                     norecall: bool = False, nomagic: bool = False):
         """Display information about a room
 
         :location A room vnum or location name
         :delete Will delete the room
+        :silent Toggle silent flag
+        :deathtrap: Toggle deathtrap flag
+        :peaceful: Toggle peaceful flag
+        :norecall: Toggle no_recall flag
+        :nomagic: Toggle no_magic flag
         """
 
         if location is None:
@@ -81,18 +88,25 @@ class WorldController(LOKPlugin):
                 return
 
             location = self.world.rooms[self.msdp.room_vnum]
-        # if location is None:
-        #     if self.msdp.room_vnum in self.world.rooms:
-        #         location = self.world.rooms[self.msdp.room_vnum]
-        #     else:
-        #         self.session.output(f"Unknown room {self.msdp.room_vnum}", actionable=False)
-        #         return
-        #
-        # elif location_vnum not in self.world.rooms:
-        #     self.session.output(f"Unknown location {location_vnum}", actionable=False)
-        #     return
-        # else:
-        #     location = self.world.rooms[location_vnum]
+
+        if silent:
+            location.silent = not location.silent
+
+        if deathtrap:
+            location.deathtrap = not location.deathtrap
+
+        if peaceful:
+            location.peaceful = not location.peaceful
+
+        if nomagic:
+            location.no_magic = not location.no_magic
+
+        if norecall:
+            location.no_recall = not location.no_recall
+
+        if silent or deathtrap or peaceful or nomagic or norecall:
+            self.output(f"[orange1] Toggle room flag", markup=True)
+            self.world.save_room(location.vnum)
 
         text = Text()
 
@@ -120,23 +134,6 @@ class WorldController(LOKPlugin):
         group = Group(text, table)
         panel = Panel(group)
         self.output(panel, highlight=True)
-
-        if self.msdp.room_vnum == location.vnum:
-            text = Text()
-            text.append(f"Scanned Room ", style="purple")
-            text.append("[")
-            text.append(self.room.vnum, style="bright_cyan")
-            text.append("]")
-            text.append(f" {self.room.room_header}\n\n")
-            text.append(f"     players: {self.room.room_players}\n", style="bright_yellow")
-            text.append(f"    charmies: {self.room.room_charmies}\n", style="white")
-            text.append(f"     corpses: {self.room.room_corpses}\n", style="white")
-            text.append(f"  encounters: {self.room.room_encounters}\n", style="white")
-            text.append(f"       items: {self.room.room_items}\n", style="white")
-            text.append(f"       blood: {self.room.blood_trail}\n", style="bold red")
-            text.append(f"      tracks: {self.room.hunt_tracks}", style="bold green")
-            text.highlight_regex(r"[\w]+: ", style="bold white")
-            self.output(Panel(text), highlight=True)
 
         if delete:
             self.world.delete_room(location.vnum)

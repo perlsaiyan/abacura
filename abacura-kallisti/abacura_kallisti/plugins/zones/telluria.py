@@ -93,10 +93,10 @@ class Tellurida(LOKPlugin):
     def telluria(self):
         terrain_symbols = {'Forest': '*', 'Desert': '.', 'Tundra': '~', 'Inside': 'o'}
         t = terrain_symbols.get(self.msdp.room_terrain, ' ')
-        t += self.room2.minimap.grid.get((0, -1), ' ')
-        t += self.room2.minimap.grid.get((0, +1), ' ')
-        t += self.room2.minimap.grid.get((+1, 0), ' ')
-        t += self.room2.minimap.grid.get((-1, 0), ' ')
+        t += self.room.minimap.grid.get((0, -1), ' ')
+        t += self.room.minimap.grid.get((0, +1), ' ')
+        t += self.room.minimap.grid.get((+1, 0), ' ')
+        t += self.room.minimap.grid.get((-1, 0), ' ')
 
         telluria_location = telluria_decoder.get(t, None)
         self.output(f"Telluria Location: {telluria_location} : '{t}'")

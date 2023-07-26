@@ -2,20 +2,23 @@ import os
 import re
 import unicodedata
 from dataclasses import fields
-from typing import List, Pattern
 from itertools import takewhile
+from typing import List, Pattern
+
+from rich.text import Text
+from rich.console import Group
+from rich.panel import Panel
+from rich.columns import Columns
 
 # from atlas.known_areas import KNOWN_AREAS
 from abacura.mud import OutputMessage
 from abacura.plugins import command, action
 from abacura.plugins.events import event, AbacuraMessage
+from abacura.utils.tabulate import tabulate
 from abacura_kallisti.atlas.room import RoomHeader, RoomPlayer, RoomMob, RoomItem, RoomCorpse
-from abacura_kallisti.atlas.room import ScannedMiniMap, ScannedRoom2
+from abacura_kallisti.atlas.room import ScannedMiniMap, ScannedRoom, RoomMessage
 from abacura_kallisti.mud.area import Area
 from abacura_kallisti.plugins import LOKPlugin
-from abacura.utils.tabulate import tabulate
-from rich.panel import Panel
-from rich.text import Text
 
 
 class RoomMessageParser:
@@ -36,7 +39,7 @@ class RoomMessageParser:
     ITEM_FLAGS = {"glows", "magic", "damaged"}
 
     MOB_FLAGS = {"ranged", "sneaking", "hiding", "evil", "good",
-                 "grim ward", "fireshield", "acidshield", "iceshield", "shockshield",
+                 "grim ward", "fireshield", "acidshield", "iceshield", "shockshield", "blades",
                  "mount", "blur", "wraith", "sanc", "unholy aura", "invis", "trainer"}
 
     KEYWORDS = {"mortally wounded", "fighting YOU", "fighting", "resting", "incapacitated",
@@ -67,8 +70,7 @@ class RoomMessageParser:
 
     @staticmethod
     def _parse_junk(msg):
-        recalled = "^You find yourself.*"
-        if re.match(recalled, msg.message):
+        if msg.stripped.startswith("You find yourself"):
             return "recall"
         elif msg.stripped.strip() == '':
             return "blank"
@@ -263,7 +265,7 @@ class RoomMessageParser:
         self.players.reverse()
 
 
-class RoomWatcherNew(LOKPlugin):
+class RoomWatcher(LOKPlugin):
 
     def __init__(self):
         super().__init__()
@@ -277,25 +279,24 @@ class RoomWatcherNew(LOKPlugin):
 
         self.room_header_entry_id = -1
 
-    # TODO: Enable these once we remove the old room watcher
-    # @action("^Not here!")
-    # def no_magic(self):
-    #     if self.msdp.room_vnum in self.world.rooms:
-    #         r = self.world.rooms[self.msdp.room_vnum]
-    #         if not r.no_magic or not r.no_recall:
-    #             r.no_magic = True
-    #             r.no_recall = True
-    #             self.output(f'[orange1]Marked room no recall/magic [{r.vnum}]', markup=True)
-    #             self.world.save_room(r.vnum)
-    #
-    # @action("^Your lips move,* but no sound")
-    # def silent(self):
-    #     if self.msdp.room_vnum in self.world.rooms:
-    #         r = self.world.rooms[self.msdp.room_vnum]
-    #         if not r.silent:
-    #             r.silent = True
-    #             self.output(f'[orange1]Marked room silent [{r.vnum}]', markup=True)
-    #             self.world.save_room(r.vnum)
+    @action("^(Not here!|You can't do that here)")
+    def no_magic(self):
+        if self.msdp.room_vnum in self.world.rooms:
+            r = self.world.rooms[self.msdp.room_vnum]
+            if not r.no_magic or not r.no_recall:
+                r.no_magic = True
+                r.no_recall = True
+                self.output(f'[orange1]Marked room no recall/magic [{r.vnum}]', markup=True)
+                self.world.save_room(r.vnum)
+
+    @action("^Your lips move,* but no sound")
+    def silent(self):
+        if self.msdp.room_vnum in self.world.rooms:
+            r = self.world.rooms[self.msdp.room_vnum]
+            if not r.silent:
+                r.silent = True
+                self.output(f'[orange1]Marked room silent [{r.vnum}]', markup=True)
+                self.world.save_room(r.vnum)
 
     @action("\x1b\\[1;35m", color=True)
     def bold_magenta(self, message: OutputMessage):
@@ -310,21 +311,6 @@ class RoomWatcherNew(LOKPlugin):
 
         if any([room_compass, room_no_compass, room_no_exits, room_wilderness]):
             self.room_header_entry_id = self.output_history.entry_id
-
-    # @action(r"^There is a trail of fresh blood here leading (.*)\.")
-    # def blood_trail(self, direction: str):
-    #     if self.scanned_room:
-    #         self.scanned_room.blood_trail = direction
-    #
-    # @action(r"^\[\* You see your target's tracks leading (.*)\. ")
-    # def hunt_tracks(self, direction: str):
-    #     if self.scanned_room:
-    #         self.scanned_room.hunt_tracks = direction
-    #
-    # @action(r"\[\* You found ")
-    # def hunt_found(self):
-    #     if self.scanned_room:
-    #         self.scanned_room.hunt_tracks = "here"
 
     @staticmethod
     def slugify(value):
@@ -389,47 +375,53 @@ class RoomWatcherNew(LOKPlugin):
 
             self.room_header_entry_id = -1
 
-            # TODO: Match mobs against area / mob database
-
-            sr2 = ScannedRoom2(vnum=self.msdp.room_vnum, name=self.msdp.room_name, minimap=minimap,
-                               terrain_name=self.msdp.room_terrain, msdp_exits=self.msdp.room_exits,
-                               blood_trail=rmp.blood_trail, hunt_tracks=rmp.hunt_tracks,
-                               room_header=rmp.header, room_items=rmp.items, room_mobs=rmp.mobs,
-                               room_corpses=rmp.corpses, room_players=rmp.players)
+            sr = ScannedRoom(vnum=self.msdp.room_vnum, name=self.msdp.room_name, minimap=minimap,
+                             terrain_name=self.msdp.room_terrain, msdp_exits=self.msdp.room_exits,
+                             blood_trail=rmp.blood_trail, hunt_tracks=rmp.hunt_tracks,
+                             room_header=rmp.header, room_items=rmp.items, room_mobs=rmp.mobs,
+                             room_corpses=rmp.corpses, room_players=rmp.players)
 
             if self.msdp.area_name == 'The Wilderness':
                 self.world.load_wilderness()
 
+            # Copy the saved room attributes into the new ScanndRoom instance
             if self.msdp.room_vnum in self.world.rooms:
                 room = self.world.rooms[self.msdp.room_vnum]
-                # copy the room attributes into the new ScanndRoom instance
                 for f in fields(room):
-                    setattr(sr2, f.name, getattr(room, f.name))
+                    setattr(sr, f.name, getattr(room, f.name))
 
-            # TODO: After removing old Roomwatcher - call visited room, update roomflags using flags set
-            # self.world.visited_room(area_name=self.msdp.area_name, name=self.msdp.room_name, vnum=self.msdp.room_vnum,
-            #                         terrain=self.msdp.room_terrain, room_exits=self.msdp.room_exits,
-            #                         scan_room=self.scanned_room)
+            # Override these since they show up in the header
+            sr.bank = "bank" in sr.room_header.flags
+            sr.set_recall = "SetRecall" in sr.room_header.flags
+            sr.wild_magic = "Wild Magic" in sr.room_header.flags
+            sr.regen_hp = "RegenHp" in sr.room_header.flags
+            sr.regen_mp = "RegenMp" in sr.room_header.flags
+            sr.regen_sp = "RegenSp" in sr.room_header.flags
+            sr.warded = "Warded" in sr.room_header.flags
+            sr.no_magic = "NoMagic" in sr.room_header.flags
 
-            if sr2.vnum in self.world.rooms:
+            self.world.visited_room(area_name=self.msdp.area_name, name=self.msdp.room_name, vnum=self.msdp.room_vnum,
+                                    terrain=self.msdp.room_terrain, room_exits=self.msdp.room_exits,
+                                    scan_room=sr)
+
+            if sr.vnum in self.world.rooms:
                 room = self.world.rooms[self.msdp.room_vnum]
                 missing_msdp_exits = any([d for d in self.msdp.room_exits if d not in room.exits])
                 extra_room_exits = any([d for d in room.exits if d not in self.msdp.room_exits])
                 if missing_msdp_exits or extra_room_exits:
-                    self.session.output(Text(f"\nROOM WATCHER2: Mismatch between MSDP & Room exits\n", style="purple"))
+                    self.debuglog(f"\nRoomWatcher: Mismatch between MSDP & Room exits")
 
             # Load the new area if it has changed
-            sr2.area = self.room2.area
-            if self.msdp.area_name not in [sr2.area.name] + sr2.area.include_areas:
-                sr2.area = self.load_area(self.msdp.area_name)
+            sr.area = self.room.area
+            if self.msdp.area_name not in [sr.area.name] + sr.area.include_areas:
+                sr.area = self.load_area(self.msdp.area_name)
 
             # TODO: Change lokplugin.room to a property so we can replace the object
             # Do not create a new instance of self.room since a reference is held by all plugins
-            for f in fields(ScannedRoom2):
-                setattr(self.room2, f.name, getattr(sr2, f.name))
+            for f in fields(ScannedRoom):
+                setattr(self.room, f.name, getattr(sr, f.name))
 
-            # TODO: After removing old RoomWatcher - dispatch method from here
-            # self.dispatch(RoomMessage(vnum=self.scanned_room.vnum, room=self.scanned_room))
+            self.dispatch(RoomMessage(vnum=sr.vnum, room=sr))
 
     def save_room_messages(self):
         from pathlib import Path
@@ -469,9 +461,10 @@ class RoomWatcherNew(LOKPlugin):
         if rmp.hunt_tracks:
             self.output(f"tracks={rmp.hunt_tracks}")
 
-    @command(name="room2")
-    def room_command(self, save: bool = False, _load: str = ""):
-        """Display details from new room watcher,  Optionally save a file with room messages for debugging"""
+    @command(name="scanroom", hide=True)
+    def scanroom_command(self, save: bool = False, _load: str = ""):
+        """Display details about a ScannedRoom, optionally save debugging info"""
+
         if save:
             self.save_room_messages()
             return
@@ -480,43 +473,42 @@ class RoomWatcherNew(LOKPlugin):
             self.test_room_messages(_load)
             return
 
-        text = Text.assemble((f"Scanned Room ", "purple"), "[", (self.room2.vnum, "bright cyan"), "]")
-        self.output(text)
+        header_text = Text.assemble((f"Scanned Room ", "purple"), "[", (self.room.vnum, "bright cyan"), "]")
 
         properties = []
-        for f in fields(self.room2.room_header):
+        for f in fields(self.room.room_header):
             if f.name == 'line':
                 continue
             t = Text.assemble((f"{f.name:>12.12s}: ", "bold white"),
-                              (str(getattr(self.room2.room_header, f.name, '')), "white"))
+                              (str(getattr(self.room.room_header, f.name, '')), "white"))
             properties.append(t)
 
-        blood = Text.assemble((f"{'blood':>12.12s}: ", "bold white"), (self.room2.blood_trail, "bold red"))
-        hunt = Text.assemble((f"{'tracks':>12.12s}: ", "bold white"), (self.room2.hunt_tracks, "bold green"))
-        from rich.columns import Columns
+        blood = Text.assemble((f"{'blood':>12.12s}: ", "bold white"), (self.room.blood_trail, "bold red"))
+        hunt = Text.assemble((f"{'tracks':>12.12s}: ", "bold white"), (self.room.hunt_tracks, "bold green"))
 
-        self.output(Columns(properties + [hunt, blood], width=60))
-
-        self.output(Text(" "))
+        properties_columns = Columns(properties + [hunt, blood], width=50)
 
         rows = []
-        for corpse in self.room2.room_corpses:
+        for corpse in self.room.room_corpses:
             rows.append(("corpse", f"{corpse.description:20.20}", corpse.quantity, "", corpse.corpse_type))
 
-        for item in self.room2.room_items:
+        for item in self.room.room_items:
             rows.append(("item", f"{item.description:20.20}", item.quantity,
                          f"{'blue item' if item.blue else ''}", item.flags))
             # self.output(f"{str(item):30.30}    " + item.line)
 
-        for mob in self.room2.room_mobs:
+        for mob in self.room.room_mobs:
             rows.append(("mob", f"{mob.description:20.20}", mob.quantity,
                          f"{'has_quest' if mob.has_quest else ''}", mob.flags))
             # self.output(f"{str(mob):30.30}    " + mob.line)
 
-        for player in self.room2.room_players:
+        for player in self.room.room_players:
             rows.append(("player", f"{player.name:20.20}", '', player.race, player.flags))
-            self.output(f"{str(player):30.30}    " + player.line)
+            # self.output(f"{str(player):30.30}    " + player.line)
 
-        if len(rows) > 0:
-            self.output(tabulate(rows, headers=["Type", "Description", "Qty", "Misc", "Flags"],
-                                 title="Room Contents", title_justify="left"))
+        table = tabulate(rows, headers=["Type", "Description", "Qty", "Misc", "Flags"],
+                         title="Room Contents", title_justify="left")
+
+        group = Group(header_text, Text(""), properties_columns, Text(""), table)
+        panel = Panel(group, width=110)
+        self.output(panel, highlight=True)

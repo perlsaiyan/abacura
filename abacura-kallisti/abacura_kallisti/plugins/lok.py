@@ -48,8 +48,7 @@ class LegendsOfKallisti(LOKPlugin):
                     "pc": self.pc,
                     "cq": self.cq,
                     "locations": self.locations,
-                    "room": self.room,
-                    "room2": self.room2
+                    "room": self.room
                     }
         return _globals
 
