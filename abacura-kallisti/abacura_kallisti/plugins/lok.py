@@ -20,6 +20,7 @@ class LOKKillMessage(AbacuraMessage):
     victim: str = ""
     experience: int = 0
     rare_bonus: int = 0
+    reduced: bool = False
 
     @property
     def total_experience(self):
@@ -87,12 +88,22 @@ class LegendsOfKallisti(LOKPlugin):
             self.pc.load(self.config.data_directory(self.session.name), msg.value)
             self.director.alias_manager.load(f"{self.session.name}.aliases")
 
+    @action(r"^You receive a reduced reward for a frequent kill, only (\d+) experience points. ")
+    def reduced_mob_kill(self, experience: int):
+        res = self.session.ring_buffer.query(limit=1, like="%is dead!  R.I.P%")
+        k_name = xp_kill_re.match(res[0][2])
+        if k_name:
+            msg = LOKKillMessage(victim=k_name.groups(1)[0],
+                                 experience=experience, reduced=True)
+            self.debuglog("info",msg)
+            self.dispatch(msg)
+
     @action(r"^You receive your reward for the kill, (\d+) experience points( plus (\d+) bonus experience for a rare kill)?.")
     def mob_kill(self, experience: int, _rare_msg, rare_bonus):
         res = self.session.ring_buffer.query(limit=1, like="%is dead!  R.I.P%")
         k_name = xp_kill_re.match(res[0][2])
         if k_name:
             msg = LOKKillMessage(victim=k_name.groups(1)[0],
-                                 experience=experience, rare_bonus=rare_bonus)
+                                 experience=experience, rare_bonus=rare_bonus,)
             self.debuglog("info",msg)
             self.dispatch(msg)
