@@ -96,7 +96,7 @@ class AutoBuff(LOKPlugin):
         if self.room.vnum in ["13200"] or self.room.no_magic or self.room.silent:
             return None
 
-        if buff.offensive and len(self.room2.room_mobs) > 0:
+        if buff.offensive and len(self.room.room_mobs) > 0:
             # Nuke this command if there are mobs present as it may trigger combat
             self.debuglog(f"Skipping offensive buff '{buff.command}' when mobs present")
             return f"-{buff.command}"
