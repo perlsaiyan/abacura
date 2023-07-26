@@ -1,4 +1,4 @@
-"""Kallisti widget for displaying Combat information"""
+"""Kallisti widget for displaying Task Queue information"""
 from textual.app import ComposeResult
 from textual.widgets import Static, DataTable
 
@@ -20,6 +20,7 @@ class LOKTaskQueue(Static):
         self.screen.session.add_listener(self.update_task_queue)
         self.queue_display.add_column("Cmd", key="cmd")
         self.queue_display.add_column("Delay", key="delay")
+        self.queue_display.add_column("Duration", key="duration")
         self.queue_display.add_column("Queue", key="queue")
 
     @event(CQMessage.event_type)
@@ -27,4 +28,4 @@ class LOKTaskQueue(Static):
         self.queue_display.clear()
 
         for task in msg.queue:
-            self.queue_display.add_row(task.cmd, task.delay, task.q)
+            self.queue_display.add_row(task.cmd, task.delay, task.dur, task.q)

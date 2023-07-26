@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from ._lokgroup import LOKGroup
     from ._lokaffects import LOKAffects
     from ._loktask_queue import LOKTaskQueue
+    from ._lokodometer import LOKOdometer
 
 __all__ = [
     "LOKAffects",
@@ -28,6 +29,7 @@ __all__ = [
     "LOKExperience",
     "LOKLeft",
     "LOKMap",
+    "LOKOdometer",
     "LOKRight",
     "LOKZone",
     "LOKGroup",

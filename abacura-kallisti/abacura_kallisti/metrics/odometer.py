@@ -1,8 +1,17 @@
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import List
+
+from abacura.plugins.events import AbacuraMessage
 from abacura_kallisti.metrics import MudMetrics
 from abacura_kallisti.mud.msdp import TypedMSDP
-from typing import List
-from datetime import datetime
 
+
+@dataclass
+class OdometerMessage(AbacuraMessage):
+    event_type: str = "lok.odometer"
+    value: str = ""
+    odometer: List[MudMetrics] = field(default_factory=list)
 
 class Odometer:
     def __init__(self, msdp: TypedMSDP):

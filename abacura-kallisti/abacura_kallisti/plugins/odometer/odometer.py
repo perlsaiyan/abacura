@@ -1,11 +1,13 @@
 from datetime import datetime
 
-from abacura.plugins import command, action
+from abacura_kallisti.plugins import LOKPlugin
+from abacura_kallisti.metrics.odometer import OdometerMessage
+
+from abacura.plugins import command, action, ticker
 from abacura.plugins.events import AbacuraMessage
 from abacura.plugins.events import event
 from abacura.utils import human_format
 from abacura.utils.tabulate import tabulate
-from abacura_kallisti.plugins import LOKPlugin
 
 
 class OdometerController(LOKPlugin):
@@ -45,6 +47,12 @@ class OdometerController(LOKPlugin):
 
         headers = ["#", "Mission", "Elapsed", "Kills/h", "XP/h", "$/h"]
         self.output(tabulate(rows, headers=headers))
+
+    @ticker(seconds=1, name="Odometer")
+    def odometer_ticker(self):
+        om = OdometerMessage()
+        om.odometer = self.odometer.metric_history
+        self.dispatch(om)
 
     @action(r"^(.*) is dead!.*R.I.P.")
     def killed(self, mob: str):
