@@ -28,8 +28,8 @@ class LOKOdometerDetailWindow(ScrollableContainer):
     def summarize(self, odometer: MudMetrics) -> str:
         buf = []
         buf.append(f"Mission Started: {odometer.start_time}  Ended: {odometer.stop_time}")
-        buf.append(f"Mobs killed: {odometer.kills} @ {odometer.kills_per_hour} per hour")
-        buf.append(f"Gold earned: {odometer.earned_gold} @ {odometer.gold_per_hour} per hour")
+        buf.append(f"Mobs killed: {odometer.kills} @ {odometer.kills_per_hour:.1f} per hour")
+        buf.append(f"Gold earned: {human_format(odometer.earned_gold)} @ {human_format(odometer.gold_per_hour)} per hour")
 
         buf.append(f"XP Earned: {human_format(odometer.earned_xp)} @ {human_format(odometer.xp_per_hour)} per hour")
         buf.append(f"Crafting: {odometer.craft_qualities}")
