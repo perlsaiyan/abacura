@@ -45,7 +45,17 @@ class QueueRunner(Plugin):
     def queue_info(self, queue_name: str = '', cmd: str = '', _flush: bool = False,
                    _priority: int = _DEFAULT_PRIORITY, _duration: float = _DEFAULT_DURATION, _delay: int = 0):
 
-        """Show command/task queue details and flush them if desired"""
+        """
+        Add commands to queues, display queue, or flush them
+
+        :param queue_name: Name of queue to view or add a command
+        :param cmd: The command to add
+        :param _flush: Flush the queue
+        :param _priority: The priority of the queue
+        :param _duration: How long to wait after issuing cmd before issuing another
+        :param _delay: How long to wait before issuing cmd
+        """
+
         if _flush:
             self.cq.flush(queue_name)
             self.output(f"[bold cyan]# QUEUE: flushed '{queue_name or 'all queues'}'", markup=True, highlight=True)

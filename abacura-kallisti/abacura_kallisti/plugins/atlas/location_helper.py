@@ -8,7 +8,16 @@ class LocationHelper(LOKPlugin):
 
     @command(name="locations")
     def location_cmd(self, location: str = None, destination: Room = None, delete: bool = False, add: bool = False):
-        """View and modify room locations"""
+        """
+        View and modify room locations
+
+        Submit without arguments to view a list of locations
+
+        :param location: Use <category.name> format.  Use just category to view a list.
+        :param destination: A room vnum of the location, defaults to current room
+        :param delete: Delete a location
+        :param add: Add a location
+        """
 
         if location is None:
             self.output(tabulate(self.locations.get_categories(), headers=("Category"),

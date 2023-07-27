@@ -142,20 +142,19 @@ class Command:
         return "" if len(lines) == 0 else lines[0]
 
     def get_help(self):
-        help_text = []
+        help_text = [""]
 
         doc_lines = []
 
         parameter_doc = {}
         fn_doc = getattr(self.callback, '__doc__') or ''
+        re_param = re.compile(r".*:param (\w+): (.*)")
         for line in fn_doc.split("\n"):
-            if line.strip().startswith(":") and line.strip().find(" ") >= 0:
-                s = line.lstrip(" :").split(" ")
-                name = s[0]
-                description = " ".join(s[1:])
+            if m := re_param.match(line):
+                name, description = m.groups()
                 parameter_doc[name] = description
             elif len(line.strip(" \n")):
-                doc_lines.append(line)
+                doc_lines.append(line.strip())
 
         parameters = self.get_parameters()
         parameter_names = []
@@ -165,30 +164,47 @@ class Command:
                 parameter_names.append(parameter.name)
             else:
                 parameter_names.append(f"[{parameter.name}]")
+
             if parameter.name in parameter_doc:
-                parameter_help.append(f"    {parameter.name:30s} : {parameter_doc.get(parameter.name)}")
+                pd = f" [{str(parameter.default)}]"
+                if parameter.default is inspect.Parameter.empty:
+                    pd = ""
+                elif parameter.default in (None, '', 0):
+                    pd = " (optional)"
+
+                parameter_help.append(f"  {parameter.name:19s}{pd:>11s} : {parameter_doc.get(parameter.name)}")
 
         if len(doc_lines):
             help_text.append("\n".join(doc_lines) + "\n")
 
-        help_text.append(f"  Usage: {self.name} {' '.join(parameter_names)}")
+        help_text.append("Usage:")
+        help_text.append("")
+        help_text.append(f"  #{self.name} {' '.join(parameter_names)}")
 
         if len(parameter_help):
-            help_text.append("")
+            help_text.append("\nArguments:\n")
             help_text.append("\n".join(parameter_help))
 
         option_help = []
         for name, p in self.get_options().items():
             if p.annotation in (bool, 'bool'):
-                option_help.append(f"  --{name.lstrip('_'):30s} : {parameter_doc.get(name, '')}")
+                option_help.append(f"  --{name.lstrip('_'):28s} : {parameter_doc.get(name, '')}")
             else:
+
                 ptype = getattr(p.annotation, '__name__', p.annotation)
-                pname = f"{name.lstrip('_') + '=<' + ptype + '>'}"
-                option_help.append(f"  --{pname:30s} : {parameter_doc.get(name, '')}")
+                pname = f"--{name.lstrip('_') + '=<' + ptype + '>'}"
+                pd = f" [{str(p.default)}]"
+                if p.default is inspect.Parameter.empty:
+                    pd = ""
+                elif p.default in (None, '', 0):
+                    pd = " (optional)"
+
+                option_help.append(f"  {pname:19s}{pd:>11s} : {parameter_doc.get(name, '')}")
 
         if len(option_help):
             help_text.append("\nOptions:\n")
             help_text += sorted(option_help)
+            help_text.append("")
 
         return "\n".join(help_text)
 

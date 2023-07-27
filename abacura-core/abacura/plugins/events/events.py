@@ -12,7 +12,11 @@ class EventPlugin(Plugin):
 
     @command(name="events")
     def eventscommand(self, detail: bool = False):
-        """Show events"""
+        """
+        Show event metrics and handlers
+
+        :param detail: Show detailed method names
+        """
         event_manager = self.session.director.event_manager
 
         rows = []
@@ -29,6 +33,11 @@ class EventPlugin(Plugin):
 
     @command(name="dispatch")
     def dispatch_event(self, trigger: str, value: str = ""):
-        """Dispatch an AbacuraMessage"""
+        """
+        Dispatch an AbacuraMessage
+
+        :param trigger: The event to trigger
+        :param value: A value to send with the event
+        """
         self.session.output(f"Sending {trigger} message: {value}")
         self.dispatch(AbacuraMessage(trigger, value))

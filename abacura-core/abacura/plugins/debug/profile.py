@@ -17,7 +17,12 @@ class Profiler(Plugin):
 
     @command(hide=True)
     def memory(self, baseline: bool = False, gc: bool = False):
-        """Show memory usage"""
+        """
+        Show memory usage, set memory baseline, and collect garbage
+
+        :param baseline: Set memory baseline for future measurement
+        :param gc: Force garbage collection
+        """
 
         if gc:
             import gc
@@ -42,7 +47,13 @@ class Profiler(Plugin):
 
     @command(hide=True)
     def pyprofile(self, num_functions: int = 40, disable: bool = False):
-        """Python implemented profiler"""
+        """
+        Start/Stop Python implemented profiler (slow...)
+
+        :param num_functions: Number of functions do display
+        :param disable: turn off the profiler
+        """
+
         from abacura.utils import profiler
 
         if disable:
@@ -67,14 +78,15 @@ class Profiler(Plugin):
 
     @command(hide=True)
     def profile(self, num_functions: int = 40, disable: bool = False, callers: bool = False, _sort: str = 'time'):
-        """Use to profile CPU usage by method
-
-            :num_functions How many rows to display
-            :disable Disable the profiler
-            :callers Show callers
-            :_sort Sort by time, cumulative_time, or calls
-
         """
+        Profile CPU usage by method
+
+        :param num_functions: How many rows to display
+        :param disable: Disable the profiler
+        :param callers: Show callers
+        :param _sort: Sort by 'time', 'cumulative_time', or 'calls'
+        """
+
         import cProfile
         import pstats
 

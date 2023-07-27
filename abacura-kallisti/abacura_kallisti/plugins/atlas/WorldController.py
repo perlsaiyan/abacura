@@ -67,19 +67,20 @@ class WorldController(LOKPlugin):
                         headers=["Direction", "_To", "Door", "Commands", "Closes",
                                  "Locks", "Deathtrap", "Known", "Visited", "Terrain"])
 
-    @command(name="room", hide=True)
+    @command(name="room")
     def room_command(self, location: Room = None, delete: bool = False,
                      silent: bool = False, deathtrap: bool = False, peaceful: bool = False,
                      norecall: bool = False, nomagic: bool = False):
-        """Display information about a room
+        """
+        Display information about a room
 
-        :location A room vnum or location name
-        :delete Will delete the room
-        :silent Toggle silent flag
-        :deathtrap: Toggle deathtrap flag
-        :peaceful: Toggle peaceful flag
-        :norecall: Toggle no_recall flag
-        :nomagic: Toggle no_magic flag
+        :param location: A room vnum or location name
+        :param delete: Will delete the room
+        :param silent: Toggle silent flag
+        :param deathtrap: Toggle deathtrap flag
+        :param peaceful: Toggle peaceful flag
+        :param norecall: Toggle no_recall flag
+        :param nomagic: Toggle no_magic flag
         """
 
         if location is None:
@@ -254,10 +255,15 @@ class WorldController(LOKPlugin):
         self.output(tbl)
 
     @command
-    def sql(self, sql: str, _max_rows: int = 100):
-        """Run a sql query against the world database"""
+    def sql(self, query: str, _max_rows: int = 100):
+        """
+        Run a sql query against the world database
+
+        :param query: The sql query to run
+        :param _max_rows: Maximum rows to display
+        """
         try:
-            cursor = self.world.db_conn.execute(sql)
+            cursor = self.world.db_conn.execute(query)
         except Exception as e:
             self.session.show_exception(str(e), e)
             return
@@ -280,7 +286,7 @@ class WorldController(LOKPlugin):
 
         headers = [c[0] for c in cursor.description]
 
-        title = f"SQL: {sql}"
+        title = f"SQL: {query}"
         caption = f" Showing first {_max_rows} rows"
 
         tbl = tabulate(rows, headers=headers,

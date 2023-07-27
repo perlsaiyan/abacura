@@ -35,7 +35,11 @@ class XendorianOutpost(LOKPlugin):
 
     @command
     def xendorian(self, delete: bool = False):
-        """See portals in xendorian outpost"""
+        """
+        List known portals in xendorian outpost
+
+        :param delete: Delete all known xendorian portals
+        """
         portals = []
 
         for r in self.world.rooms.values():

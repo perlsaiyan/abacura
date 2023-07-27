@@ -24,7 +24,13 @@ class LOKMSDPController(LOKPlugin):
 
     @command(name="msdp", override=True)
     def lok_msdp_command(self, variable: str = '', reportable: bool = False, core: bool = False) -> None:
-        """Dump MSDP values for debugging"""
+        """
+        Show MSDP values using typed LOK structure
+
+        :param variable: Name of msdp variable to view.  Blank to view all
+        :param reportable: Show reportable_variables (long list, off by default)
+        :param core: Show the abacura core value instead of the typed LOK value
+        """
 
         if not self.msdp.reportable_variables:
             self.session.output("[bold red]# MSDPERROR: MSDP NOT LOADED?", markup=True)
