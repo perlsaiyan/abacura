@@ -91,6 +91,9 @@ class Tellurida(LOKPlugin):
 
     @command
     def telluria(self):
+        """
+        Show current location in telluria (requires that minimap is enabled)
+        """
         terrain_symbols = {'Forest': '*', 'Desert': '.', 'Tundra': '~', 'Inside': 'o'}
         t = terrain_symbols.get(self.msdp.room_terrain, ' ')
         t += self.room.minimap.grid.get((0, -1), ' ')

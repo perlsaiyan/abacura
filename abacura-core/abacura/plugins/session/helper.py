@@ -18,17 +18,33 @@ class PluginSession(Plugin):
     """Session specific commands"""
     @command(name="echo")
     def echo(self, text: str):
-        """Send text to screen without triggering actions"""
+        """
+        Send text to the output window without triggering actions
+
+        Use #showme to trigger actions
+
+        :param text: The text to send to the output window
+        """
         self.session.output(text, actionable=False)
 
     @command
     def showme(self, text: str) -> None:
-        """Send text to screen as if it came from the socket, triggers actions"""
+        """
+        Send text to the output window and trigger actions
+
+        Use #echo to avoid triggering actions
+
+        :param text: The text to send to the output window / trigger actions
+        """
         self.session.output(text, markup=True)
 
     @command(name="msdp")
     def msdp_command(self, variable: str = '') -> None:
-        """Dump MSDP values for debugging"""
+        """
+        Dump MSDP values for debugging
+
+        :param variable: The name of a variable to view, leave blank for all
+        """
         if "REPORTABLE_VARIABLES" not in self.core_msdp.values:
             self.session.output("[bold red]# MSDPERROR: MSDP NOT LOADED?", markup=True)
 
@@ -80,7 +96,11 @@ class PluginSession(Plugin):
 
     @command
     def plugins(self, name: str = '') -> None:
-        """Get information about plugins"""
+        """
+        Get information about plugins
+
+        :param name: Show details about a single plugin, leave blank to list all
+        """
         if not name:
             self.show_all_plugins()
             self.show_failures()
@@ -116,7 +136,12 @@ class PluginSession(Plugin):
 
     @command
     def reload(self, plugin_name: str = "", auto: bool = False):
-        """Reload plugins"""
+        """
+        Reload plugins
+
+        :param plugin_name: Reload a specific plugin, leave blank to load all changed files
+        :param auto: Enable auto reloading every 1-2 seconds
+        """
 
         if not plugin_name:
             self.session.plugin_loader.autoreload_plugins()
@@ -163,8 +188,14 @@ class PluginSession(Plugin):
         self.output(s, actionable=False, loggable=False)
 
     @command()
-    def log(self, like: str = "%", limit: int = 40, minutes_ago: int = 30):
-        """Search output log """
+    def log(self, find: str = "%", limit: int = 40, minutes_ago: int = 30):
+        """
+        Search output log
+
+        :param find: Search for text using sql % wildcard style
+        :param limit: limit the number of log entries returned
+        :minutes_ago: limit how far back to search
+        """
         if self.session.ring_buffer is None:
             raise CommandError("No output log ring buffer configured")
-        self.ring_log_query(like, limit, hide_msdp=False, minutes_ago=minutes_ago)
+        self.ring_log_query(find, limit, hide_msdp=False, minutes_ago=minutes_ago)

@@ -18,11 +18,13 @@ class TourDemo(LOKPlugin):
 
     @command
     def tour(self, start: bool = False, stop: bool = False, _route: str = '', reach: bool = False):
-        """Visit rooms in current area according to area .toml file
+        """
+        Visit rooms in current area according to area .toml file
 
-        :start Start a tour
-        :stop Stop the tour
-        :_route Use alternate route method: LRV, NU, or NUP
+        :param start: Start a tour
+        :param stop: Stop the tour
+        :param _route: Use alternate route method: LRV, NU, or NUP
+        :param reach: Show rooms that can be reached
         """
 
         if stop:

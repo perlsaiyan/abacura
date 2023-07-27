@@ -19,7 +19,13 @@ class OdometerController(LOKPlugin):
 
     @command(name="odometer")
     def odometer_command(self, clear: bool = False, _start: bool = False, _mission: str = "") -> None:
-        """Display Odometer History"""
+        """
+        Display Odometer History or start a new odometer
+
+        :param clear: Clear the history of odometer metrics
+        :param _start: Start a new odometer
+        :param _mission: Optionally name the odometer mission
+        """
 
         if clear:
             self.odometer.clear_history()

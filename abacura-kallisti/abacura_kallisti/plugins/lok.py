@@ -60,10 +60,6 @@ class LegendsOfKallisti(LOKPlugin):
             self.send("\n")
             #self.session.output(f"[red][italics]idle protection",markup=True)
 
-    # @command
-    # def lok(self) -> None:
-    #     self.session.output("Legends of Kallisti!")
-
     @action(r'^Please enter your account password')
     def send_password(self):
         if os.environ.get("MUD_PASSWORD") is not None:

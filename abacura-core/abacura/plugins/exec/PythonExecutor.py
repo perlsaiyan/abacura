@@ -50,7 +50,12 @@ class PythonExecutor(Plugin):
 
     @command
     def run(self, filename: str, reset_locals: bool = False):
-        """Execute python code and display results"""
+        """
+        Execute python code and display results
+
+        :param filename: The filename containing the script to execute
+        :param reset_locals: Reset local variables before running the script
+        """
 
         try:
             if self.exec_locals is None or reset_locals:
@@ -77,7 +82,12 @@ class PythonExecutor(Plugin):
 
     @command(name="#")
     def exec_python(self, text: str, reset_locals: bool = False):
-        """Execute python code and display results"""
+        """
+        Execute python code and display results
+
+        :param text: The python code to run
+        :param reset_locals: Reset local variables that are saved between exec calls
+        """
 
         try:
             if self.exec_locals is None or reset_locals:

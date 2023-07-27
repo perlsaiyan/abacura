@@ -108,7 +108,9 @@ class AutoBuff(LOKPlugin):
 
     @command(name="autobuff")
     def list_autobufs(self):
-        """Show known buffs, will add current or expected buffs or something"""
+        """
+        Show known buffs, will add current or expected buffs or something
+        """
         tbl = Table(title="Known Buff Affects")
         tbl.add_column("Buff")
         tbl.add_column("Hours Left")

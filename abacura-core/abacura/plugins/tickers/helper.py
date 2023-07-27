@@ -33,7 +33,15 @@ class TickerCommand(Plugin):
 
     @command
     def ticker(self, name: str = '', commands: str = '', seconds: float = 0, repeats: int = -1, delete: bool = False):
-        """View/Create/delete tickers"""
+        """
+        View/Create/delete tickers
+
+        :param name: Name of the ticker
+        :param commands: Commands to issue each tick (separated by ;)
+        :param seconds: How often to repeat the ticker
+        :param repeats: How many times to repeat the ticker
+        :param delete: Delete a ticker by name
+        """
 
         if delete:
             if not name:

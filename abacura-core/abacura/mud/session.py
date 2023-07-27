@@ -239,14 +239,14 @@ class Session(BaseSession):
         self.tl.render()
 
     @command(name="debuglog")
-    def debuglog_command(self, _facility: str = "info", msg: str = "", markup: bool = True, highlight: bool=True):
+    def debuglog_command(self, msg: str, _facility: str = "info", markup: bool = True, highlight: bool=True):
         """
         Send output to debug window
 
-        :facility optional facility, defaults to 'info'
-        :markup use rich markup
-        :highlight use rich highlighting
-        :param msg message to log
+        :param msg: message to log
+        :param _facility: optional facility, defaults to 'info'
+        :param markup: use rich markup
+        :param highlight: use rich highlighting
         """
         self.debuglog(facility=_facility, msg=msg, markup=markup, highlight=highlight)
 
@@ -293,7 +293,13 @@ class Session(BaseSession):
 
     @command
     def connect(self, name: str, host: str = '', port: int = 0) -> None:
-        """#connect <name> <host> <port> to connect a game session"""
+        """
+        Connect to a mud and create a session
+
+        :param name: Session name
+        :param host: Host Address
+        :param port: Host Port
+        """
 
         if not host:
             host = self.config.get_specific_option(name, "host")
@@ -319,7 +325,12 @@ class Session(BaseSession):
     @command(name="session")
     # Do not name this function "session" or you'll overwrite self.session :)
     def session_command(self, name: str = "") -> None:
-        """@session <name>: Get information about sessions or swap to session <name>"""
+        """
+        List sessions and swap to a new one
+
+        :param name: Swap to another session by name
+        """
+
         if not name:
             buf = "[bold red]# Current Sessions:\n"
             for session_name, session in self.abacura.sessions.items():

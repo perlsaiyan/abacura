@@ -4,18 +4,20 @@ Commands for dealing with textual/async workers
 from __future__ import annotations
 
 from rich.panel import Panel
-from rich.pretty import Pretty
 from rich.table import Table
 
-from textual import log
-
 from abacura.plugins import Plugin, command
+
 
 class WorkersPlugin(Plugin):
 
     @command(name="workers")
     def workers(self, group: str=""):
-        """Show all workers or for optional group"""
+        """
+        Show all workers or for optional group
+
+        :param group: Show works for this group only
+        """
         
         if group == "":
             group = self.session.name

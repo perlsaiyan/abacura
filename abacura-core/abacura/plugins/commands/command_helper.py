@@ -10,7 +10,11 @@ class CommandHelper(Plugin):
 
     @command(hide=True)
     def help(self, hidden: bool = False):
-        """Show available commands"""
+        """
+        Show available commands
+
+        :param hidden: Show hidden commands
+        """
         help_text = ["Plugin Commands", "\nUsage: @command <arguments>", "\nAvailable Commands: "]
 
         commands = [c for c in self.director.command_manager.commands.values() if c.hide_help == hidden]
@@ -28,10 +32,16 @@ class CommandHelper(Plugin):
 
     @command(hide=True)
     def repeat(self, n: int, text: str):
+        """
+        Repeat a command multiple times
 
+        :param n: Number of times to repeat
+        :param text: Text to send
+        """
         if n <= 0:
             return
 
+        # Note that "text" will contain the full command text including n, by convention
         m = re.match(r"(\d+)(.*)", text)
         if m:
             cmd = m.groups()[1]

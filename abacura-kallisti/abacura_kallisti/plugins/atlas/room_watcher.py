@@ -463,7 +463,12 @@ class RoomWatcher(LOKPlugin):
 
     @command(name="scanroom", hide=True)
     def scanroom_command(self, save: bool = False, _load: str = ""):
-        """Display details about a ScannedRoom, optionally save debugging info"""
+        """
+        Display details about most recently scanned room, optionally save debugging info
+
+        :param save: Save the most recently scanned room into a <vnum>.pkl file in data directory
+        :param _load: Load a saved .pkl file and display results of processing it
+        """
 
         if save:
             self.save_room_messages()

@@ -240,7 +240,13 @@ class LOKComms(LOKPlugin):
     #commsgag <channel/speaker> <arg> <on/off>
     @command(name='commstog')
     def comms_toggle(self, channel_or_speaker: str=None, name: str=None, on_off: str=""):
-        """Turn a channel or speaker on/off"""
+        """
+        Turn a channel or speaker on/off
+
+        :param channel_or_speaker: Use 'channel' or 'speaker'
+        :param name: Name of channel or speaker
+        :param on_off: Turn channel on or off
+        """
 
         if channel_or_speaker is None:
             raise CommandError("Must give channel or speaker.")

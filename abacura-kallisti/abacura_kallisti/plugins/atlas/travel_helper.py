@@ -13,7 +13,12 @@ class TravelHelper(LOKPlugin):
 
     @command
     def path(self, destination: Room, detailed: bool = False):
-        """Compute path to a room/location"""
+        """
+        Compute path to a room/location
+
+        :param destination:  vnum or location name of travel destination
+        :param detailed: display steps in a table with more information
+        """
         t = Timer()
         nav = TravelGuide(self.world, self.pc, level=self.msdp.level, avoid_home=False)
         t.start()
@@ -49,7 +54,13 @@ class TravelHelper(LOKPlugin):
 
     @command
     def go(self, destination: Room, avoid_home: bool = False):
-        """Compute path to a room/location"""
+        """
+        Automatically go to a destination
+
+        :param destination: A vnum or location name
+        :param avoid_home: Do not use the 'home' command
+        """
+
         def go_done(result: TravelResult):
             self.output(f"[bold purple] #go {result.result}", markup=True)
 
