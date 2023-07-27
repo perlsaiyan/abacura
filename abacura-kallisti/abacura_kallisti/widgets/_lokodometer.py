@@ -14,15 +14,28 @@ from abacura.plugins.events import event
 from abacura.utils import human_format
 from abacura_kallisti.metrics.odometer import OdometerMessage
 
-class LOKOdometerDetail(ScrollableContainer):
+class LOKOdometerDetailWindow(ScrollableContainer):
 
     def __init__(self, odometer: MudMetrics, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._moving: bool = False
-        self.odometer = odometer
+        self.odometer = self.summarize(odometer)
+        self.styles.height = 10
 
     def compose(self) -> ComposeResult:
-        yield Static(Pretty(self.odometer))
+        yield Static(self.odometer)
+
+    def summarize(self, odometer: MudMetrics) -> str:
+        buf = []
+        buf.append(f"Mission Started: {odometer.start_time}  Ended: {odometer.stop_time}")
+        buf.append(f"Mobs killed: {odometer.kills} @ {odometer.kills_per_hour} per hour")
+        buf.append(f"Gold earned: {odometer.earned_gold} @ {odometer.gold_per_hour} per hour")
+
+        buf.append(f"XP Earned: {human_format(odometer.earned_xp)} @ {human_format(odometer.xp_per_hour)} per hour")
+        buf.append(f"Crafting: {odometer.craft_qualities}")
+        buf.append(f"Rests: {odometer.rests} for {odometer.rest_time}")
+        return "\n".join(buf)
+
     def on_mouse_down(self, event: MouseDown):
         if self.disabled or self._moving:
             return
@@ -92,5 +105,5 @@ class LOKOdometer(Static):
         
         row = event.y-1
         if row >= 0 and row < len(self.odometers):
-            detail = LOKOdometerDetail(odometer = self.odometers[row], classes="popover odometer-detail")
+            detail = LOKOdometerDetailWindow(odometer = self.odometers[row], classes="popover odometer-detail")
             self.screen.mount(detail)
