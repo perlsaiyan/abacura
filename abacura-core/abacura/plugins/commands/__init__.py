@@ -172,7 +172,7 @@ class Command:
                 elif parameter.default in (None, '', 0):
                     pd = " (optional)"
 
-                parameter_help.append(f"  {parameter.name:19s}{pd:>11s} : {parameter_doc.get(parameter.name)}")
+                parameter_help.append(f"  {parameter.name:18s}{pd:>12s} : {parameter_doc.get(parameter.name)}")
 
         if len(doc_lines):
             help_text.append("\n".join(doc_lines) + "\n")
@@ -188,18 +188,19 @@ class Command:
         option_help = []
         for name, p in self.get_options().items():
             if p.annotation in (bool, 'bool'):
-                option_help.append(f"  --{name.lstrip('_'):28s} : {parameter_doc.get(name, '')}")
+                oname = f"--{name.lstrip('_')}"
+                option_help.append(f"  {oname:30s} : {parameter_doc.get(name, '')}")
             else:
 
                 ptype = getattr(p.annotation, '__name__', p.annotation)
-                pname = f"--{name.lstrip('_') + '=<' + ptype + '>'}"
-                pd = f" [{str(p.default)}]"
+                oname = f"--{name.lstrip('_') + '=<' + ptype + '>'}"
+                odefault = f" [{str(p.default)}]"
                 if p.default is inspect.Parameter.empty:
-                    pd = ""
+                    odefault = ""
                 elif p.default in (None, '', 0):
-                    pd = " (optional)"
+                    odefault = " (optional)"
 
-                option_help.append(f"  {pname:19s}{pd:>11s} : {parameter_doc.get(name, '')}")
+                option_help.append(f"  {oname:18s}{odefault:>12s} : {parameter_doc.get(name, '')}")
 
         if len(option_help):
             help_text.append("\nOptions:\n")
