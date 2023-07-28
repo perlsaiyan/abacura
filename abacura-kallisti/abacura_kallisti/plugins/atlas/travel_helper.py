@@ -4,7 +4,7 @@ from abacura_kallisti.atlas.travel_guide import TravelGuide
 from abacura_kallisti.atlas.room import Room
 from abacura_kallisti.plugins import LOKPlugin
 from abacura_kallisti.plugins.scripts.travel import TravelRequest, TravelResult
-from abacura.utils.tabulate import tabulate
+from abacura.utils.renderables import tabulate, AbacuraPanel, Group, Text, OutputColors
 
 
 class TravelHelper(LOKPlugin):
@@ -32,7 +32,7 @@ class TravelHelper(LOKPlugin):
         speedwalk = nav_path.get_simplified_path()
 
         if not detailed:
-            self.session.output(f"Path to {destination.vnum} is {speedwalk}", highlight=True)
+            self.session.output(f"{speedwalk}", highlight=True)
             return
 
         rows = []
@@ -45,12 +45,16 @@ class TravelHelper(LOKPlugin):
                        bool(step.exit.closes), bool(step.exit.locks), step.cost, terrain)
                 rows.append(row)
 
+        speedwalk = Text.assemble(("Speedwalk\n\n", OutputColors.section), (speedwalk, OutputColors.value))
         tbl = tabulate(rows, headers=("_Vnum", "_To Vnum", "Commands", "Direction", "Door",
                                       "Closes", "Locks", "Cost", "Terrain"),
-                       title=f"Path to {destination.vnum}: {speedwalk}", title_justify="left",
-                       caption=f"Total Cost [{cost}].  Computed in {1000 * path_elapsed_time:6.3f}ms",
-                       caption_justify="right")
-        self.output(tbl)
+                       title=f"Steps",
+                       caption=f" Path computed in {1000 * path_elapsed_time:6.3f}ms")
+
+        tbl.columns[7].footer = str(cost)
+        tbl.columns[1].footer = "blar"
+        g = Group(speedwalk, Text(), tbl)
+        self.output(AbacuraPanel(g, title=f"Path to [{destination.vnum}] - {destination.name}"))
 
     @command
     def go(self, destination: Room, avoid_home: bool = False):

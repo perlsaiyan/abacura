@@ -233,7 +233,7 @@ class CommandManager:
 
     def parse_command_line(self, command_line: str) -> Tuple[Command, str]:
 
-        # remove leading @
+        command_line = command_line.lstrip()
         if command_line.startswith("##") and len(command_line) > 2:
             # TODO: This is a bugfix for the input splitter removing a space
             command_line = "## " + command_line[2:]

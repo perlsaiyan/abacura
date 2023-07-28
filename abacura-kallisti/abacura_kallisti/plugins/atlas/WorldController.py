@@ -1,14 +1,11 @@
 import importlib
 
-from rich.console import Group
-from rich.panel import Panel
-from rich.style import Style
 from rich.text import Text
 
-import abacura.utils.tabulate as tblt
+import abacura.utils.renderables as tblt
 from abacura.plugins import command
 from abacura.plugins.events import event, AbacuraMessage
-from abacura.utils.tabulate import tabulate
+from abacura.utils.renderables import tabulate, AbacuraPropertyGroup, AbacuraPanel, Group, OutputColors
 from abacura_kallisti.atlas.messages import MapUpdateMessage, MapUpdateRequest
 from abacura_kallisti.atlas.wilderness import WildernessGrid
 from abacura_kallisti.atlas.world import Room
@@ -59,11 +56,10 @@ class WorldController(LOKPlugin):
         exits = sorted(exits)
         caption = ""
         if vnum == self.msdp.room_vnum:
-            caption = f"MSDP_EXITS: {str(self.msdp.room_exits)}"
+            caption = f" MSDP_EXITS: {str(self.msdp.room_exits)}"
 
-        return tabulate(exits, caption=caption, caption_justify="left",
-                        headers=["Direction", "_To", "Door", "Commands", "Closes",
-                                 "Locks", "Deathtrap", "Known", "Visited", "Terrain"])
+        return tabulate(exits, caption=caption, headers=["Direction", "_To", "Door", "Commands", "Closes",
+                                                         "Locks", "Deathtrap", "Known", "Visited", "Terrain"])
 
     @command(name="room")
     def room_command(self, location: Room = None, delete: bool = False,
@@ -107,31 +103,27 @@ class WorldController(LOKPlugin):
             self.output(f"[orange1] Toggle room flag", markup=True)
             self.world.save_room(location.vnum)
 
-        text = Text()
-
-        text.append(f"[{location.vnum}] {location.name}\n\n", style="bold magenta")
-        text.append(f"     Area: {location.area_name}\n")
-
-        terrain = location.terrain
-        text.append(f"  Terrain: {location.terrain_name} [{terrain.weight}]\n")
-        text.append(f"    Flags: {self.get_room_flags(location)}\n")
-        text.append(f"  Visited: {location.last_visited}\n")
+        properties = {"Area": location.area_name,
+                      "Terrain": location.terrain_name,
+                      "Weight": location.terrain.weight,
+                      "Flags": self.get_room_flags(location),
+                      "Visited": location.last_visited
+                      }
 
         if location.area_name == 'The Wilderness':
             x, y = self.wild_grid.get_point(location.vnum)
             ox, oy = self.wild_grid.get_orienteering_point(location.vnum)
-            text.append(f"     x, y: {x}, {y} [{ox}, {oy}]\n")
-            text.append(f"Harvested: {location.last_harvested}\n")
+            properties["x, y"] = f"{x}, {y} [{ox}, {oy}]"
+            properties["Harvested"] = location.last_harvested
 
         location_names = [f"{a.category}.{a.name}" for a in self.locations.get_locations_for_vnum(location.vnum)]
         if len(location_names) > 0:
-            text.append(f"Locations: {', '.join(location_names)}\n")
+            properties["Locations"] = ', '.join(location_names)
 
-        text.highlight_regex(r"[a-zA-Z]+:", style="bold")
-
+        pview = AbacuraPropertyGroup(properties)
         table = self.get_table_of_exits(location.vnum)
-        group = Group(text, table)
-        panel = Panel(group)
+        table.title = "Exits"
+        panel = AbacuraPanel(Group(pview, Text(), table), title=f"[{location.vnum}] - {location.name}")
         self.output(panel, highlight=True)
 
         if delete:
@@ -185,7 +177,7 @@ class WorldController(LOKPlugin):
             return
 
         if not direction:
-            self.session.output(self.get_table_of_exits(vnum))
+            self.session.output(AbacuraPanel(self.get_table_of_exits(vnum), title=f"Exits for room [{vnum}]"))
             return
 
         if delete:
@@ -207,11 +199,9 @@ class WorldController(LOKPlugin):
             self.session.output(f"[orange1]Unknown direction {direction} for room [{vnum}]", markup=True)
             return
         e = room.exits[direction]
-        properties = [(name, getattr(e, name)) for name in sorted(e.__slots__)]
 
-        tbl = tabulate(properties, headers=("Property", "_Value"),
-                       title=f"\n[{vnum}] {direction}", title_justify="left")
-        self.output(tbl)
+        pview = AbacuraPropertyGroup(e)
+        self.output(AbacuraPanel(pview, title=f"Room [{vnum}] - {direction}"))
 
     @command
     def sql(self, query: str, _max_rows: int = 100):
@@ -231,46 +221,15 @@ class WorldController(LOKPlugin):
             self.output("executed")
             return
 
-        title_style = Style(bgcolor="#000040", color="bright_white", bold=True)
-        caption_style = Style(bgcolor="#000040", color="white")
-        header_style = Style(bgcolor="#000040", color="bright_white")
-        border_style = Style(bgcolor="#000040", color="#CCCCCC")
-        s1 = Style(bgcolor="#101020", color="white")
-        s2 = Style(bgcolor="#202040", color="white")
         rows = list(cursor.fetchmany(_max_rows))
 
+        pview = AbacuraPropertyGroup({"sql": query}, title="Query")
+
         if len(rows) == 0:
-            self.output(Panel(Text("No rows returned")))
-            return
+            results = Text.assemble(("Results\n\n", OutputColors.section), ("No rows returned", ""))
+        else:
+            headers = [c[0] for c in cursor.description]
+            caption = f" {min(len(rows),_max_rows)}/{len(rows)} rows shown"
+            results = tabulate(rows, headers=headers, title="Results", caption=caption, expand=True)
 
-        headers = [c[0] for c in cursor.description]
-
-        title = f"SQL: {query}"
-        caption = f" Showing first {_max_rows} rows"
-
-        tbl = tabulate(rows, headers=headers,
-                       title=title, title_justify="left", title_style=title_style,
-                       caption=caption, caption_justify="left", caption_style=caption_style,
-                       row_styles=[s1, s2], header_style=header_style, border_style=border_style)
-        #
-        #
-        # for i, column in enumerate(cursor.description):
-        #     c = Counter([type(row[i]) for row in rows])
-        #     column_types.append(c.most_common(1)[0][0])
-        #     justify = "left"
-        #     if column_types[i] in (int, 'int', float, 'float'):
-        #         justify = "right"
-        #     tbl.add_column(column[0], justify=justify)
-        #     tbl.add
-        #
-        # for row in rows:
-        #     new_row = []
-        #     for i, v in enumerate(row):
-        #         if column_types[i] in (float, 'float'):
-        #             new_row.append(format(v, "6.3f"))
-        #         else:
-        #             new_row.append(str(v))
-        #
-        #     tbl.add_row(*new_row)
-
-        self.output(Panel(tbl, style=border_style))
+        self.output(AbacuraPanel(Group(pview, Text(), results), "SQL Query", expand=True))

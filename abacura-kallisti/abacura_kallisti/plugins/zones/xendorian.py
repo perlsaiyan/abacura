@@ -1,7 +1,7 @@
 from abacura.plugins import action, command
 from abacura_kallisti.plugins import LOKPlugin
 from abacura_kallisti.atlas.room import Exit
-from abacura.utils.tabulate import tabulate
+from abacura.utils.renderables import tabulate, AbacuraPanel
 
 
 class XendorianOutpost(LOKPlugin):
@@ -67,4 +67,5 @@ class XendorianOutpost(LOKPlugin):
         for r, d in portals:
             rows.append([r.vnum, r.exits[d].to_vnum, d])
 
-        self.output(tabulate(rows, headers=("_From", "_To", "Portal"), title="Xendorian Portals"))
+        tbl = tabulate(rows, headers=("_From", "_To", "Portal"))
+        self.output(AbacuraPanel(tbl, title="Xendorian Portals"))

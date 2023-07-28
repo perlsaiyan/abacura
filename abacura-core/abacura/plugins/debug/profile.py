@@ -3,7 +3,7 @@ import importlib
 import io
 
 from abacura.plugins import Plugin, command, CommandError
-from abacura.utils.tabulate import tabulate
+from abacura.utils.renderables import tabulate, AbacuraPanel
 
 
 class Profiler(Plugin):
@@ -74,7 +74,7 @@ class Profiler(Plugin):
             rows.append((pfn.function.get_location(), pfn.call_count,
                          pfn.elapsed_time / 1E9, pfn.cpu_time, pfn.self_time / 1E9))
         tbl = tabulate(rows, headers=("Function", "Calls", "Elapsed", "CPU", "Self Time"))
-        self.output(tbl)
+        self.output(AbacuraPanel(tbl, title="Profiler Results"))
 
     @command(hide=True)
     def profile(self, num_functions: int = 40, disable: bool = False, callers: bool = False, _sort: str = 'time'):

@@ -1,7 +1,7 @@
 from abacura.plugins import command, CommandError
 from abacura_kallisti.atlas.world import Room
 from abacura_kallisti.plugins import LOKPlugin
-from abacura.utils.tabulate import tabulate
+from abacura.utils.renderables import tabulate
 
 
 class LocationHelper(LOKPlugin):
