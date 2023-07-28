@@ -11,15 +11,15 @@ Screen {
 }
 
 .odometer-detail {
-    width: 50%;
+    width: 30%;
     max-height: 80%;
-    border: white tall;
     overflow-y: auto;
 }
 
 .popover {
     layer: above;
-    background: rgb(27, 75, 75);
+    border: $success tall 50%;
+    background: $panel;
 }
 
 #map_progress {
@@ -57,11 +57,12 @@ Grid#MapGrid {
 }
 
 QuitScreen#LOKMap {
-    background: #cdcdcd;
+    background: $primary-background;
 }
 
 .BKS #commslog {
     height: 14;
+    background: $primary-background;
 }
 
 .BKS #commsTL {
@@ -108,7 +109,7 @@ QuitScreen#LOKMap {
 }
 
 .BKS .WidgetTitle {
-    background: #538d87;
+    background: $primary;
     text-style: italic;
 }
 
