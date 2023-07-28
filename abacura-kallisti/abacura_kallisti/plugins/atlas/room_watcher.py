@@ -5,14 +5,14 @@ from dataclasses import fields
 from itertools import takewhile
 from typing import List, Pattern
 
-from rich.text import Text
+from rich.columns import Columns
 from rich.console import Group
 from rich.panel import Panel
-from rich.columns import Columns
+from rich.text import Text
 
 # from atlas.known_areas import KNOWN_AREAS
 from abacura.mud import OutputMessage
-from abacura.plugins import command, action, CommandError
+from abacura.plugins import command, action
 from abacura.plugins.events import event, AbacuraMessage
 from abacura.utils.tabulate import tabulate
 from abacura_kallisti.atlas.room import RoomHeader, RoomPlayer, RoomMob, RoomItem, RoomCorpse
@@ -194,7 +194,7 @@ class RoomMessageParser:
             self.hunt_tracks = "here"
             return "tracks"
 
-    def _parse_room_header(self) -> int:
+    def _parse_header(self) -> int:
         if len(self.messages) == 0:
             return 0
 
@@ -242,7 +242,7 @@ class RoomMessageParser:
         return 3 if compass else 1
 
     def _parse_messages(self):
-        header_lines = self._parse_room_header()
+        header_lines = self._parse_header()
 
         parsers = [self._parse_junk, self._parse_tracks, self._parse_player_mob,
                    self._parse_item, self._parse_blood, self._parse_any]
@@ -330,7 +330,7 @@ class RoomWatcher(LOKPlugin):
             return Area()
 
         data_dir = self.config.data_directory(self.session.name)
-        filename = os.path.join(data_dir, "areas", self.slugify(area_name) + ".toml")        
+        filename = os.path.join(data_dir, "areas", self.slugify(area_name) + ".toml")
         new_area = Area.load_from_toml(filename)
         self.debuglog(msg=f"Loaded area file '{filename}'")
         return new_area
@@ -381,8 +381,8 @@ class RoomWatcher(LOKPlugin):
             sr = ScannedRoom(vnum=self.msdp.room_vnum, name=self.msdp.room_name, minimap=minimap,
                              terrain_name=self.msdp.room_terrain, msdp_exits=self.msdp.room_exits,
                              blood_trail=rmp.blood_trail, hunt_tracks=rmp.hunt_tracks,
-                             room_header=rmp.header, room_items=rmp.items, room_mobs=rmp.mobs,
-                             room_corpses=rmp.corpses, room_players=rmp.players)
+                             header=rmp.header, items=rmp.items, mobs=rmp.mobs,
+                             corpses=rmp.corpses, players=rmp.players)
 
             if self.msdp.area_name == 'The Wilderness':
                 self.world.load_wilderness()
@@ -394,14 +394,14 @@ class RoomWatcher(LOKPlugin):
                     setattr(sr, f.name, getattr(room, f.name))
 
             # Override these since they show up in the header
-            sr.bank = "bank" in sr.room_header.flags
-            sr.set_recall = "SetRecall" in sr.room_header.flags
-            sr.wild_magic = "Wild Magic" in sr.room_header.flags
-            sr.regen_hp = "RegenHp" in sr.room_header.flags
-            sr.regen_mp = "RegenMp" in sr.room_header.flags
-            sr.regen_sp = "RegenSp" in sr.room_header.flags
-            sr.warded = "Warded" in sr.room_header.flags
-            sr.no_magic = "NoMagic" in sr.room_header.flags
+            sr.bank = "bank" in sr.header.flags
+            sr.set_recall = "SetRecall" in sr.header.flags
+            sr.wild_magic = "Wild Magic" in sr.header.flags
+            sr.regen_hp = "RegenHp" in sr.header.flags
+            sr.regen_mp = "RegenMp" in sr.header.flags
+            sr.regen_sp = "RegenSp" in sr.header.flags
+            sr.warded = "Warded" in sr.header.flags
+            sr.no_magic = "NoMagic" in sr.header.flags
 
             self.world.visited_room(area_name=self.msdp.area_name, name=self.msdp.room_name, vnum=self.msdp.room_vnum,
                                     terrain=self.msdp.room_terrain, room_exits=self.msdp.room_exits,
@@ -486,11 +486,11 @@ class RoomWatcher(LOKPlugin):
         header_text = Text.assemble((f"Scanned Room ", "purple"), "[", (self.room.vnum, "bright cyan"), "]")
 
         properties = []
-        for f in fields(self.room.room_header):
+        for f in fields(self.room.header):
             if f.name == 'line':
                 continue
             t = Text.assemble((f"{f.name:>12.12s}: ", "bold white"),
-                              (str(getattr(self.room.room_header, f.name, '')), "white"))
+                              (str(getattr(self.room.header, f.name, '')), "white"))
             properties.append(t)
 
         blood = Text.assemble((f"{'blood':>12.12s}: ", "bold white"), (self.room.blood_trail, "bold red"))
@@ -499,15 +499,15 @@ class RoomWatcher(LOKPlugin):
         properties_columns = Columns(properties + [hunt, blood], width=50)
 
         rows = []
-        for corpse in self.room.room_corpses:
+        for corpse in self.room.corpses:
             rows.append(("corpse", f"{corpse.description:20.20}", corpse.quantity, "", corpse.corpse_type, ''))
 
-        for item in self.room.room_items:
+        for item in self.room.items:
             rows.append(("item", f"{item.description:20.20}", item.quantity,
                          f"{'blue item' if item.blue else ''}", item.flags, ''))
             # self.output(f"{str(item):30.30}    " + item.line)
 
-        for mob in self.room.room_mobs:
+        for mob in self.room.mobs:
             details = {}
             if mob.level > 0:
                 details = {"level": mob.level, "race": mob.race}
@@ -516,7 +516,7 @@ class RoomWatcher(LOKPlugin):
                          f"{'has_quest' if mob.has_quest else ''}", mob.flags, details))
             # self.output(f"{str(mob):30.30}    " + mob.line)
 
-        for player in self.room.room_players:
+        for player in self.room.players:
             rows.append(("player", f"{player.name:20.20}", '', player.race, player.flags, ''))
             # self.output(f"{str(player):30.30}    " + player.line)
 
