@@ -27,13 +27,13 @@ class LOKOdometerDetailWindow(ScrollableContainer):
 
     def summarize(self, odometer: MudMetrics) -> str:
         buf = []
-        buf.append(f"Mission Started: {odometer.start_time}  Ended: {odometer.stop_time}")
-        buf.append(f"Mobs killed: {odometer.kills} @ {odometer.kills_per_hour:.1f} per hour")
-        buf.append(f"Gold earned: {human_format(odometer.earned_gold)} @ {human_format(odometer.gold_per_hour)} per hour")
+        buf.append(f"[cyan]Mission Started: [white]{odometer.start_time}  [cyan]Ended: [white]{odometer.stop_time}")
+        buf.append(f"[cyan]Mobs killed: [white]{odometer.kills} @ {odometer.kills_per_hour:.1f} per hour")
+        buf.append(f"[cyan]Gold earned: [white]{human_format(odometer.earned_gold)} @ {human_format(odometer.gold_per_hour)} per hour")
 
-        buf.append(f"XP Earned: {human_format(odometer.earned_xp)} @ {human_format(odometer.xp_per_hour)} per hour")
-        buf.append(f"Crafting: {odometer.craft_qualities}")
-        buf.append(f"Rests: {odometer.rests} for {odometer.rest_time}")
+        buf.append(f"[cyan]XP Earned: [white]{human_format(odometer.earned_xp)} @ {human_format(odometer.xp_per_hour)} per hour")
+        buf.append(f"[cyan]Crafting: [white]{odometer.craft_qualities}")
+        buf.append(f"[cyan]Rests: [white]{odometer.rests} [cyan]for [white]{odometer.rest_time}")
         return "\n".join(buf)
 
     def on_mouse_down(self, event: MouseDown):
@@ -99,11 +99,12 @@ class LOKOdometer(Static):
                 human_format(odometer.gold_per_hour),
             )
 
-    def on_click(self, event) -> None:
+    def on_click(self, event: Click) -> None:
         if len(self.odometers) < 1:
             return
         
         row = event.y-1
         if row >= 0 and row < len(self.odometers):
             detail = LOKOdometerDetailWindow(odometer = self.odometers[row], classes="popover odometer-detail")
+            detail.styles.offset = (event.screen_x + 10, event.screen_y + 2)
             self.screen.mount(detail)
