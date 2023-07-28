@@ -250,7 +250,7 @@ class Session(BaseSession):
         """
         self.debuglog(facility=_facility, msg=msg, markup=markup, highlight=highlight)
 
-    def debuglog(self, facility: str = "info", msg: str= "", markup: bool = True, highlight: bool=True):
+    def debuglog(self, msg: str= "", facility: str = "info", markup: bool = True, highlight: bool=True):
         if self.debugtl:
             date_time = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
             self.debugtl.markup = markup

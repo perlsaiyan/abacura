@@ -90,7 +90,7 @@ class LegendsOfKallisti(LOKPlugin):
         if k_name:
             msg = LOKKillMessage(victim=k_name.groups(1)[0],
                                  experience=experience, reduced=True)
-            self.debuglog("info",msg)
+            self.debuglog(msg)
             self.dispatch(msg)
 
     @action(r"^You receive your reward for the kill, (\d+) experience points( plus (\d+) bonus experience for a rare kill)?.")
@@ -100,5 +100,5 @@ class LegendsOfKallisti(LOKPlugin):
         if k_name:
             msg = LOKKillMessage(victim=k_name.groups(1)[0],
                                  experience=experience, rare_bonus=rare_bonus,)
-            self.debuglog("info",msg)
+            self.debuglog(msg)
             self.dispatch(msg)
