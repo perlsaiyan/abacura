@@ -12,7 +12,7 @@ from rich.columns import Columns
 
 # from atlas.known_areas import KNOWN_AREAS
 from abacura.mud import OutputMessage
-from abacura.plugins import command, action
+from abacura.plugins import command, action, CommandError
 from abacura.plugins.events import event, AbacuraMessage
 from abacura.utils.tabulate import tabulate
 from abacura_kallisti.atlas.room import RoomHeader, RoomPlayer, RoomMob, RoomItem, RoomCorpse
@@ -252,6 +252,9 @@ class RoomMessageParser:
             # Strip leading \x1b[22;37m that happens in wilderness
             msg.message = self.re_normal_white.sub("", msg.message)
 
+            if " tells you, '" in msg.stripped:
+                continue
+
             for i, parser in enumerate(parsers):
                 if parser(msg):
                     if parser != self._parse_any:
@@ -416,6 +419,8 @@ class RoomWatcher(LOKPlugin):
             if self.msdp.area_name not in [sr.area.name] + sr.area.include_areas:
                 sr.area = self.load_area(self.msdp.area_name)
 
+            sr.identify_room_mobs()
+
             # TODO: Change lokplugin.room to a property so we can replace the object
             # Do not create a new instance of self.room since a reference is held by all plugins
             for f in fields(ScannedRoom):
@@ -495,23 +500,27 @@ class RoomWatcher(LOKPlugin):
 
         rows = []
         for corpse in self.room.room_corpses:
-            rows.append(("corpse", f"{corpse.description:20.20}", corpse.quantity, "", corpse.corpse_type))
+            rows.append(("corpse", f"{corpse.description:20.20}", corpse.quantity, "", corpse.corpse_type, ''))
 
         for item in self.room.room_items:
             rows.append(("item", f"{item.description:20.20}", item.quantity,
-                         f"{'blue item' if item.blue else ''}", item.flags))
+                         f"{'blue item' if item.blue else ''}", item.flags, ''))
             # self.output(f"{str(item):30.30}    " + item.line)
 
         for mob in self.room.room_mobs:
+            details = {}
+            if mob.level > 0:
+                details = {"level": mob.level, "race": mob.race}
+
             rows.append(("mob", f"{mob.description:20.20}", mob.quantity,
-                         f"{'has_quest' if mob.has_quest else ''}", mob.flags))
+                         f"{'has_quest' if mob.has_quest else ''}", mob.flags, details))
             # self.output(f"{str(mob):30.30}    " + mob.line)
 
         for player in self.room.room_players:
-            rows.append(("player", f"{player.name:20.20}", '', player.race, player.flags))
+            rows.append(("player", f"{player.name:20.20}", '', player.race, player.flags, ''))
             # self.output(f"{str(player):30.30}    " + player.line)
 
-        table = tabulate(rows, headers=["Type", "Description", "Qty", "Misc", "Flags"],
+        table = tabulate(rows, headers=["Type", "Description", "Qty", "Misc", "Flags", "Details"],
                          title="Room Contents", title_justify="left")
 
         group = Group(header_text, Text(""), properties_columns, Text(""), table)

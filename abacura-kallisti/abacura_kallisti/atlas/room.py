@@ -2,11 +2,13 @@ from dataclasses import dataclass, field, fields
 from datetime import datetime
 from functools import lru_cache
 from typing import List, Dict, Optional, Set
+import re
 
 from abacura.mud import OutputMessage
 from abacura.plugins.events import AbacuraMessage
 from abacura_kallisti.atlas.wilderness import WildernessGrid
 from abacura_kallisti.mud.area import Area
+from abacura_kallisti.mud.mob import Mob
 from .terrain import TERRAIN, Terrain
 
 
@@ -172,7 +174,7 @@ class RoomCorpse:
 
 
 @dataclass
-class RoomMob:
+class RoomMob(Mob):
     line: str = field(repr=False, default='')
     description: str = ''
     quantity: int = 1
@@ -186,7 +188,9 @@ class RoomMob:
     ranged: bool = False
     flags: Set[str] = field(default_factory=set)
 
-    # related mob from atlas
+    def copy_mob_properties(self, mob: Mob):
+        for f in fields(Mob):
+            setattr(self, f.name, getattr(mob, f.name))
 
 
 @dataclass
@@ -202,6 +206,20 @@ class ScannedRoom(Room):
     blood_trail: str = ''
     hunt_tracks: str = ''
     msdp_exits: Dict[str, str] = field(default_factory=dict)
+
+    def identify_room_mobs(self):
+        if len(self.area.mobs) == 0:
+            return
+
+        for rm in self.room_mobs:
+            for am in self.area.mobs:
+                if am.starts_with != '' and re.match(f"^{am.starts_with}[, ]", rm.description):
+                    rm.copy_mob_properties(am)
+                    continue
+
+                if f" {am.name} " in rm.description:
+                    rm.copy_mob_properties(am)
+                    continue
 
 
 @dataclass
