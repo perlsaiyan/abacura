@@ -11,6 +11,7 @@ class LOKTaskQueue(Static):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.queue_display = DataTable(show_cursor=False)
+        self.queue_display.can_focus = False
 
     def compose(self) -> ComposeResult:
         yield Static("Task Queue",classes="WidgetTitle", id="tq_title")

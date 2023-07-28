@@ -65,10 +65,11 @@ class LOKOdometer(Static):
         super().__init__(*args, **kwargs)
         self.queue_display = DataTable(show_cursor=False, id="odometer_table")
         self.queue_display.cursor_type = "row"
-        #self.queue_display.can_focus = False
+        self.queue_display.styles.width = "100%"
+        self.queue_display.can_focus = False
         self.styles.height = 7
-        #self.can_focus = False
-        #self.can_focus_children = False
+        self.can_focus = False
+        self.can_focus_children = False
         self.odometers: List[MudMetrics] = []
 
     def compose(self) -> ComposeResult:
@@ -77,7 +78,7 @@ class LOKOdometer(Static):
 
     def on_mount(self):
         self.screen.session.add_listener(self.update_odometers)
-        self.queue_display.add_column("Mission", key="mission")
+        self.queue_display.add_column("Mission", key="mission", width=10)
         self.queue_display.add_column("Elapsed", key="elapsed")
         self.queue_display.add_column("Kills/h", key="kills")
         self.queue_display.add_column("XP/h", key="xp")
