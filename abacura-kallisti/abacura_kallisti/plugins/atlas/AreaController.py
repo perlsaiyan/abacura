@@ -14,7 +14,7 @@ from abacura_kallisti.atlas.world import Room, Exit
 from abacura_kallisti.plugins import LOKPlugin
 
 
-class WorldController(LOKPlugin):
+class AreaController(LOKPlugin):
 
     def __init__(self):
         super().__init__()

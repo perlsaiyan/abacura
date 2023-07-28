@@ -524,5 +524,6 @@ class RoomWatcher(LOKPlugin):
                          title="Room Contents", title_justify="left")
 
         group = Group(header_text, Text(""), properties_columns, Text(""), table)
-        panel = Panel(group, width=110)
+        from rich.style import Style
+        panel = Panel(group, width=110, style=Style(bgcolor="#334455"))
         self.output(panel, highlight=True)
