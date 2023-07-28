@@ -35,6 +35,7 @@ SessionName {
     height: 100%;
     width: 100%;
     display: block;
+    background: #101018;
 }
 
 #motd {
@@ -42,3 +43,8 @@ SessionName {
     display: block;
     layer: lower;
 }
+
+.BKS #leftsidebar {
+     dock: left;
+     width: 45;
+ }

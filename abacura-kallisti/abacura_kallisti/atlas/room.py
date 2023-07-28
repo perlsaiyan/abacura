@@ -195,12 +195,12 @@ class RoomMob(Mob):
 
 @dataclass
 class ScannedRoom(Room):
-    room_header: RoomHeader = field(default_factory=RoomHeader)
+    header: RoomHeader = field(default_factory=RoomHeader)
     area: Area = field(default_factory=Area)
-    room_items: List[RoomItem] = field(default_factory=list)
-    room_corpses: List[RoomCorpse] = field(default_factory=list)
-    room_mobs: List[RoomMob] = field(default_factory=list)
-    room_players: List[RoomPlayer] = field(default_factory=list)
+    items: List[RoomItem] = field(default_factory=list)
+    corpses: List[RoomCorpse] = field(default_factory=list)
+    mobs: List[RoomMob] = field(default_factory=list)
+    players: List[RoomPlayer] = field(default_factory=list)
     minimap: ScannedMiniMap = field(default_factory=ScannedMiniMap)
     warded: bool = False
     blood_trail: str = ''
@@ -211,7 +211,7 @@ class ScannedRoom(Room):
         if len(self.area.mobs) == 0:
             return
 
-        for rm in self.room_mobs:
+        for rm in self.mobs:
             for am in self.area.mobs:
                 if am.starts_with != '' and re.match(f"^{am.starts_with}[, ]", rm.description):
                     rm.copy_mob_properties(am)

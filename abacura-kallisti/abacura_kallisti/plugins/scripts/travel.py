@@ -46,7 +46,7 @@ class TravelScript(LOKPlugin):
 
     @event(trigger="lok.room")
     def got_room(self, _message: RoomMessage):
-        # self.session.output(f"room event {_message.vnum} {_message.room.room_header}")
+        # self.session.output(f"room event {_message.vnum} {_message.room.header}")
         if self.navigation_path:
             self.continue_nav()
 

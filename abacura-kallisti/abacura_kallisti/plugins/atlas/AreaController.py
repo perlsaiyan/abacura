@@ -100,7 +100,7 @@ class AreaController(LOKPlugin):
     def mob_command(self, n: int = -1):
         if n < 0:
             rows = []
-            for i, m in enumerate(self.room.room_mobs):
+            for i, m in enumerate(self.room.mobs):
                 rows.append((i, m.name, m.level, m.description, m.race, m.cls, m.starts_with, m.attack_name))
 
             self.output(tabulate(rows, headers=("#", "Name", "Level", "Description",
@@ -108,11 +108,11 @@ class AreaController(LOKPlugin):
                                  title="Scanned Mobs in Room", title_justify="left"))
             return
 
-        if n > len(self.room.room_mobs):
+        if n > len(self.room.mobs):
             raise CommandError(f"Invalid mob # '{n}'")
 
         properties = []
-        mob = self.room.room_mobs[n]
+        mob = self.room.mobs[n]
         for f in fields(mob):
             if f.name == 'line':
                 continue
