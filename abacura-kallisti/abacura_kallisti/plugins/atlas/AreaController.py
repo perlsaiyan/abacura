@@ -51,16 +51,14 @@ class AreaController(LOKPlugin):
                 known: bool = e.to_vnum in self.world.rooms
                 visited = known and self.world.rooms[e.to_vnum].last_visited
 
-                rows.append([r.vnum, r.name, e.direction, e.to_vnum, bool(e.closes), bool(e.locks), known, visited])
-
-        headers = ("_Room", "Name", "Direction", "_To Room", "Closes", "Locks", "Known", "Visited")
-        table = tabulate(rows, headers=headers, caption=f"{len(sorted_rooms)} of {len(rooms)} rooms shown")
-        self.session.output(table, actionable=False)
+                rows.append([r.vnum, self.world.strip_ansi_codes(r.name), e.direction, e.to_vnum,
+                             bool(e.closes), bool(e.locks), known, visited])
 
         num_visited = len([r for r in rooms if r.last_visited])
-        num_rooms = len(rooms)
-        self.session.output(f"\nArea:{area}\n\n  Known Rooms: {num_rooms:5d}\nVisited Rooms: {num_visited:5d}",
-                            actionable=False)
+        headers = ("_Room", "Name", "Direction", "_To Room", "Closes", "Locks", "Known", "Visited")
+        table = tabulate(rows, headers=headers,
+                         caption=f"{len(sorted_rooms)} of {len(rooms)} rooms shown.   {num_visited} visited")
+        self.output(AbacuraPanel(table, title=f"Rooms in '{area}'"))
 
     @command()
     def area(self):
@@ -69,11 +67,7 @@ class AreaController(LOKPlugin):
         """
 
         pview = AbacuraPropertyGroup(self.room.area, exclude={"mobs"})
-
-        rows = []
-        for mob in self.room.area.mobs:
-            rows.append((mob.name, mob.starts_with, mob.attack_name, mob.level, mob.race, mob.cls))
-
+        rows = [(m.name, m.starts_with, m.attack_name, m.level, m.race, m.cls) for m in self.room.area.mobs]
         headers = ["Name", "Starts With", "Attack Name", "Level", "Race", "Class"]
         table = tabulate(rows, headers=headers, title="Known Mobs")
         group = Group(pview, Text(""), table)

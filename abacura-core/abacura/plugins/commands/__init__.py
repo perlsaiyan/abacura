@@ -38,13 +38,15 @@ class Command:
 
         d = self.evaluate_options(submitted_options)
         if 'help' in d:
-            return self.get_help()
+            return False
 
         submitted_arguments = [s for s in submitted_arguments if not s.startswith("-")]
 
         d.update(self.evaluate_arguments(submitted_arguments, command_arguments))
 
-        return self.callback(**d)
+        self.callback(**d)
+
+        return True
 
     def evaluate_value(self, parameter: inspect.Parameter, submitted_value: str):
         if parameter.annotation in [int, "int"]:
@@ -141,74 +143,6 @@ class Command:
         lines = [line.strip() for line in doc.split("\n") if len(line.strip())]
         return "" if len(lines) == 0 else lines[0]
 
-    def get_help(self):
-        help_text = [""]
-
-        doc_lines = []
-
-        parameter_doc = {}
-        fn_doc = getattr(self.callback, '__doc__') or ''
-        re_param = re.compile(r".*:param (\w+): (.*)")
-        for line in fn_doc.split("\n"):
-            if m := re_param.match(line):
-                name, description = m.groups()
-                parameter_doc[name] = description
-            elif len(line.strip(" \n")):
-                doc_lines.append(line.strip())
-
-        parameters = self.get_parameters()
-        parameter_names = []
-        parameter_help = []
-        for parameter in parameters:
-            if parameter.default is inspect.Parameter.empty:
-                parameter_names.append(parameter.name)
-            else:
-                parameter_names.append(f"[{parameter.name}]")
-
-            if parameter.name in parameter_doc:
-                pd = f" [{str(parameter.default)}]"
-                if parameter.default is inspect.Parameter.empty:
-                    pd = ""
-                elif parameter.default in (None, '', 0):
-                    pd = " (optional)"
-
-                parameter_help.append(f"  {parameter.name:18s}{pd:>12s} : {parameter_doc.get(parameter.name)}")
-
-        if len(doc_lines):
-            help_text.append("\n".join(doc_lines) + "\n")
-
-        help_text.append("Usage:")
-        help_text.append("")
-        help_text.append(f"  #{self.name} {' '.join(parameter_names)}")
-
-        if len(parameter_help):
-            help_text.append("\nArguments:\n")
-            help_text.append("\n".join(parameter_help))
-
-        option_help = []
-        for name, p in self.get_options().items():
-            if p.annotation in (bool, 'bool'):
-                oname = f"--{name.lstrip('_')}"
-                option_help.append(f"  {oname:30s} : {parameter_doc.get(name, '')}")
-            else:
-
-                ptype = getattr(p.annotation, '__name__', p.annotation)
-                oname = f"--{name.lstrip('_') + '=<' + ptype + '>'}"
-                odefault = f" [{str(p.default)}]"
-                if p.default is inspect.Parameter.empty:
-                    odefault = ""
-                elif p.default in (None, '', 0):
-                    odefault = " (optional)"
-
-                option_help.append(f"  {oname:18s}{odefault:>12s} : {parameter_doc.get(name, '')}")
-
-        if len(option_help):
-            help_text.append("\nOptions:\n")
-            help_text += sorted(option_help)
-            help_text.append("")
-
-        return "\n".join(help_text)
-
 
 class CommandManager:
 
@@ -263,6 +197,14 @@ class CommandManager:
 
         return command, argument_str
 
+    def show_command_help(self, command: Command):
+        help_command = self.commands.get('help', None)
+
+        if help_command is None:
+            self.session.output(command.get_help())
+        else:
+            help_command.callback(command)
+
     def execute_command(self, command_line: str) -> bool:
         if not len(command_line):
             return False
@@ -276,14 +218,15 @@ class CommandManager:
 
             command, arg_str = self.parse_command_line(command_line)
             self.session.output(f"[green][italic]> {escape(command_line)}", markup=True, highlight=True)
-            message = command.execute(arg_str)
-            if message:
-                self.session.output(message)
+            result = command.execute(arg_str)
+            if not result:
+                self.show_command_help(command)
 
         except CommandArgumentError as exc:
             self.session.show_exception(f"[bold orange1]! {str(exc)}", exc, show_tb=False)
             if command is not None:
-                self.session.output(f"[gray][italic]> {escape(command.get_help())}", markup=True, highlight=True)
+                self.show_command_help(command)
+                # self.session.output(f"[gray][italic]> {escape(command.get_help())}", markup=True, highlight=True)
 
         except CommandError as exc:
             self.session.show_exception(f"[bold orange1]! {str(exc)}", exc, show_tb=False)

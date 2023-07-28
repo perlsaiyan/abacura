@@ -1,5 +1,8 @@
 from abacura.plugins import Plugin, command
+from abacura.plugins.commands import Command
+from abacura.utils.renderables import AbacuraPanel, tabulate, box, Group, Text, OutputColors
 import re
+import inspect
 
 
 class CommandHelper(Plugin):
@@ -8,27 +11,119 @@ class CommandHelper(Plugin):
     def __init__(self):
         super().__init__()
 
-    @command(hide=True)
-    def help(self, hidden: bool = False):
+    def show_command_help(self, cmd: Command):
+        help_text = [""]
+
+        doc_lines = []
+
+        parameter_doc = {}
+        fn_doc = getattr(cmd.callback, '__doc__') or ''
+        re_param = re.compile(r".*:param (\w+): (.*)")
+        for line in fn_doc.split("\n"):
+            if m := re_param.match(line):
+                name, description = m.groups()
+                parameter_doc[name] = description
+            elif len(line.strip(" \n")):
+                doc_lines.append(line.strip())
+
+        parameters = cmd.get_parameters()
+        parameter_names = []
+        parameter_rows = []
+        for parameter in parameters:
+            if parameter.default is inspect.Parameter.empty:
+                parameter_names.append(parameter.name)
+            else:
+                parameter_names.append(f"[{parameter.name}]")
+
+            if parameter.name in parameter_doc:
+                pd = f" [{str(parameter.default)}]"
+                if parameter.default is inspect.Parameter.empty:
+                    pd = ""
+                elif parameter.default in (None, '', 0):
+                    pd = " (optional)"
+
+                parameter_rows.append((parameter.name, pd, parameter_doc.get(parameter.name, "")))
+
+        if len(doc_lines):
+            help_text.append(Text(" Purpose:\n", style=OutputColors.section))
+            for line in doc_lines:
+                help_text.append(Text("   " + line))
+            help_text.append(Text(" "))
+            # help_text.append(Text("\n".join(doc_lines) + "\n   "))
+
+        help_text.append(Text(" Usage:\n", style=OutputColors.section))
+        help_text.append(Text(f"   #{cmd.name} {' '.join(parameter_names)}"))
+
+        g = Group(*[t for t in help_text])
+
+        if len(parameter_rows):
+            tbl = tabulate(parameter_rows, headers=["Arguments"], box=box.SIMPLE_HEAD,
+                           header_style=OutputColors.section)
+            g.renderables.append(tbl)
+
+        option_rows = []
+        for name, p in cmd.get_options().items():
+            if p.annotation in (bool, 'bool'):
+                oname = f"--{name.lstrip('_')}"
+                option_rows.append((oname, "", parameter_doc.get(name, '')))
+            else:
+                ptype = getattr(p.annotation, '__name__', p.annotation)
+                oname = f"--{name.lstrip('_') + '=<' + ptype + '>'}"
+                odefault = f" [{str(p.default)}]"
+                if p.default is inspect.Parameter.empty:
+                    odefault = ""
+                elif p.default in (None, '', 0):
+                    odefault = " (optional)"
+                option_rows.append((oname, odefault, parameter_doc.get(name, '')))
+
+        if len(option_rows):
+            tbl = tabulate(sorted(option_rows),
+                           headers=["Options"],
+                           box=box.SIMPLE_HEAD,
+                           header_style=OutputColors.section)
+            g.renderables.append(tbl)
+
+        self.output(AbacuraPanel(g, title=f"#{cmd.name} command"))
+
+    @command(name="help", hide=True)
+    def list_commands(self, name: str = '', hidden: bool = False):
         """
         Show available commands
 
+        :param name: Show details about a specific command
         :param hidden: Show hidden commands
         """
-        help_text = ["Plugin Commands", "\nUsage: @command <arguments>", "\nAvailable Commands: "]
+
+        if isinstance(name, Command):
+            self.show_command_help(name)
+            return
+
+        commands: list[Command] = list(self.director.command_manager.commands.values())
+
+        if name != '':
+            commands = [c for c in commands if c.name.startswith(name.lower())]
+            if len(commands) > 0:
+                self.show_command_help(commands[0])
+                return
+            else:
+                self.output(f"[bold red]Unknown command '{name}'", markup=True)
 
         commands = [c for c in self.director.command_manager.commands.values() if c.hide_help == hidden]
+        rows = []
 
         for c in sorted(commands, key=lambda c: c.name):
-            help_text.append(f"  {c.name:14s} : {c.get_description()}")
+            rows.append((c.name, c.get_description()))
+            # help_text.append(f"  {c.name:14s} : {c.get_description()}")
 
-        help_text.append("")
-        self.session.output("\n".join(help_text))
+        tbl = tabulate(rows, headers=["Command", "Description"], box=box.MINIMAL,
+                       # title="Usage: #command <arguments>",
+                       caption="Use '#<command> -?' to get help on a specific <command>")
+        self.session.output(AbacuraPanel(tbl, title="Available Commands"))
 
     @command(name="?")
     def help_question(self):
         """Display list of commands"""
-        self.help()
+        self.list_commands()
 
     @command(hide=True)
     def repeat(self, n: int, text: str):

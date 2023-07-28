@@ -109,7 +109,8 @@ def tabulate(tabular_data, headers=(), float_format="9.3f", **kwargs) -> Abacura
             justify = "right"
         else:
             justify = "left"
-        tbl.add_column(header=h.lstrip("_") or "", justify=justify)
+        hdr = h.lstrip("_") if h else ""
+        tbl.add_column(header=hdr, justify=justify)
 
     for row in tabular_data:
         values = [format(v, float_format) if ct in (float, "float") else str(v) for ct, v in zip(column_types, row)]
