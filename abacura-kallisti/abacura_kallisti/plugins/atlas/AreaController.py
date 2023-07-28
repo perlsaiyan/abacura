@@ -1,14 +1,11 @@
 import importlib
 from dataclasses import fields
 
-from rich.columns import Columns
-from rich.console import Group
-from rich.panel import Panel
 from rich.text import Text
 
-import abacura.utils.tabulate as tblt
+import abacura.utils.renderables as tblt
 from abacura.plugins import command, CommandError
-from abacura.utils.tabulate import tabulate
+from abacura.utils.renderables import tabulate, AbacuraPropertyGroup, AbacuraPanel, Group
 from abacura_kallisti.atlas.wilderness import WildernessGrid
 from abacura_kallisti.atlas.world import Room, Exit
 from abacura_kallisti.plugins import LOKPlugin
@@ -54,16 +51,14 @@ class AreaController(LOKPlugin):
                 known: bool = e.to_vnum in self.world.rooms
                 visited = known and self.world.rooms[e.to_vnum].last_visited
 
-                rows.append([r.vnum, r.name, e.direction, e.to_vnum, bool(e.closes), bool(e.locks), known, visited])
-
-        headers = ("_Room", "Name", "Direction", "_To Room", "Closes", "Locks", "Known", "Visited")
-        table = tabulate(rows, headers=headers, caption=f"{len(sorted_rooms)} of {len(rooms)} rooms shown")
-        self.session.output(table, actionable=False)
+                rows.append([r.vnum, self.world.strip_ansi_codes(r.name), e.direction, e.to_vnum,
+                             bool(e.closes), bool(e.locks), known, visited])
 
         num_visited = len([r for r in rooms if r.last_visited])
-        num_rooms = len(rooms)
-        self.session.output(f"\nArea:{area}\n\n  Known Rooms: {num_rooms:5d}\nVisited Rooms: {num_visited:5d}",
-                            actionable=False)
+        headers = ("_Room", "Name", "Direction", "_To Room", "Closes", "Locks", "Known", "Visited")
+        table = tabulate(rows, headers=headers,
+                         caption=f"{len(sorted_rooms)} of {len(rooms)} rooms shown.   {num_visited} visited")
+        self.output(AbacuraPanel(table, title=f"Rooms in '{area}'"))
 
     @command()
     def area(self):
@@ -71,41 +66,27 @@ class AreaController(LOKPlugin):
         View all known mobs in the current area
         """
 
-        header_text = Text.assemble((f"Area ", "purple"), "[", (self.room.area.name, "bright cyan"), "]")
-
-        properties = []
-        for f in fields(self.room.area):
-            if f.name == 'mobs':
-                continue
-            t = Text.assemble((f"{f.name:>15.15s}: ", "bold white"),
-                              (str(getattr(self.room.area, f.name, '')), "white"))
-            properties.append(t)
-
-        # blood = Text.assemble((f"{'blood':>12.12s}: ", "bold white"), (self.room.blood_trail, "bold red"))
-        # hunt = Text.assemble((f"{'tracks':>12.12s}: ", "bold white"), (self.room.hunt_tracks, "bold green"))
-
-        properties_columns = Columns(properties, width=50)
-
-        rows = []
-        for mob in self.room.area.mobs:
-            rows.append((mob.name, mob.starts_with, mob.attack_name, mob.level, mob.race, mob.cls))
-        table = tabulate(rows, headers=["Name", "Starts With", "Attack Name", "Level", "Race", "Class"],
-                         title="Known Area Mobs", title_justify="left")
-
-        group = Group(header_text, Text(""), properties_columns, Text(""), table)
-        panel = Panel(group, width=110)
-        self.output(panel, highlight=True)
+        pview = AbacuraPropertyGroup(self.room.area, exclude={"mobs"})
+        rows = [(m.name, m.starts_with, m.attack_name, m.level, m.race, m.cls) for m in self.room.area.mobs]
+        headers = ["Name", "Starts With", "Attack Name", "Level", "Race", "Class"]
+        table = tabulate(rows, headers=headers, title="Known Mobs")
+        group = Group(pview, Text(""), table)
+        self.output(AbacuraPanel(group, title=f"Area [{self.room.area.name}]"))
 
     @command(name="mob")
     def mob_command(self, n: int = -1):
+        """
+        Show mobs in the room and associated atlas information
+        """
         if n < 0:
             rows = []
             for i, m in enumerate(self.room.mobs):
-                rows.append((i, m.name, m.level, m.description, m.race, m.cls, m.starts_with, m.attack_name))
+                rows.append((i, m.name, m.level, m.quantity, m.description, m.race, m.cls, m.starts_with, m.attack_name))
 
-            self.output(tabulate(rows, headers=("#", "Name", "Level", "Description",
-                                                "Race", "Class", "Startswith", "Attack Name"),
-                                 title="Scanned Mobs in Room", title_justify="left"))
+            tbl = tabulate(rows, headers=("#", "Name", "Level", "Quantity", "Description",
+                                          "Race", "Class", "Startswith", "Attack Name"))
+
+            self.output(AbacuraPanel(tbl, title=f"Mobs in [{self.room.vnum}] - {self.room.name}"))
             return
 
         if n > len(self.room.mobs):

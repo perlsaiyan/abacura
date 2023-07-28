@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Callable
 from rich.table import Table
 
 from abacura.plugins import Plugin, command, CommandError
+from abacura.utils.renderables import tabulate, AbacuraPanel
 
 if TYPE_CHECKING:
     pass
@@ -12,24 +13,17 @@ if TYPE_CHECKING:
 class TickerCommand(Plugin):
 
     def show_tickers(self):
-        tbl = Table(title="All tickers")
-        tbl.add_column("Name")
-        tbl.add_column("Callback")
-        tbl.add_column("Source")
-        tbl.add_column("Repeats", justify="right")
-        tbl.add_column("Seconds", justify="right")
-        tbl.add_column("Next Tick")
-
+        rows = []
         for ticker in self.director.ticker_manager.tickers:
             callback_name = getattr(ticker.callback, "__qualname__", str(ticker.callback))
             source = ticker.source.__class__.__name__ if ticker.source else ""
             if isinstance(ticker.source, TickerCommand):
                 callback_name = f"'{ticker.commands}'"
 
-            tbl.add_row(ticker.name, callback_name, source,
-                        str(ticker.repeats), format(ticker.seconds, "7.3f"), str(ticker.next_tick))
+            rows.append((ticker.name, callback_name, source, ticker.repeats, ticker.seconds, ticker.next_tick))
 
-        self.output(tbl)
+        tbl = tabulate(rows, headers=["Name", "Callback", "Source", "Repeats", "Seconds", "Next Tick"])
+        self.output(AbacuraPanel(tbl, title="Registered Tickers"))
 
     @command
     def ticker(self, name: str = '', commands: str = '', seconds: float = 0, repeats: int = -1, delete: bool = False):

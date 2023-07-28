@@ -3,35 +3,26 @@ Commands for dealing with textual/async workers
 """
 from __future__ import annotations
 
-from rich.panel import Panel
-from rich.table import Table
-
 from abacura.plugins import Plugin, command
+from abacura.utils.renderables import tabulate, AbacuraPanel
 
 
 class WorkersPlugin(Plugin):
 
     @command(name="workers")
-    def workers(self, group: str=""):
+    def workers(self, group: str = ""):
         """
         Show all workers or for optional group
 
-        :param group: Show works for this group only
+        :param group: Show workers for this group only
         """
         
-        if group == "":
-            group = self.session.name
+        title = "Running Workers"
+        title += "" if group == "" else f" in Group '{group}'"
 
-        if group == "global":
-            group = ""
-            table = Table(title="[cyan]Current Running Workers")
-        else:
-            table = Table(title=f"[cyan]Current Running Workers in Group '{group}'")
-        table.add_column("Group", justify="right", style="bold white")
-        table.add_column("Name", justify="left", style="bold white")
-        table.add_column("Description", justify="left", style="bold white")
-        
+        rows = []
         for worker in filter(lambda x: group == "" or group == x.group, self.session.abacura.workers):
-            table.add_row(worker.group, worker.name, worker.description)
-        
-        self.output(Panel(table), actionable=False, highlight=True)
+            rows.append((worker.group, worker.name, worker.description))
+
+        tbl = tabulate(rows, headers=["Group", "Name", "Description"])
+        self.output(AbacuraPanel(tbl, title=title), actionable=False, highlight=True)

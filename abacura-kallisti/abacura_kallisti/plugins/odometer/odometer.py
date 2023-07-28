@@ -7,7 +7,7 @@ from abacura.plugins import command, action, ticker
 from abacura.plugins.events import AbacuraMessage
 from abacura.plugins.events import event
 from abacura.utils import human_format
-from abacura.utils.tabulate import tabulate
+from abacura.utils.renderables import tabulate, AbacuraPanel
 
 
 class OdometerController(LOKPlugin):
@@ -56,7 +56,7 @@ class OdometerController(LOKPlugin):
                          ))
 
         headers = ["#", "Mission", "Start", "Elapsed", "Kills/h", "XP/h", "$/h"]
-        self.output(tabulate(rows, headers=headers))
+        self.output(AbacuraPanel(tabulate(rows, headers=headers), title="Odometers"))
 
     @ticker(seconds=1, name="Odometer")
     def odometer_ticker(self):

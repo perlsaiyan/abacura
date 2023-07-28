@@ -7,6 +7,7 @@ from rich.table import Table
 from rich.text import Text
 
 from abacura.plugins import Plugin, command, CommandError
+from abacura.utils.renderables import tabulate, AbacuraPanel
 
 
 class PluginSession(Plugin):
@@ -78,11 +79,15 @@ class PluginSession(Plugin):
         tbl.add_column("# Events", justify="right")
         tbl.add_column("# Tickers", justify="right")
 
+        rows = []
         for base, name, doc, indicator, counts in sorted(plugin_rows):
-            tbl.add_row(base, name, doc, indicator,
-                        str(counts["action"]), str(counts["command"]), str(counts["event"]), str(counts["ticker"]))
-        self.output(tbl)
-        self.output("\n")
+            rows.append((base, name, doc, indicator,
+                         counts["action"], counts["commands"], counts["event"], counts["ticker"]))
+        tbl = tabulate(rows,
+                       title="Plugins",
+                       headers=["Type", "Name", "Description", "Register Actions",
+                                "# Actions", "# Commands", "# Events", "# Tickers"])
+        self.output(AbacuraPanel(tbl))
 
     def show_failures(self):
         if len(self.session.plugin_loader.failures):
@@ -124,15 +129,13 @@ class PluginSession(Plugin):
 
         registrations = self.director.get_registrations_for_object(plugin)
 
-        tbl = Table(title=f" Details for Plugin {loaded_plugin.package}.{plugin.get_name()}", title_justify="left")
-        tbl.add_column("Type")
-        tbl.add_column("Name")
-        tbl.add_column("Callback")
-        tbl.add_column("Details")
+        rows = []
         for r in registrations:
-            tbl.add_row(r.registration_type, r.name, r.callback.__qualname__, r.details)
+            rows.append((r.registration_type, r.name, r.callback.__qualname__, r.details))
 
-        self.output(tbl)
+        tbl = tabulate(rows, headers=["Type", "Name", "Callback", "Details"], title=f"Registered Callbacks")
+
+        self.output(AbacuraPanel(tbl, title=f"{loaded_plugin.package}.{plugin.get_name()}"))
 
     @command
     def reload(self, plugin_name: str = "", auto: bool = False):

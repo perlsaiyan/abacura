@@ -13,16 +13,6 @@ from .wilderness import WildernessGrid
 ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 
-def strip_ansi_codes(s: str) -> str:
-    """
-    Remove ansi color codes / escape sequences from a string
-    :param s: The original string with color codes
-    :return: A string with the color codes stripped
-    """
-    # ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    return ansi_escape.sub('', s)
-
-
 class World:
     def __init__(self, db_filename: str):
         db_path = Path(db_filename).expanduser()
@@ -40,6 +30,16 @@ class World:
         start_time = datetime.utcnow()
         self.load()
         self.load_time = (datetime.utcnow() - start_time).total_seconds()
+
+    @staticmethod
+    def strip_ansi_codes(s: str) -> str:
+        """
+        Remove ansi color codes / escape sequences from a string
+        :param s: The original string with color codes
+        :return: A string with the color codes stripped
+        """
+        # ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+        return ansi_escape.sub('', s)
 
     def del_exit(self, vnum: str, direction: str):
         if vnum not in self.rooms:
@@ -123,7 +123,7 @@ class World:
 
             new_exits[d] = e
 
-        terrain = strip_ansi_codes(terrain)
+        terrain = self.strip_ansi_codes(terrain)
 
         # TODO: Should we really be creating a new room, or just updating the existing one with new values
         new_room = Room(area_name=area_name, vnum=vnum, name=name, terrain_name=terrain,

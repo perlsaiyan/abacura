@@ -8,7 +8,7 @@ from abacura.plugins import command, Plugin, ticker
 from abacura.plugins.task_queue import CQMessage
 
 from abacura.plugins.task_queue import _DEFAULT_PRIORITY, _DEFAULT_DURATION
-from abacura.utils.tabulate import tabulate
+from abacura.utils.renderables import tabulate, AbacuraPanel
 
 _RUNNER_INTERVAL: float = 0.1
 
@@ -31,8 +31,8 @@ class QueueRunner(Plugin):
                 rows.append((task.q, task.cmd, task.priority, task.dur, task.delay))
 
         tbl = tabulate(rows, headers=("Queue", "Command", "Priority", "Duration", "Delay"),
-                       title=f"Queued Commands for {q or 'all queues'}", title_justify="left")
-        self.output(tbl)
+                       title=f"Queued Commands")
+        self.output(AbacuraPanel(tbl, title=f"{q or 'All Queues'}"))
 
     @ticker(seconds=_RUNNER_INTERVAL, name="Queue Runner", repeats=-1)
     def queue_runner(self):

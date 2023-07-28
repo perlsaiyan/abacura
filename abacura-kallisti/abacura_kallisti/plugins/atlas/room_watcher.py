@@ -1,20 +1,18 @@
 import os
 import re
 import unicodedata
-from dataclasses import fields
+from dataclasses import fields, asdict
 from itertools import takewhile
 from typing import List, Pattern
 
-from rich.columns import Columns
 from rich.console import Group
-from rich.panel import Panel
 from rich.text import Text
 
 # from atlas.known_areas import KNOWN_AREAS
 from abacura.mud import OutputMessage
 from abacura.plugins import command, action
 from abacura.plugins.events import event, AbacuraMessage
-from abacura.utils.tabulate import tabulate
+from abacura.utils.renderables import tabulate, AbacuraPropertyGroup, AbacuraPanel
 from abacura_kallisti.atlas.room import RoomHeader, RoomPlayer, RoomMob, RoomItem, RoomCorpse
 from abacura_kallisti.atlas.room import ScannedMiniMap, ScannedRoom, RoomMessage
 from abacura_kallisti.mud.area import Area
@@ -301,11 +299,21 @@ class RoomWatcher(LOKPlugin):
                 self.output(f'[orange1]Marked room silent [{r.vnum}]', markup=True)
                 self.world.save_room(r.vnum)
 
+    @action(r"^\[\* You see your target's tracks leading (\w+)\.")
+    def tracks(self, direction: str):
+        self.room.hunt_tracks = direction
+
+    @action(r"\[\* You found ")
+    def found(self):
+        self.room.hunt_tracks = "here"
+
+    @action(r"You start searching for tracks but then realize .* is right here!")
+    def found2(self):
+        self.room.hunt_tracks = "here"
+
     @action("\x1b\\[1;35m", color=True)
     def bold_magenta(self, message: OutputMessage):
-
         # here_matched = self.re_room_here.match(message.stripped) is not None
-
         room_no_compass = self.re_room_no_compass.match(message.stripped) is not None
         room_compass = self.re_room_compass.match(message.stripped) is not None
         room_no_exits = self.re_room_no_exits.match(message.stripped) is not None
@@ -483,47 +491,33 @@ class RoomWatcher(LOKPlugin):
             self.test_room_messages(_load)
             return
 
-        header_text = Text.assemble((f"Scanned Room ", "purple"), "[", (self.room.vnum, "bright cyan"), "]")
-
-        properties = []
-        for f in fields(self.room.header):
-            if f.name == 'line':
-                continue
-            t = Text.assemble((f"{f.name:>12.12s}: ", "bold white"),
-                              (str(getattr(self.room.header, f.name, '')), "white"))
-            properties.append(t)
-
-        blood = Text.assemble((f"{'blood':>12.12s}: ", "bold white"), (self.room.blood_trail, "bold red"))
-        hunt = Text.assemble((f"{'tracks':>12.12s}: ", "bold white"), (self.room.hunt_tracks, "bold green"))
-
-        properties_columns = Columns(properties + [hunt, blood], width=50)
+        properties = {'vnum': self.room.vnum, 'area': self.room.area.name}
+        properties.update(asdict(self.room.header))
+        properties['blood'] = self.room.blood_trail
+        properties['hunt'] = self.room.hunt_tracks
 
         rows = []
         for corpse in self.room.corpses:
-            rows.append(("corpse", f"{corpse.description:20.20}", corpse.quantity, "", corpse.corpse_type, ''))
+            rows.append(("corpse", f"{corpse.description}", corpse.quantity, "", corpse.corpse_type, ''))
 
         for item in self.room.items:
-            rows.append(("item", f"{item.description:20.20}", item.quantity,
+            rows.append(("item", f"{item.description}", item.quantity,
                          f"{'blue item' if item.blue else ''}", item.flags, ''))
-            # self.output(f"{str(item):30.30}    " + item.line)
 
         for mob in self.room.mobs:
             details = {}
             if mob.level > 0:
                 details = {"level": mob.level, "race": mob.race}
 
-            rows.append(("mob", f"{mob.description:20.20}", mob.quantity,
+            rows.append(("mob", f"{mob.description}", mob.quantity,
                          f"{'has_quest' if mob.has_quest else ''}", mob.flags, details))
-            # self.output(f"{str(mob):30.30}    " + mob.line)
 
         for player in self.room.players:
-            rows.append(("player", f"{player.name:20.20}", '', player.race, player.flags, ''))
-            # self.output(f"{str(player):30.30}    " + player.line)
+            rows.append(("player", f"{player.name:}", '', player.race, player.flags, ''))
 
+        property_view = AbacuraPropertyGroup(properties, "Properties", exclude={"line"})
         table = tabulate(rows, headers=["Type", "Description", "Qty", "Misc", "Flags", "Details"],
-                         title="Room Contents", title_justify="left")
-
-        group = Group(header_text, Text(""), properties_columns, Text(""), table)
-        from rich.style import Style
-        panel = Panel(group, width=110, style=Style(bgcolor="#334455"))
+                         title="Contents", caption=f"count: {len(rows)}")
+        group = Group(property_view, Text(""), table)
+        panel = AbacuraPanel(group, title=f"Scanned Room [{self.room.vnum}]")
         self.output(panel, highlight=True)

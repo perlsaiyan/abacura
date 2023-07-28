@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Optional
 from pathlib import Path
+from collections import Counter
 
 import tomlkit
 
@@ -23,7 +24,7 @@ class LocationList:
 
     def save(self):
         toml_structure = {}
-        for c in self.get_categories():
+        for c in self.get_categories().keys():
             toml_structure[c] = {loc.name: loc.vnum for loc in self.get_category(c) if not loc.temporary}
 
         with open(self.loc_filepath, 'w') as f:
@@ -74,9 +75,8 @@ class LocationList:
         self.locations = [loc for loc in self.locations if loc != existing_location]
         self.save()
 
-    def get_categories(self) -> List[str]:
-        unique_categories = {a.category for a in self.locations}
-        return list(sorted(unique_categories))
+    def get_categories(self) -> Counter:
+        return Counter([a.category for a in self.locations])
 
     def get_category(self, category: str) -> List[Location]:
         return [loc for loc in self.locations if loc.category.lower() == category.lower()]
