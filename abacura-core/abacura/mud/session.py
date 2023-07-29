@@ -350,7 +350,7 @@ class Session(BaseSession):
 
                 rows.append(row)
 
-            self.output(AbacuraPanel(tabulate(rows, title="Abacura Sessions"), markup=True, highlight=True))
+            self.output(AbacuraPanel(tabulate(rows, title="Abacura Sessions")), markup=True, highlight=True)
         else:
             if name in self.abacura.sessions:
                 self.abacura.set_session(name)
