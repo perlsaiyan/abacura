@@ -10,6 +10,7 @@ from abacura.plugins.events import event, AbacuraMessage
 from abacura_kallisti.mud.player import PlayerSkill
 from abacura_kallisti.mud.skills import SKILLS, Skill, SKILL_COMMANDS
 from abacura_kallisti.plugins import LOKPlugin
+from abacura.utils.renderables import AbacuraPanel, tabulate, Group, Text, OutputColors
 
 
 class AutoBuff(LOKPlugin):
@@ -107,33 +108,38 @@ class AutoBuff(LOKPlugin):
         return buff.command
 
     @command(name="autobuff")
-    def list_autobufs(self):
+    def list_autobuffs(self):
         """
         Show known buffs, will add current or expected buffs or something
         """
-        tbl = Table(title="Known Buff Affects")
-        tbl.add_column("Buff")
-        tbl.add_column("Hours Left")
-        tbl.add_column("AcquisitionMethod")
-        tbl.add_column("Affect")
-
+        rows = []
         for buff in self.get_player_buffs():
-            remaining = self.msdp.get_affect_hours(buff.affect_name or buff.skill_name)
+            row = {"Buff": buff.skill_name,
+                   "Hours Left": self.msdp.get_affect_hours(buff.affect_name or buff.skill_name),
+                   "Acquisition Method": self.acquisition_method(buff),
+                   "Affect": buff.affect_name}
+            rows.append(row)
+
+        def style_row(row):
+            remaining = row[1]
+            acq = row[2]
             if remaining > 5:
                 color = "green"
             elif remaining > 0:
                 color = "yellow"
-            elif self.acquisition_method(buff):
+            elif acq:
                 color = "orange1"
-                remaining = "-"
+                row[1] = "-"
             else:
                 color = "red"
-                remaining = "-"
+                row[1] = "-"
 
-            acq = self.acquisition_method(buff) or "None"
-            tbl.add_row(buff.skill_name, str(remaining), acq, buff.affect_name, style=color)
+            return color
 
-        self.output(Panel(tbl), actionable=False)
+        pc_buffs = Text.assemble((" PC Buffs\n\n", OutputColors.section), ("  " + str(self.pc.buffs), ""))
+        tbl = tabulate(rows, row_styler=style_row)
+
+        self.output(AbacuraPanel(Group(pc_buffs, Text(), tbl), title="Autobuffs"), actionable=False)
 
     @action(r"Skill/Spell +Cast Level +Mp.Sp +Skilled +Rank +Bonus +Damage")
     def skill_start(self):

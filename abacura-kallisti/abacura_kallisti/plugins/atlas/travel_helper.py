@@ -28,7 +28,6 @@ class TravelHelper(LOKPlugin):
             self.output(f"[orange1]Unable to compute path to {destination.vnum}", markup=True)
             return
 
-        cost = nav_path.get_travel_cost()
         speedwalk = nav_path.get_simplified_path()
 
         if not detailed:
@@ -49,10 +48,11 @@ class TravelHelper(LOKPlugin):
         tbl = tabulate(rows, headers=("_Vnum", "_To Vnum", "Commands", "Direction", "Door",
                                       "Closes", "Locks", "Cost", "Terrain"),
                        title=f"Steps",
-                       caption=f" Path computed in {1000 * path_elapsed_time:6.3f}ms")
+                       caption=f" Path computed in {1000 * path_elapsed_time:.0f}ms",
+                       show_footer=True)
 
-        tbl.columns[7].footer = str(cost)
-        tbl.columns[1].footer = "blar"
+        tbl.columns[7].footer = str(nav_path.get_travel_cost()
+)
         g = Group(speedwalk, Text(), tbl)
         self.output(AbacuraPanel(g, title=f"Path to [{destination.vnum}] - {destination.name}"))
 
