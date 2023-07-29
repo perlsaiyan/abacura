@@ -114,30 +114,24 @@ class AutoBuff(LOKPlugin):
         """
         rows = []
         for buff in self.get_player_buffs():
+            acq = self.acquisition_method(buff)
+            remaining = self.msdp.get_affect_hours(buff.affect_name or buff.skill_name)
+            if remaining <= 0:
+                color = "orange1" if acq else "red"
+                remaining = " -"
+            else:
+                color = "green" if remaining > 5 else "yellow"
+                remaining = f"{remaining:2}"
+
             row = {"Buff": buff.skill_name,
-                   "Hours Left": self.msdp.get_affect_hours(buff.affect_name or buff.skill_name),
-                   "Acquisition Method": self.acquisition_method(buff),
+                   "Hours Left": f"[{color}]{remaining}",
+                   "Acquisition Method": acq,
                    "Affect": buff.affect_name}
+
             rows.append(row)
 
-        def style_row(row):
-            remaining = row[1]
-            acq = row[2]
-            if remaining > 5:
-                color = "green"
-            elif remaining > 0:
-                color = "yellow"
-            elif acq:
-                color = "orange1"
-                row[1] = "-"
-            else:
-                color = "red"
-                row[1] = "-"
-
-            return color
-
         pc_buffs = Text.assemble((" PC Buffs\n\n", OutputColors.section), ("  " + str(self.pc.buffs), ""))
-        tbl = tabulate(rows, row_styler=style_row)
+        tbl = tabulate(rows)
 
         self.output(AbacuraPanel(Group(pc_buffs, Text(), tbl), title="Autobuffs"), actionable=False)
 
