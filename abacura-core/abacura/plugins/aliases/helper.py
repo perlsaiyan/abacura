@@ -1,8 +1,4 @@
-from __future__ import annotations
-
-from rich.panel import Panel
-from rich.pretty import Pretty
-from rich.table import Table
+from abacura.utils.renderables import AbacuraPanel, tabulate
 
 from abacura.plugins import Plugin, command, CommandError
 
@@ -21,13 +17,8 @@ class AliasCommand(Plugin):
         """
 
         if alias is None:
-            tbl = Table(title="Alias Categories")
-            tbl.add_column("Category Name")
-
-            for c in self.director.alias_manager.get_categories():
-                tbl.add_row(c)
-
-            self.session.output(tbl)
+            tbl = tabulate(self.director.alias_manager.get_categories(), headers=["Category Name"])
+            self.output(AbacuraPanel(tbl, title="Alias Categories"))
             return
 
         s = alias.split(".")
@@ -51,13 +42,8 @@ class AliasCommand(Plugin):
             for a in self.director.alias_manager.get_category(category):
                 aliases.append([a.cmd, a.value])
 
-            tbl: Table = Table(title=f"{category}: aliases")
-            tbl.add_column("Command")
-            tbl.add_column("value")
-
-            for a in aliases:
-                tbl.add_row(*a)
-            self.session.output(tbl)                
+            tbl = tabulate(aliases, headers=["Command", "Value"])
+            self.output(AbacuraPanel(tbl, title=f"'{category}' aliases"))
             return
         
         existing_alias = self.director.alias_manager.get_alias(alias)
@@ -67,7 +53,7 @@ class AliasCommand(Plugin):
                 raise CommandError(f"Unknown alias {alias}")
 
             self.director.alias_manager.delete_alias(alias)
-            self.session.output("Alias %s deleted" % alias)
+            self.output("Alias %s deleted" % alias)
             return
 
         if _add:
@@ -78,7 +64,7 @@ class AliasCommand(Plugin):
                 raise CommandError("The alias must have a definition")
 
             self.director.alias_manager.add_alias(alias, value, _temporary)
-            self.session.output("Alias %s added for [%s]" % (alias, value))
+            self.output("Alias %s added for [%s]" % (alias, value))
             return
 
 

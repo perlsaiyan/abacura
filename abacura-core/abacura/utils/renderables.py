@@ -64,7 +64,7 @@ class AbacuraPanel(Panel):
         super().__init__(p, box=box.SIMPLE, padding=1, expand=False)
 
 
-def tabulate(tabular_data, headers=(), float_format="9.3f", **kwargs) -> AbacuraTable:
+def tabulate(tabular_data, headers=(), float_format="9.3f", row_styler=None, **kwargs) -> AbacuraTable:
     """
     Create a rich Table with automatic justification for numbers and a configurable floating point format.
 
@@ -102,6 +102,10 @@ def tabulate(tabular_data, headers=(), float_format="9.3f", **kwargs) -> Abacura
     else:
         column_types = [type(v) for v in tabular_data[0]]
 
+    row_styles = [""] * len(tabular_data)
+    if row_styler:
+        row_styles = [row_styler(row) for row in tabular_data]
+
     for h, ct in zip_longest(headers, column_types):
         if h and h.startswith("_"):
             justify = "right"
@@ -112,8 +116,8 @@ def tabulate(tabular_data, headers=(), float_format="9.3f", **kwargs) -> Abacura
         hdr = h.lstrip("_") if h else ""
         tbl.add_column(header=hdr, justify=justify)
 
-    for row in tabular_data:
+    for i, row in enumerate(tabular_data):
         values = [format(v, float_format) if ct in (float, "float") else str(v) for ct, v in zip(column_types, row)]
-        tbl.add_row(*values)
+        tbl.add_row(*values, style=row_styles[i])
 
     return tbl
