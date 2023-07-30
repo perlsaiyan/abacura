@@ -23,6 +23,7 @@ class Skill:
     def __hash__(self):
         return hash(self.skill_name)
 
+
 SKILL_LIST: List[Skill] = [
     Skill("bifrost", train={"Valkyrie": 75}),
     Skill("deathknell", train={"Dreadlord": 33}, delay=2),

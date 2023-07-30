@@ -36,11 +36,11 @@ class CommandHelper(Plugin):
                 parameter_names.append(f"[{parameter.name}]")
 
             if parameter.name in parameter_doc:
-                pd = f" [{str(parameter.default)}]"
+                pd = Text(f"({str(parameter.default)})")
                 if parameter.default is inspect.Parameter.empty:
                     pd = ""
                 elif parameter.default in (None, '', 0):
-                    pd = " (optional)"
+                    pd = "(optional)"
 
                 parameter_rows.append((parameter.name, pd, parameter_doc.get(parameter.name, "")))
 
@@ -57,7 +57,7 @@ class CommandHelper(Plugin):
         g = Group(*[t for t in help_text])
 
         if len(parameter_rows):
-            tbl = tabulate(parameter_rows, headers=["Arguments"], box=box.SIMPLE_HEAD,
+            tbl = tabulate(parameter_rows, headers=["Arguments"], box=box.SIMPLE,
                            header_style=OutputColors.section)
             g.renderables.append(tbl)
 
@@ -69,11 +69,11 @@ class CommandHelper(Plugin):
             else:
                 ptype = getattr(p.annotation, '__name__', p.annotation)
                 oname = f"--{name.lstrip('_') + '=<' + ptype + '>'}"
-                odefault = f" [{str(p.default)}]"
+                odefault = f"({str(p.default)})"
                 if p.default is inspect.Parameter.empty:
                     odefault = ""
                 elif p.default in (None, '', 0):
-                    odefault = " (optional)"
+                    odefault = "(optional)"
                 option_rows.append((oname, odefault, parameter_doc.get(name, '')))
 
         if len(option_rows):

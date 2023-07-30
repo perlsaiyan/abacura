@@ -27,6 +27,7 @@ from abacura.plugins.task_queue import QueueManager
 from abacura.screens import SessionScreen
 from abacura.utils.fifo_buffer import FIFOBuffer
 from abacura.utils.ring_buffer import RingBufferLogSql
+from abacura.utils.renderables import AbacuraPanel, tabulate
 from abacura.widgets.footer import AbacuraFooter
 
 if TYPE_CHECKING:
@@ -201,13 +202,13 @@ class Session(BaseSession):
             self.output(f"[bold red]# NO SESSION CONNECTED - pi {sl}", markup=True)
 
     # TODO raw can come out now that we isinstance
-    def send(self, msg: Union[str,bytes], raw: bool = False, echo_color: str = "orange1") -> None:
+    def send(self, msg: Union[str, bytes], raw: bool = False, echo_color: str = "orange1") -> None:
         """Send to writer (socket)"""
         if self.writer is not None:
             try:
-                if isinstance(msg,str):
+                if isinstance(msg, str):
                     self.writer.write(bytes(msg + "\n", "UTF-8"))
-                elif isinstance(msg,bytes):
+                elif isinstance(msg, bytes):
                     self.writer.write(msg)
 
                 self.last_socket_write = time.monotonic()
@@ -239,7 +240,7 @@ class Session(BaseSession):
         self.tl.render()
 
     @command(name="debuglog")
-    def debuglog_command(self, msg: str, _facility: str = "info", markup: bool = True, highlight: bool=True):
+    def debuglog_command(self, msg: str, _facility: str = "info", markup: bool = True, highlight: bool = True):
         """
         Send output to debug window
 
@@ -250,7 +251,7 @@ class Session(BaseSession):
         """
         self.debuglog(facility=_facility, msg=msg, markup=markup, highlight=highlight)
 
-    def debuglog(self, msg: str= "", facility: str = "info", markup: bool = True, highlight: bool=True):
+    def debuglog(self, msg: str =  "", facility: str = "info", markup: bool = True, highlight: bool = True):
         if self.debugtl:
             date_time = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
             self.debugtl.markup = markup
@@ -289,7 +290,6 @@ class Session(BaseSession):
                 self.ring_buffer.log(message)
             self.tl.markup = False
             self.tl.highlight = False
-
 
     @command
     def connect(self, name: str, host: str = '', port: int = 0) -> None:
@@ -332,22 +332,25 @@ class Session(BaseSession):
         """
 
         if not name:
-            buf = "[bold red]# Current Sessions:\n"
+            # buf = "[bold red]# Current Sessions:\n"
+            rows = []
             for session_name, session in self.abacura.sessions.items():
-                if session_name == self.abacura.session:
-                    buf += "[bold green]>[white]"
+                active =f"[bold green]> [/bold green]" if session.name == self.abacura.session else "  "
+                if session.name == "null":
+                    host = "Main Session"
+                    status = ""
                 else:
-                    buf += " [white]"
+                    host = f"{session.host}:{session.port}"
+                    status = "connected" if session.connected else "[red]disconnected[/red]"
 
-                if session_name == "null":
-                    buf += f"{session.name}: Main Session\n"
-                else:
-                    if session.connected:
-                        buf += f"{session.name}: {session.host} {session.port}\n"
-                    else:
-                        buf += f"{session.name}: {session.host} {session.port} [red]\\[disconnected]\n"
+                row = {"Name": f"{active}{session.name}",
+                       "Host": host,
+                       "Status": status
+                       }
 
-            self.output(buf, markup=True, highlight=True)
+                rows.append(row)
+
+            self.output(AbacuraPanel(tabulate(rows), title="Abacura Sessions"), markup=True, highlight=True)
         else:
             if name in self.abacura.sessions:
                 self.abacura.set_session(name)
