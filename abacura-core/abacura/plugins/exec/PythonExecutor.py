@@ -10,7 +10,7 @@ from abacura.plugins.events import event, AbacuraMessage
 
 
 class PythonExecutor(Plugin):
-    """Run an async script"""
+    """Executes python code using ## and #run commands"""
 
     def __init__(self):
         super().__init__()
@@ -77,7 +77,7 @@ class PythonExecutor(Plugin):
                 self.session.output(panel)
 
         except Exception as ex:
-            self.session.show_exception(f"[bold red] # ERROR: {repr(ex)}", ex)
+            self.session.show_exception(ex, show_tb=True)
             return False
 
     @command(name="#")
@@ -109,5 +109,5 @@ class PythonExecutor(Plugin):
                 self.session.output(panel)
 
         except Exception as ex:
-            self.session.show_exception(f"[bold red] # ERROR: {repr(ex)}", ex, show_tb=False)
+            self.session.show_exception(ex, show_tb=False)
             return False

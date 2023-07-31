@@ -10,6 +10,7 @@ from rich.table import Table
 
 
 class TourDemo(LOKPlugin):
+    """Shows how to use the TourGuide to visit all rooms in an area"""
 
     def __init__(self):
         super().__init__()
@@ -77,7 +78,7 @@ class TourDemo(LOKPlugin):
         response = self.tour_guide.get_next_step(self.room)
 
         if response.error:
-            self.output(f"> TOUR ERROR {response.error}")
+            self.session.show_error(f"TOUR ERROR {response.error}")
             self.tour_guide = None
             return True
 

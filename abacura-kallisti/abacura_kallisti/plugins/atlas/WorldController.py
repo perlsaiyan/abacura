@@ -14,6 +14,7 @@ from abacura_kallisti.plugins.scripts.travel import TravelStatus
 
 
 class WorldController(LOKPlugin):
+    """Commands to manipulate rooms and exits in the world database"""
 
     def __init__(self):
         super().__init__()
@@ -214,7 +215,7 @@ class WorldController(LOKPlugin):
         try:
             cursor = self.world.db_conn.execute(query)
         except Exception as e:
-            self.session.show_exception(str(e), e)
+            self.session.show_exception(e)
             return
 
         if not cursor.description:

@@ -4,8 +4,8 @@ from abacura_kallisti.plugins import LOKPlugin
 from abacura.utils.renderables import tabulate, AbacuraPanel
 
 
-class LocationHelper(LOKPlugin):
-
+class LocationController(LOKPlugin):
+    """Commands to modify saved travel locations"""
     @command(name="locations")
     def location_cmd(self, location: str = None, destination: Room = None, delete: bool = False, add: bool = False):
         """

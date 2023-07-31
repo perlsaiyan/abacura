@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 import importlib
 from importlib.util import find_spec
-from typing import Dict, TYPE_CHECKING, List
+from typing import Dict, TYPE_CHECKING, List, Optional
 
 from textual import log
 
@@ -20,16 +20,17 @@ if TYPE_CHECKING:
 class LoadedPlugin:
     plugin: Plugin
     package: str
-    package_file: str
+    package_filename: str
     modified_time: float
     context: Dict
 
 
 @dataclass
-class Failure:
+class LoadResult:
     package: str
+    package_filename: str
     context: Dict
-    error: str
+    exception: Optional[Exception] = None
 
 
 class PluginLoader:
@@ -40,9 +41,10 @@ class PluginLoader:
         self.plugins: Dict[str, LoadedPlugin] = {}
         self.times = {}
         self.total_time = 0
-        self.failures = []
+        self.load_failures: list[LoadResult] = []
 
-    def load_package(self, package: str, plugin_context: Dict, reload: bool = False):
+    def load_package(self, package: str, package_filename: str,
+                     plugin_context: Dict, reload: bool = False) -> list[LoadResult]:
         module_start_time = datetime.utcnow()
         context: Dict
 
@@ -52,16 +54,21 @@ class PluginLoader:
                 importlib.reload(module)
         except ModuleNotFoundError as exc:
             session = plugin_context['session']
-            session.show_exception(f"[bold red]# ERROR LOADING PLUGIN {package}:  {repr(exc)}", exc, show_tb=False)
-            self.failures.append(Failure(package, plugin_context, str(exc)))
-            return
+            session.show_exception(exc, msg=f"ERROR LOADING PLUGIN {package}", to_debuglog=True)
+            result = LoadResult(package, package_filename, plugin_context, exc)
+            self.load_failures.append(result)
+            return [result]
         except Exception as exc:
             session = plugin_context['session']
-            session.show_exception(f"[bold red]# ERROR LOADING PLUGIN {package}:  {repr(exc)}", exc)
-            self.failures.append(Failure(package, plugin_context, str(exc)))
-            return
+            session.show_exception(exc, msg=f"ERROR LOADING PLUGIN {package}", to_debuglog=True)
+            result = LoadResult(package, package_filename, plugin_context, exc)
+            self.load_failures.append(result)
+            return [result]
 
         # Look for plugins subclasses within the module we just loaded and create a PluginHandler for each
+        
+        package_results = []
+
         for name, cls in inspect.getmembers(module, inspect.isclass):
             if cls.__module__ == module.__name__ and inspect.isclass(cls) and issubclass(cls, Plugin):
                 cls._context = plugin_context
@@ -69,8 +76,9 @@ class PluginLoader:
                     plugin_instance: Plugin = cls()
                 except Exception as exc:
                     session = plugin_context['session']
-                    session.show_exception(f"[bold red]# ERROR LOADING PLUGIN {package}:  {repr(exc)}", exc)
-                    self.failures.append(Failure(package, plugin_context, str(exc)))
+                    session.show_exception(exc, msg=f"Error Instantiating {package}.{cls.__name__}", to_debuglog=True)
+                    result = LoadResult(package, package_filename, plugin_context, exc)
+                    self.load_failures.append(result)
                     continue
 
                 plugin_name = plugin_instance.get_name()
@@ -79,19 +87,25 @@ class PluginLoader:
                     plugin_instance.director.register_object(plugin_instance)
                     package_file = module.__file__
                     m = os.path.getmtime(package_file)
+                    result = LoadResult(package, package_filename, plugin_context, None)
                     self.plugins[plugin_name] = LoadedPlugin(plugin_instance, package, package_file, m, plugin_context)
+                    package_results.append(result)
                 else:
+                    result = LoadResult(package, package_filename, plugin_context, Exception("Duplicate Package"))
+                    self.load_failures.append(result)
                     log(f"Skipping duplicate plugin {name}.{plugin_name}")
 
         elapsed = (datetime.utcnow() - module_start_time).total_seconds()
         mname = module.__name__
         self.times[mname] = self.times.get(mname, 0) + elapsed
+        return package_results
 
-    def load_plugins(self, modules: List, plugin_context: Dict) -> None:
+    def load_plugins(self, modules: List, plugin_context: Dict) -> list[LoadResult]:
         """Load plugins"""
 
         start_time = datetime.utcnow()
         plugin_modules = []
+        load_results = []
 
         for mod in modules:
             log.info(f"Loading plugins from {mod}")
@@ -108,62 +122,65 @@ class PluginLoader:
         # import each one of the modules corresponding to each plugin .py file
         for pf in plugin_modules:
             package = pf.replace(os.sep, ".")[:-3]  # strip .py
-            self.load_package(package, plugin_context)
+            load_results += self.load_package(package, pf, plugin_context)
 
         end_time = datetime.utcnow()
         self.total_time += (end_time - start_time).total_seconds()
+        return load_results
 
-    def reload_plugin_by_name(self, plugin_name: str):
-        if plugin_name not in self.plugins:
-            return
-
-        # Get info about the plugin we want to reload
-        loaded_plugin = self.plugins[plugin_name]
-        self.reload_package_file(loaded_plugin.package_file)
-
-    def reload_package_file(self, package_file: str):
+    def reload_package_filename(self, package_filename: str) -> list[LoadResult]:
         # Remove and unregister all plugins in a package
 
-        package_plugins = [(name, lp) for name, lp in self.plugins.items() if lp.package_file == package_file]
+        package_plugins = [(name, lp) for name, lp in self.plugins.items() if lp.package_filename == package_filename]
         if len(package_plugins) == 0:
-            log(f"Unable to find context for package {package_file}")
-            return
+            log(f"Unable to find context for package {package_filename}")
+            return [LoadResult(package_filename, "", {}, Exception(f"Unable to find context for {package_filename}"))]
 
         # Assume they all have same context and take the first one
         first_lp = package_plugins[0][1]
         context = first_lp.context
         package = first_lp.package
-        session = first_lp.plugin.session
 
-        session.output(f"[orange1][italic]> reloading package {package}", markup=True, highlight=True)
         for name, lp in package_plugins:
             lp.plugin.director.unregister_object(lp.plugin)
             del self.plugins[name]
 
         # Reload the package
-        self.load_package(package, context, reload=True)
+        return self.load_package(package, package_filename, context, reload=True)
 
-    def autoreload_plugins(self):
-        lp: LoadedPlugin
-        package_files = {(lp.package_file, lp.modified_time, lp.plugin.session) for lp in self.plugins.values()}
-        reloads = set()
-        for pf, modified_time, session in package_files:
-            if not os.path.exists(pf):
+    def autoreload_plugins(self) -> list[LoadResult]:
+        reload_filenames = set()
+
+        for lp in self.plugins.values():
+            if not os.path.exists(lp.package_filename):
                 continue
 
-            if os.path.getmtime(pf) > modified_time:
-                log(f"{pf} has been modified, reloading")
-                reloads.add(pf)
+            if os.path.getmtime(lp.package_filename) > lp.modified_time:
+                log(f"{lp.package_filename} has been modified, reloading")
+                reload_filenames.add(lp.package_filename)
 
-        for pf in reloads:
-            self.reload_package_file(pf)
+        reload_results: list[LoadResult] = []
+        for pf in reload_filenames:
+            reload_results += self.reload_package_filename(pf)
 
-        retries = self.failures
-        self.failures = []
+        reload_failures = self.load_failures
+        self.load_failures = []
+        for failure in reload_failures:
+            if failure.package_filename in reload_filenames:
+                # we already tried to load this
+                self.load_failures.append(failure)
+                continue
 
-        for failure in retries:
-            session = failure.context['session']
-            if session:
-                session.output(f"[orange1][italic]> reloading failed {failure.package}", markup=True)
+            results = self.load_package(failure.package, failure.package_filename, failure.context, reload=True)
+            reload_results += results
 
-            self.load_package(failure.package, failure.context, reload=True)
+        return reload_results
+
+    def reload_plugin_by_name(self, plugin_name: str) -> list[LoadResult]:
+        if plugin_name not in self.plugins:
+            return [LoadResult(plugin_name, "", {}, Exception(f"No plugin named '{plugin_name}'"))]
+
+        # Get info about the plugin we want to reload
+        loaded_plugin = self.plugins[plugin_name]
+        result = self.reload_package_filename(loaded_plugin.package_filename)
+        return result

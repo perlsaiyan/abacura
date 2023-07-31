@@ -13,24 +13,29 @@ from typing import Union
 
 @dataclass
 class OutputColors:
-    panel: str = "#334455"
-    section: str = "cyan"
-    title: str = "cyan"
-    caption: str = "gray50"
-    field: str = "bold white"
-    value: str = "white"
+    output: str = "#101018"
+    panel: str = "#334455"    # Charcoal
     border: str = "#DDEEFF"
+    section: str = "#11EEFF"  # Cyan
+    title: str = section
+    field: str = "#FFFFFF"
+    value: str = "#DDDDDD"
+    caption: str = "gray50"
+    success: str = "#11FF22"  # green
+    exception: str = "#FF1133"  # Red
+    error: str = "#FF7711"   # Orange
+    warning: str = "#FFDD55"  # Yellow
 
 
 class AbacuraTable(Table):
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault("title_style", OutputColors.title)
+        kwargs.setdefault("title_style", Style(color=OutputColors.title))
         kwargs.setdefault("title_justify", "left")
         kwargs.setdefault("style", OutputColors.value)
         kwargs.setdefault("caption_style", OutputColors.caption)
         kwargs.setdefault("caption_justify", "left")
-        kwargs.setdefault("header_style", OutputColors.field)
-        kwargs.setdefault("footer_style", OutputColors.field)
+        kwargs.setdefault("header_style", Style(color=OutputColors.field, bold=True))
+        kwargs.setdefault("footer_style", Style(color=OutputColors.field, bold=True))
         kwargs.setdefault("border_style", OutputColors.border)
         kwargs.setdefault("box", box.HORIZONTALS)
         super().__init__(*args, **kwargs)
@@ -46,7 +51,8 @@ class AbacuraPropertyGroup(Group):
         for k, v in obj.items():
             if exclude and k in exclude:
                 continue
-            text = Text.assemble((f"{k:>{kl}.{kl}}: ", OutputColors.field), (str(v), OutputColors.value))
+            text = Text.assemble((f"{k:>{kl}.{kl}}: ", Style(color=OutputColors.field, bold=True)),
+                                 (str(v), OutputColors.value))
             lines.append(text)
 
         super().__init__(*lines)
@@ -56,12 +62,27 @@ class AbacuraPanel(Panel):
     def __init__(self, renderable, title: str = '', *args, **kwargs):
         kwargs.setdefault("highlight", True)
         kwargs.setdefault("expand", False)
+        kwargs.setdefault("border_style", Style(bold=True, bgcolor=OutputColors.panel))
         kwargs.setdefault("style", Style(bgcolor=OutputColors.panel))
         kwargs.setdefault("padding", 1)
         kwargs.setdefault("box", box.ROUNDED)
         kwargs.setdefault("title_align", "left")
         p = Panel(*args, renderable=renderable, title=title, **kwargs)
         super().__init__(p, box=box.SIMPLE, padding=1, expand=False)
+
+
+class AbacuraWarning(AbacuraPanel):
+    def __init__(self, renderable, title: str, *args, **kwargs):
+        kwargs.setdefault("border_style", Style(color=OutputColors.warning, bold=True))
+        kwargs.setdefault("box", box.SQUARE)
+        super().__init__(renderable=renderable, title=title, *args, **kwargs)
+
+
+class AbacuraError(AbacuraPanel):
+    def __init__(self, renderable, title: str, *args, **kwargs):
+        kwargs.setdefault("border_style", Style(color=OutputColors.error, bold=True))
+        kwargs.setdefault("box", box.SQUARE)
+        super().__init__(renderable=renderable, title=title, *args, **kwargs)
 
 
 def tabulate(tabular_data, headers=(), float_format="9.3f", row_styler=None, **kwargs) -> AbacuraTable:

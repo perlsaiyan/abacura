@@ -10,13 +10,13 @@ from abacura_kallisti.mud.affect import Affect
 from abacura_kallisti.plugins import LOKPlugin
 
 from abacura.mud.options.msdp import MSDPMessage
-from abacura.plugins import command
+from abacura.plugins import command, CommandError
 from abacura.plugins.events import event
 
 
 # TODO: disable the abacura @msdp command and let's implement it here
 class LOKMSDPController(LOKPlugin):
-
+    """Converts core MSDP into typed LOK MSDP variables"""
     def __init__(self):
         super().__init__()
         self.msdp_types = {f.name: f.type for f in fields(self.msdp)}
@@ -33,7 +33,7 @@ class LOKMSDPController(LOKPlugin):
         """
 
         if not self.msdp.reportable_variables:
-            self.session.output("[bold red]# MSDPERROR: MSDP NOT LOADED?", markup=True)
+            raise CommandError("MSDP not loaded")
 
         msdp_values = self.core_msdp.values.copy() if core else asdict(self.msdp)
 

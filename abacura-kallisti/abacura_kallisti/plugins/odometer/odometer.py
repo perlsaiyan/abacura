@@ -11,7 +11,7 @@ from abacura.utils.renderables import tabulate, AbacuraPanel
 
 
 class OdometerController(LOKPlugin):
-
+    """Track and view metrics, start odometers"""
     def __init__(self):
         super().__init__()
         self.last_kill = ""

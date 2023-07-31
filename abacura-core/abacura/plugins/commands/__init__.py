@@ -8,6 +8,7 @@ import re
 from rich.markup import escape
 from textual import log
 
+
 if TYPE_CHECKING:
     from abacura.mud.session import Session
 
@@ -71,7 +72,7 @@ class Command:
 
         for parameter in command_parameters:
             if parameter.default is inspect.Parameter.empty and len(submitted_arguments) == 0:
-                raise CommandArgumentError(f"Missing argument {parameter.name}")
+                raise CommandArgumentError(f"Missing argument `{parameter.name}`")
 
             if len(submitted_arguments) > 0:
                 if parameter.name.lower() == 'text':
@@ -201,7 +202,7 @@ class CommandManager:
         help_command = self.commands.get('help', None)
 
         if help_command is None:
-            self.session.output(command.get_help())
+            self.session.debuglog("Unable to find 'help' command handler")
         else:
             help_command.callback(command)
 
@@ -217,21 +218,21 @@ class CommandManager:
                 command_line = f"#repeat {repeats} {cmd}"
 
             command, arg_str = self.parse_command_line(command_line)
-            self.session.output(f"[green][italic]> {escape(command_line)}", markup=True, highlight=True)
             result = command.execute(arg_str)
             if not result:
                 self.show_command_help(command)
 
         except CommandArgumentError as exc:
-            self.session.show_exception(f"[bold orange1]! {str(exc)}", exc, show_tb=False)
+            self.session.show_warning(str(exc), title="Argument Error")
+
             if command is not None:
                 self.show_command_help(command)
                 # self.session.output(f"[gray][italic]> {escape(command.get_help())}", markup=True, highlight=True)
 
         except CommandError as exc:
-            self.session.show_exception(f"[bold orange1]! {str(exc)}", exc, show_tb=False)
+            self.session.show_error(str(exc), title="Command Error")
 
         except Exception as exc:
-            self.session.show_exception(str(exc), exc, show_tb=True)
+            self.session.show_exception(exc, show_tb=True)
 
         return True

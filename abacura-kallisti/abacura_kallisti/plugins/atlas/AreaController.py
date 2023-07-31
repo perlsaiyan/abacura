@@ -12,7 +12,7 @@ from abacura_kallisti.plugins import LOKPlugin
 
 
 class AreaController(LOKPlugin):
-
+    """Commands for manipulating the database of areas and mobs"""
     def __init__(self):
         super().__init__()
         self.wild_grid = WildernessGrid()

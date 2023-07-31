@@ -87,7 +87,8 @@ telluria_decoder = {
 }
 
 
-class Tellurida(LOKPlugin):
+class Telluria(LOKPlugin):
+    """Determine room in telluria based on minimap"""
 
     @command
     def telluria(self):

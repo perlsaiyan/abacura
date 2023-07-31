@@ -63,8 +63,3 @@ class Plugin:
     @property
     def session(self) -> str:
         return self._context['session']
-
-
-class MyPlugin(Plugin):
-    def __init__(self, data_dir: str):
-        self.data_dir = data_dir

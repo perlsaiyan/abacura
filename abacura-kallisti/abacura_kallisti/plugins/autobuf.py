@@ -14,7 +14,7 @@ from abacura.utils.renderables import AbacuraPanel, tabulate, Group, Text, Outpu
 
 
 class AutoBuff(LOKPlugin):
-    """Handle application of bufs"""
+    """Handle application of buffs"""
     _RUNNER_INTERVAL: float = 2.0
     # _RENEWABLE_BUFS = ["true seeing", "sanctuary"]
     # _EXPIRING_BUFS = ["focus dex", "bushido"]

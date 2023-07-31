@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class TickerCommand(Plugin):
-
+    """Provides #ticker command"""
     def show_tickers(self):
         rows = []
         for ticker in self.director.ticker_manager.tickers:

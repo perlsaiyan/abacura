@@ -20,7 +20,7 @@ from abacura.config import Config
 from abacura.mud import BaseSession, OutputMessage
 from abacura.mud.logger import LOKLogger
 from abacura.mud.options.msdp import MSDP
-from abacura.plugins import command, ContextProvider
+from abacura.plugins import command, ContextProvider, CommandError, CommandArgumentError
 from abacura.plugins.director import Director
 from abacura.plugins.loader import PluginLoader
 from abacura.plugins.task_queue import QueueManager
@@ -129,10 +129,14 @@ class Session(BaseSession):
             pass
 
         self.plugin_loader.load_plugins(modules=["abacura"], plugin_context=self.core_plugin_context)
-
         session_modules = self.config.get_specific_option(self.name, "modules")
         if isinstance(session_modules, list):
             self.plugin_loader.load_plugins(session_modules, plugin_context=self.additional_plugin_context)
+
+        num_failed = len(self.plugin_loader.load_failures)
+        if num_failed:
+            s = 's' if num_failed > 1 else ''
+            self.show_error(f"{num_failed} plugin{s} failed to load. See #plugin for details.", title="Plugin Error")
 
         telnet_client = self.plugin_loader.plugins["TelnetPlugin"].plugin.telnet_client
         if self.host and self.port:
@@ -178,7 +182,9 @@ class Session(BaseSession):
             else:
                 cmd = sl.split()[0]
 
-            if cmd.startswith(self.command_char) and self.director.command_manager.execute_command(sl):
+            if cmd.startswith(self.command_char):
+                self.echo_command(cmd, color="green")
+                self.director.command_manager.execute_command(sl)
                 continue
 
             if self.speedwalk_re.match(sl) and self.connected:
@@ -218,7 +224,7 @@ class Session(BaseSession):
 
             except BrokenPipeError:
                 self.connected = False
-                self.output("[bold red]# Lost connection to server.", markup=True)
+                self.show_error("Lost connection to server.")
         else:
             self.output(f"[bold red]# NO-SESSION SEND: {msg}", markup=True, highlight=True)
 
@@ -228,7 +234,7 @@ class Session(BaseSession):
 
         strip = self.tl.lines[-1]
         line_text = "".join([segment.text for segment in strip._segments])
-        cmd_segment = Segment(cmd, Style(color=color))
+        cmd_segment = Segment(cmd, Style(color=color, italic=True))
         if not line_text.rstrip().endswith(">"):
             self.output(Segments([cmd_segment]))
             return
@@ -251,12 +257,19 @@ class Session(BaseSession):
         """
         self.debuglog(facility=_facility, msg=msg, markup=markup, highlight=highlight)
 
-    def debuglog(self, msg: str =  "", facility: str = "info", markup: bool = True, highlight: bool = True):
+    def debuglog(self, msg, facility: str = "info", markup: bool = True, highlight: bool = True):
         if self.debugtl:
             date_time = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
             self.debugtl.markup = markup
             self.debugtl.highlight = highlight
-            self.debugtl.write(f"{date_time} \[{facility}]: {msg}")
+            if type(msg) in (str, "str"):
+                self.debugtl.write(f"{date_time} \[{facility}]: {msg}")
+            else:
+                self.debugtl.write(f"{date_time} \[{facility}]")
+                self.debugtl.write(msg)
+
+    def outputlog(self, message: OutputMessage):
+        self.ring_buffer.log(message)
 
     def output(self, msg,
                markup: bool = False, highlight: bool = False, ansi: bool = False, actionable: bool = True,
@@ -279,15 +292,16 @@ class Session(BaseSession):
 
             self.tl.markup = markup
             self.tl.highlight = highlight
+
             if ansi:
                 self.tl.write(Text.from_ansi(message.message))
             else:
                 self.tl.write(message.message)
             self.loklog.info(message.message)
 
-            # TODO: Add location / vnum and any other context to the log
-            if self.ring_buffer and loggable:
-                self.ring_buffer.log(message)
+            if loggable:
+                self.outputlog(message)
+
             self.tl.markup = False
             self.tl.highlight = False
 
@@ -311,10 +325,9 @@ class Session(BaseSession):
         log(f"connect: {name} {host}:{port}")
 
         if name in self.abacura.sessions:
-            self.output("[bold red]# SESSION ALREADY EXISTS", markup=True)
+            raise CommandError("SESSION ALREADY EXISTS")
         elif name not in self.config.config and (not host or not port):
-            self.output(" [bold red]#connect <session name> <host> <port>",
-                        markup=True, highlight=True)
+            raise CommandArgumentError("Unknown session name and no host or port specified")
         else:
             self.abacura.create_session(name)
 
@@ -355,4 +368,4 @@ class Session(BaseSession):
             if name in self.abacura.sessions:
                 self.abacura.set_session(name)
             else:
-                self.output(f"[bold red]# INVALID SESSION {name}", markup=True)
+                raise CommandError(f"Invalid Session {name}")
