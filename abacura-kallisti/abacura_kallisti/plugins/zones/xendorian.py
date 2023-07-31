@@ -5,6 +5,7 @@ from abacura.utils.renderables import tabulate, AbacuraPanel
 
 
 class XendorianOutpost(LOKPlugin):
+    """Tracks portals to/within Xendorian Outpost"""
     XENDORIAN_VNUM = '33900'
     PORTAL_AREAS = ['Midgaard City', 'Boring City']
 

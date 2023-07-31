@@ -39,11 +39,11 @@ class TelnetPlugin(Plugin):
             self.connected = True
         except TimeoutError:
             log.warning(f"Connection timeout from {host}:{port}")
-            self.output(f"[bold red]# Connection refused {host}:{port}", markup=True)
+            self.session.show_error("Connection timeout {host}:{port}")
             return
         except ConnectionRefusedError:
             log.warning(f"Connection refused from {host}:{port}")
-            self.output(f"[bold red]# Connection refused {host}:{port}", markup=True)
+            self.session.show_error("Connection refused {host}:{port}")
             return
 
         self.register_options(handlers)
@@ -79,7 +79,7 @@ class TelnetPlugin(Plugin):
 
             # Empty string means we lost our connection
             if data == b'':
-                self.output("[bold red]# Lost connection to server.", markup=True)
+                self.session.show_error("Lost connection to server.")
                 self.connected = False
 
             # End of a MUD line in buffer, send for processing

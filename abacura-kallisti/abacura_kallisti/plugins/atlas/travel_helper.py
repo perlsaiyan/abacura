@@ -8,6 +8,7 @@ from abacura.utils.renderables import tabulate, AbacuraPanel, Group, Text, Outpu
 
 
 class TravelHelper(LOKPlugin):
+    """Provides #go and #path commands"""
     def __init__(self):
         super().__init__()
 
@@ -51,8 +52,7 @@ class TravelHelper(LOKPlugin):
                        caption=f" Path computed in {1000 * path_elapsed_time:.0f}ms",
                        show_footer=True)
 
-        tbl.columns[7].footer = str(nav_path.get_travel_cost()
-)
+        tbl.columns[7].footer = str(nav_path.get_travel_cost())
         g = Group(speedwalk, Text(), tbl)
         self.output(AbacuraPanel(g, title=f"Path to [{destination.vnum}] - {destination.name}"))
 

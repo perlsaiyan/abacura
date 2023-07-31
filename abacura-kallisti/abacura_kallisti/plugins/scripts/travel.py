@@ -31,6 +31,7 @@ class TravelResult(AbacuraMessage):
 
 
 class TravelScript(LOKPlugin):
+    """Sends navigation commands after receiving lok.travel.request event"""
     def __init__(self):
         super().__init__()
         self.navigation_path: Optional[TravelPath] = None

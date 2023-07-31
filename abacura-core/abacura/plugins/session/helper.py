@@ -1,16 +1,14 @@
 import time
-from collections import Counter
 
 from rich.panel import Panel
 from rich.pretty import Pretty
-from rich.table import Table
-from rich.text import Text
 
 from abacura.plugins import Plugin, command, CommandError
 from abacura.utils.renderables import tabulate, AbacuraPanel
 
 
-class PluginSession(Plugin):
+class SessionHelper(Plugin):
+    """Provides commands related to the session"""
     def __init__(self):
         super().__init__()
         if self.session.ring_buffer:
@@ -47,114 +45,13 @@ class PluginSession(Plugin):
         :param variable: The name of a variable to view, leave blank for all
         """
         if "REPORTABLE_VARIABLES" not in self.core_msdp.values:
-            self.session.output("[bold red]# MSDPERROR: MSDP NOT LOADED?", markup=True)
+            raise CommandError("MSDP not loaded")
 
         if not variable:
             panel = Panel(Pretty(self.core_msdp.values), highlight=True)
         else:
             panel = Panel(Pretty(self.core_msdp.values.get(variable, None)), highlight=True)
         self.session.output(panel, highlight=True, actionable=False)
-
-    def show_all_plugins(self):
-        plugin_rows = []
-
-        for name, loaded_plugin in self.session.plugin_loader.plugins.items():
-            plugin = loaded_plugin.plugin
-            registrations = self.director.get_registrations_for_object(plugin)
-            counts = Counter([r.registration_type for r in registrations])
-
-            base = plugin.__class__.__base__.__name__
-            indicator = '✓' if plugin.register_actions else 'x'
-            indicator_color = "bold green" if plugin.register_actions else 'bold red'
-            plugin_rows.append((base, plugin.get_name(), plugin.get_help() or '',
-                                Text(indicator, style=indicator_color), counts))
-
-        tbl = Table(title=f" Currently Registered Plugins", title_justify="left")
-        tbl.add_column("Type")
-        tbl.add_column("Plugin Name")
-        tbl.add_column("Description")
-        tbl.add_column("Register Actions")
-        tbl.add_column("# Actions", justify="right")
-        tbl.add_column("# Commands", justify="right")
-        tbl.add_column("# Events", justify="right")
-        tbl.add_column("# Tickers", justify="right")
-
-        rows = []
-        for base, name, doc, indicator, counts in sorted(plugin_rows):
-            rows.append((base, name, doc, indicator,
-                         counts["action"], counts["commands"], counts["event"], counts["ticker"]))
-        tbl = tabulate(rows,
-                       title="Plugins",
-                       headers=["Type", "Name", "Description", "Register Actions",
-                                "# Actions", "# Commands", "# Events", "# Tickers"])
-        self.output(AbacuraPanel(tbl))
-
-    def show_failures(self):
-        if len(self.session.plugin_loader.failures):
-            tbl = Table(title="Failed Package Loads", title_justify="left")
-            tbl.add_column("Package")
-            tbl.add_column("Error")
-            for failure in self.session.plugin_loader.failures:
-                tbl.add_row(failure.package, failure.error)
-            self.output("\n")
-            self.output(tbl)
-
-    @command
-    def plugins(self, name: str = '') -> None:
-        """
-        Get information about plugins
-
-        :param name: Show details about a single plugin, leave blank to list all
-        """
-        if not name:
-            self.show_all_plugins()
-            self.show_failures()
-            return
-
-        loaded_plugins = self.session.plugin_loader.plugins
-        matches = [n for n in loaded_plugins.keys() if n.lower().startswith(name.lower())]
-        exact = [n for n in loaded_plugins.keys() if n.lower() == name.lower()]
-
-        if len(exact) == 1:
-            matches = exact
-        elif len(matches) > 1:
-            self.output(f"[orange1] Ambiguous Plugin Name: {matches}", markup=True)
-            return
-        elif len(matches) == 0:
-            self.output(f"[orange1] No plugin by that name [{name}]", markup=True)
-            return
-
-        loaded_plugin = loaded_plugins[matches[0]]
-        plugin = loaded_plugin.plugin
-
-        registrations = self.director.get_registrations_for_object(plugin)
-
-        rows = []
-        for r in registrations:
-            rows.append((r.registration_type, r.name, r.callback.__qualname__, r.details))
-
-        tbl = tabulate(rows, headers=["Type", "Name", "Callback", "Details"], title=f"Registered Callbacks")
-
-        self.output(AbacuraPanel(tbl, title=f"{loaded_plugin.package}.{plugin.get_name()}"))
-
-    @command
-    def reload(self, plugin_name: str = "", auto: bool = False):
-        """
-        Reload plugins
-
-        :param plugin_name: Reload a specific plugin, leave blank to load all changed files
-        :param auto: Enable auto reloading every 1-2 seconds
-        """
-
-        if not plugin_name:
-            self.session.plugin_loader.autoreload_plugins()
-        else:
-            self.session.plugin_loader.reload_plugin_by_name(plugin_name)
-
-        if auto:
-            cb = self.session.plugin_loader.autoreload_plugins
-            self.output(f"[orange1]> Auto reloading enabled", markup=True, highlight=True)
-            self.session.screen.set_interval(interval=1, callback=cb, name="reloadplugins")
 
     def ring_log_query(self, like: str = "", limit: int = 100, minutes_ago: int = 30,
                        hide_msdp: bool = False, show_commands: bool = False, grouped: bool = False):
@@ -197,8 +94,26 @@ class PluginSession(Plugin):
 
         :param find: Search for text using sql % wildcard style
         :param limit: limit the number of log entries returned
-        :minutes_ago: limit how far back to search
+        :param minutes_ago: limit how far back to search
         """
         if self.session.ring_buffer is None:
             raise CommandError("No output log ring buffer configured")
         self.ring_log_query(find, limit, hide_msdp=False, minutes_ago=minutes_ago)
+
+    @command(name="workers")
+    def workers(self, group: str = ""):
+        """
+        Show all workers or for optional group
+
+        :param group: Show workers for this group only
+        """
+
+        title = "Running Workers"
+        title += "" if group == "" else f" in Group '{group}'"
+
+        rows = []
+        for worker in filter(lambda x: group == "" or group == x.group, self.session.abacura.workers):
+            rows.append((worker.group, worker.name, worker.description))
+
+        tbl = tabulate(rows, headers=["Group", "Name", "Description"])
+        self.output(AbacuraPanel(tbl, title=title), actionable=False, highlight=True)

@@ -33,7 +33,7 @@ class Profiler(Plugin):
             try:
                 self.guppy = importlib.import_module("guppy")
             except Exception as ex:
-                self.session.show_exception(f"[bold red] # ERROR: {repr(ex)}", ex)
+                self.session.show_exception(ex)
                 return False
 
         if self.heap is None:

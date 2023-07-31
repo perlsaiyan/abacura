@@ -25,6 +25,6 @@ class SoundPlugin(Plugin):
         try:
             playsound(f"{self.config.get_specific_option(self.session.name, 'sound_dir')}/{wav}", block=False)
         except Exception as exc:
-            self.session.show_exception(msg=f"Failure to play sound {wav}: {repr(exc)}",exc=exc, show_tb=False)
+            self.session.show_exception(exc, messge=f"Failure to play sound {wav}: {repr(exc)}", show_tb=False)
 
         # return msg

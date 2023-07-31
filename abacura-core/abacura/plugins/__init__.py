@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Callable, Dict
 from abacura.plugins.actions import Action
 from abacura.plugins.director import Director
 from abacura.plugins.tickers import Ticker
-from abacura.plugins.commands import CommandError
+from abacura.plugins.commands import CommandError, CommandArgumentError
 from abacura.plugins.task_queue import QueueManager
 from abacura.utils.fifo_buffer import FIFOBuffer
 from abacura.mud import OutputMessage

@@ -25,6 +25,7 @@ class CommsMessage(AbacuraMessage):
     datetime: str = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
 
 class LOKComms(LOKPlugin):
+    """Puts all communcations into 'comms' window"""
     comms_textlog: Optional[TextLog] = None
 
     #valid channels in LOK

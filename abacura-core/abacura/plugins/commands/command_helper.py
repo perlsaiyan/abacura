@@ -1,8 +1,9 @@
+import inspect
+import re
+
 from abacura.plugins import Plugin, command
 from abacura.plugins.commands import Command
 from abacura.utils.renderables import AbacuraPanel, tabulate, box, Group, Text, OutputColors
-import re
-import inspect
 
 
 class CommandHelper(Plugin):
@@ -106,7 +107,8 @@ class CommandHelper(Plugin):
                 self.show_command_help(commands[0])
                 return
             else:
-                self.output(f"[bold red]Unknown command '{name}'", markup=True)
+                self.session.show_error(f"Unknown command '{name}'")
+                return
 
         commands = [c for c in self.director.command_manager.commands.values() if c.hide_help == hidden]
         rows = []
@@ -145,3 +147,12 @@ class CommandHelper(Plugin):
                 self.session.player_input(cmd.strip())
 
             self.add_ticker(0.1, do_repeat, repeats=n, name="_repeat")
+
+    @command(hide=True)
+    def error(self, error_str, _warning: bool = False):
+        title = "Ooops!"
+        n = 1 / 0
+        if _warning:
+            self.session.show_warning(f"{error_str}", title=title)
+        else:
+            self.session.show_error(f"{error_str}", title=title)

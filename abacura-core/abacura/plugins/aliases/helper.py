@@ -4,6 +4,7 @@ from abacura.plugins import Plugin, command, CommandError
 
 
 class AliasCommand(Plugin):
+    """Provides #alias command"""
     @command(name="alias")
     def alias_cmd(self, alias: str = None, value: str = None, _add: bool = False, _delete: bool = False, _temporary: bool = False):
         """

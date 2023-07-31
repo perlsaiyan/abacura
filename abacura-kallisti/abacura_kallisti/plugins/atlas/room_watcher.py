@@ -267,7 +267,7 @@ class RoomMessageParser:
 
 
 class RoomWatcher(LOKPlugin):
-
+    """Watches for LOK rooms and parses them into ScannedRoom objects"""
     def __init__(self):
         super().__init__()
 
