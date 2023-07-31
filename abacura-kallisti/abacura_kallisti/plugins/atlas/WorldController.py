@@ -5,7 +5,7 @@ from rich.text import Text
 import abacura.utils.renderables as tblt
 from abacura.plugins import command
 from abacura.plugins.events import event, AbacuraMessage
-from abacura.utils.renderables import tabulate, AbacuraPropertyGroup, AbacuraPanel, Group, OutputColors
+from abacura.utils.renderables import tabulate, AbacuraPropertyGroup, AbacuraPanel, Group, OutputColors, Style
 from abacura_kallisti.atlas.messages import MapUpdateMessage, MapUpdateRequest
 from abacura_kallisti.atlas.wilderness import WildernessGrid
 from abacura_kallisti.atlas.world import Room
@@ -60,7 +60,8 @@ class WorldController(LOKPlugin):
             caption = f" MSDP_EXITS: {str(self.msdp.room_exits)}"
 
         return tabulate(exits, caption=caption, headers=["Direction", "_To", "Door", "Commands", "Closes",
-                                                         "Locks", "Deathtrap", "Known", "Visited", "Terrain"])
+                                                         "Locks", "Deathtrap", "Known", "Visited", "Terrain"],
+                        title="Exits")
 
     @command(name="room")
     def room_command(self, location: Room = None, delete: bool = False,
@@ -80,7 +81,7 @@ class WorldController(LOKPlugin):
 
         if location is None:
             if self.msdp.room_vnum not in self.world.rooms:
-                self.output(f"[bright red]Unknown room {self.msdp.room_vnum}", markup=True)
+                self.session.show_error(f"Unknown room {self.msdp.room_vnum}")
                 return
 
             location = self.world.rooms[self.msdp.room_vnum]
@@ -101,8 +102,13 @@ class WorldController(LOKPlugin):
             location.no_recall = not location.no_recall
 
         if silent or deathtrap or peaceful or nomagic or norecall:
-            self.output(f"[orange1] Toggle room flag", markup=True)
+            txt = Text.assemble(
+                ("Flag toggled\n\n", OutputColors.success),
+                ("Flags: ", Style(color=OutputColors.field, bold=True)),
+                (str(self.get_room_flags(location)), OutputColors.value))
+            self.output(AbacuraPanel(txt, title=f"Room [ {location.vnum} ] Flags"))
             self.world.save_room(location.vnum)
+            return
 
         properties = {"Area": location.area_name,
                       "Terrain": location.terrain_name,
@@ -123,13 +129,13 @@ class WorldController(LOKPlugin):
 
         pview = AbacuraPropertyGroup(properties)
         table = self.get_table_of_exits(location.vnum)
-        table.title = "Exits"
-        panel = AbacuraPanel(Group(pview, Text(), table), title=f"[{location.vnum}] - {location.name}")
+        panel = AbacuraPanel(Group(pview, Text(), table), title=f"[ {location.vnum} ] - {location.name}")
         self.output(panel, highlight=True)
 
         if delete:
             self.world.delete_room(location.vnum)
-            self.session.output("\n[orange1] ROOM DELETED\n", markup=True)
+            txt = Text(f"Room [ {location.vnum} ] deleted", OutputColors.success)
+            self.output(AbacuraPanel(txt, title="Delete Room"))
 
     @staticmethod
     def get_room_flags(room: Room) -> str:
@@ -163,46 +169,50 @@ class WorldController(LOKPlugin):
     def exits(self, direction: str = '', to_vnum: str = '', _door: str = '', _commands: str = '', delete: bool = False):
         """View and modify exits in current room
 
-        :direction Direction of exit to view or modify
-        :delete Remove exit
-        :destination Set to_vnum of exit
-        :_door Set name of door to open/close
-        :_commands Set multiple commands to use, separated by ;
-
+        :param direction: Direction of exit to view or modify
+        :param delete: Remove exit
+        :param to_vnum: Set to_vnum of exit
+        :param _door: Set name of door to open/close
+        :param _commands: Set multiple commands to use, separated by ;
         """
 
         vnum = self.msdp.room_vnum
 
         if vnum not in self.world.rooms:
-            self.session.output(f"[orange1][italic]Unknown room [{vnum}]", highlight=True, markup=True)
+            self.session.show_error(f"Unknown room [ {vnum} ]")
             return
 
         if not direction:
-            self.session.output(AbacuraPanel(self.get_table_of_exits(vnum), title=f"Exits for room [{vnum}]"))
+            tbl = self.get_table_of_exits(vnum)
+            tbl.title = ""
+            self.session.output(AbacuraPanel(tbl, title=f"Exits for room [ {vnum} ]"))
             return
 
         if delete:
             self.world.del_exit(vnum, direction)
-            self.session.output(f"Deleted [{vnum}] {direction}", highlight=True)
-            self.session.output(self.get_table_of_exits(vnum))
+            txt = Text(f"Deleted [ {vnum} ] {direction}")
+            tbl = self.get_table_of_exits(vnum)
+            self.output(AbacuraPanel(Group(txt, Text(), tbl), title="Delete Exit"), highlight=True)
             return
 
             # #exits goliath 60254 --commands="visit goliath"
 
         if _door != '' or _commands != '' or to_vnum != '':
             self.world.set_exit(vnum, direction, door=_door, to_vnum=to_vnum, commands=_commands)
-            self.output(f"Set [{vnum}] {direction} to={to_vnum}, door={_door}, commands={_commands}", highlight=True)
-            self.session.output(self.get_table_of_exits(vnum))
+            txt = Text(f"Set [ {vnum} ] {direction} to={to_vnum}, door={_door}, commands={_commands}")
+            tbl = self.get_table_of_exits(vnum)
+            self.output(AbacuraPanel(Group(txt, Text(), tbl), title="Set Exit"), highlight=True)
             return
 
         room = self.world.rooms[vnum]
         if direction not in room.exits:
-            self.session.output(f"[orange1]Unknown direction {direction} for room [{vnum}]", markup=True)
+            self.session.show_error(f"Unknown direction {direction} for room [ {vnum} ]")
             return
+
         e = room.exits[direction]
 
         pview = AbacuraPropertyGroup(e)
-        self.output(AbacuraPanel(pview, title=f"Room [{vnum}] - {direction}"))
+        self.output(AbacuraPanel(pview, title=f"Room [ {vnum} ] - {direction}"), highlight=True)
 
     @command
     def sql(self, query: str, _max_rows: int = 100):

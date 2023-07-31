@@ -17,7 +17,7 @@ class SoundPlugin(Plugin):
             from playsound import playsound
         except ModuleNotFoundError as exc:
             pkg = 'pip install playsound PyGObject'
-            self.output(f"[bold orange1]Unable to play sounds.[/bold orange1] Use '{pkg}'", markup=True, highlight=True)
+            self.session.show_warning(f"Unable to play sounds without playsound module. Use '{pkg}' ")
             return
 
         if not self.config.get_specific_option(self.session.name, 'sound_dir', None):
@@ -25,6 +25,6 @@ class SoundPlugin(Plugin):
         try:
             playsound(f"{self.config.get_specific_option(self.session.name, 'sound_dir')}/{wav}", block=False)
         except Exception as exc:
-            self.session.show_exception(exc, messge=f"Failure to play sound {wav}: {repr(exc)}", show_tb=False)
+            self.session.show_exception(exc, msg=f"Failure to play sound {wav}: {repr(exc)}", show_tb=False)
 
         # return msg

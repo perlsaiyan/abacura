@@ -30,7 +30,7 @@ class TickerCommand(Plugin):
         """
         View/Create/delete tickers
 
-        :param name: Name of the ticker
+        :param name: Name of the ticker to create
         :param commands: Commands to issue each tick (separated by ;)
         :param seconds: How often to repeat the ticker
         :param repeats: How many times to repeat the ticker
