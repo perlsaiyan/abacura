@@ -29,4 +29,4 @@ class LOKTaskQueue(Static):
         self.queue_display.clear()
 
         for task in msg.queue:
-            self.queue_display.add_row(task.cmd, task.delay, task.dur, task.q)
+            self.queue_display.add_row(f"{task.cmd:15.15s}", task.delay, task.dur, task.q)

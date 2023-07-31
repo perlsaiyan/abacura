@@ -67,6 +67,8 @@ class LOKOdometer(Static):
         self.queue_display.cursor_type = "row"
         self.queue_display.styles.width = "100%"
         self.queue_display.can_focus = False
+        self.queue_display.expand = True
+        self.queue_display.shrink = True
         self.styles.height = 7
         self.can_focus = False
         self.can_focus_children = False

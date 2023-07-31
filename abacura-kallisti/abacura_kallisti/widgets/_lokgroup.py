@@ -47,6 +47,8 @@ class LOKGroup(Static):
                 buf = "bold gold3"
             elif g['is_subleader'] == "1":
                 buf = "gold3"
+            elif g['class'] in ["TEM", "DRU", "PRO"]:
+                buf = "#48D1CC"
 
             if not g['with_leader'] == "1":
                 buf += " italic"
