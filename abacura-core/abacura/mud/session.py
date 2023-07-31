@@ -183,7 +183,7 @@ class Session(BaseSession):
                 cmd = sl.split()[0]
 
             if cmd.startswith(self.command_char):
-                self.echo_command(cmd, color="green")
+                self.echo_command(sl, color="green")
                 self.director.command_manager.execute_command(sl)
                 continue
 

@@ -26,13 +26,15 @@ class TravelHelper(LOKPlugin):
         nav_path = nav.get_path_to_room(self.msdp.room_vnum, destination.vnum, avoid_vnums=set())
         path_elapsed_time = t.stop()
         if not nav_path.destination:
-            self.output(f"[orange1]Unable to compute path to {destination.vnum}", markup=True)
+            self.session.show_error(f"Unable to compute path to {destination.vnum}")
             return
 
         speedwalk = nav_path.get_simplified_path()
 
+        title = f"Path to [ {destination.vnum } ] - {destination.name}"
         if not detailed:
-            self.session.output(f"{speedwalk}", highlight=True)
+
+            self.output(AbacuraPanel(f"{speedwalk}", title=title), highlight=True)
             return
 
         rows = []
@@ -54,7 +56,7 @@ class TravelHelper(LOKPlugin):
 
         tbl.columns[7].footer = str(nav_path.get_travel_cost())
         g = Group(speedwalk, Text(), tbl)
-        self.output(AbacuraPanel(g, title=f"Path to [{destination.vnum}] - {destination.name}"))
+        self.output(AbacuraPanel(g, title=title), highlight=True)
 
     @command
     def go(self, destination: Room, avoid_home: bool = False):

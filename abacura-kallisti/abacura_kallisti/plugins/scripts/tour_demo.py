@@ -48,7 +48,7 @@ class TourDemo(LOKPlugin):
         tg = TourGuide(self.room.area, self.world, self.pc, self.msdp.level, route)
         response = tg.get_next_step(self.room)
         if response.error:
-            self.output(f"[orange1]{response.error}", markup=True)
+            self.session.show_error(response.error, title="Tour Error")
             return
 
         rooms = sorted(list(response.reachable_rooms))

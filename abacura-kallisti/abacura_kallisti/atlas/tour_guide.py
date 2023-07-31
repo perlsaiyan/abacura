@@ -154,7 +154,7 @@ class TourGuide:
             near.append((path, cost, pocket_size))
 
         if len(near) == 0:
-            return TourGuideResponse(error=f"NUP: No room found [{scanned_room.vnum}]")
+            return TourGuideResponse(error=f"NUP: No room found [ {scanned_room.vnum} ]")
 
         # sort by pocket_size, then cost
         near.sort(key=lambda x: (x[2], x[1]))
@@ -174,7 +174,7 @@ class TourGuide:
 
         allowed = [e for e in exits if _is_allowed_room(e.to_vnum)]
         if len(allowed) == 0:
-            return TourGuideResponse(error=f"LRV: No exit found [{scanned_room.vnum}]")
+            return TourGuideResponse(error=f"LRV: No exit found [ {scanned_room.vnum} ]")
 
         ordered = sorted(allowed, key=lambda x: (self.world.rooms[x.to_vnum].last_visited, random.random))
         return TourGuideResponse(exit=ordered[0])

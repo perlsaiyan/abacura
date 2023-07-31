@@ -86,7 +86,7 @@ class AreaController(LOKPlugin):
             tbl = tabulate(rows, headers=("#", "Name", "Level", "Quantity", "Description",
                                           "Race", "Class", "Startswith", "Attack Name"))
 
-            self.output(AbacuraPanel(tbl, title=f"Mobs in [{self.room.vnum}] - {self.room.name}"))
+            self.output(AbacuraPanel(tbl, title=f"Mobs in [ {self.room.vnum} ] - {self.room.name}"))
             return
 
         if n > len(self.room.mobs):

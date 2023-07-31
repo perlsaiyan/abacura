@@ -26,7 +26,7 @@ class PluginHelper(Plugin):
         rows = []
         for base, name, doc, indicator, counts in sorted(plugin_rows):
             rows.append((base, name, doc, indicator,
-                         counts["action"], counts["commands"], counts["event"], counts["ticker"]))
+                         counts["action"], counts["command"], counts["event"], counts["ticker"]))
         tbl = tabulate(rows, headers=["Type", "Name", "Description", "Register Actions",
                                       "# Actions", "# Commands", "# Events", "# Tickers"])
         self.output(AbacuraPanel(tbl, title="Loaded Plugins"))
@@ -56,10 +56,10 @@ class PluginHelper(Plugin):
         if len(exact) == 1:
             matches = exact
         elif len(matches) > 1:
-            self.output(f"[orange1] Ambiguous Plugin Name: {matches}", markup=True)
+            self.session.show_warning(f"Ambiguous Plugin Name: '{name}'")
             return
         elif len(matches) == 0:
-            self.output(f"[orange1] No plugin by that name [{name}]", markup=True)
+            self.session.show_warning(f"No plugin named '{name}'")
             return
 
         loaded_plugin = loaded_plugins[matches[0]]
@@ -91,10 +91,10 @@ class PluginHelper(Plugin):
         rows = []
         for result in results:
             s = "[green]Success" if result.exception is None else "[red]Failure"
-            rows.append((result.package_filename, s, str(result.exception)))
+            rows.append((s, result.package_filename, str(result.exception)))
 
         if len(rows):
-            tbl = tabulate(rows, headers=["Plugin Filename", "Result", "Error"])
+            tbl = tabulate(rows, headers=["Result", "Plugin Filename", "Error"])
         else:
             tbl = Text("No plugins reloaded.")
 

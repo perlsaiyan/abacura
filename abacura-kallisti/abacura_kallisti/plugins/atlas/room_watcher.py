@@ -373,7 +373,7 @@ class RoomWatcher(LOKPlugin):
 
         return minimap_lines
 
-    @event("core.prompt", priority=10)
+    @event("core.prompt", priority=1)
     def got_prompt(self, _: AbacuraMessage):
         if self.room_header_entry_id >= 0:
             try:
@@ -446,7 +446,7 @@ class RoomWatcher(LOKPlugin):
         file = data_dir / f"{self.msdp.room_vnum}.pkl"
         with open(file, "wb") as f:
             pickle.dump(self.last_room_messages, f)
-        self.output(f"Dumped [{self.msdp.room_vnum}] messages into {file}")
+        self.output(f"Dumped [ {self.msdp.room_vnum} ] messages into {file}", highlight=True)
 
     def test_room_messages(self, vnum: str):
         from pathlib import Path
@@ -519,5 +519,5 @@ class RoomWatcher(LOKPlugin):
         table = tabulate(rows, headers=["Type", "Description", "Qty", "Misc", "Flags", "Details"],
                          title="Contents", caption=f"count: {len(rows)}")
         group = Group(property_view, Text(""), table)
-        panel = AbacuraPanel(group, title=f"Scanned Room [{self.room.vnum}]")
+        panel = AbacuraPanel(group, title=f"Scanned Room [ {self.room.vnum} ]")
         self.output(panel, highlight=True)

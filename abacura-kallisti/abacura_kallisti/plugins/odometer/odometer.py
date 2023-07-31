@@ -29,7 +29,7 @@ class OdometerController(LOKPlugin):
 
         if clear:
             self.odometer.clear_history()
-            self.output("[orange1]Odometer Reset!", markup=True)
+            self.output(AbacuraPanel("History Cleared!", title="Odometer"))
             return
 
         if _start:
@@ -37,12 +37,12 @@ class OdometerController(LOKPlugin):
                 _mission = self.msdp.area_name
 
             self.odometer.start(mission=_mission)
-            self.output(f"[orange1]Odometer started! ({_mission})", markup=True)
+            self.output(AbacuraPanel(f"'{_mission}' started", title="Odometer"), markup=True)
             return
 
         if _mission:
             self.metrics.mission = _mission
-            self.output(f"[orange1]Odometer Mission set to '{_mission}'", markup=True)
+            self.output(AbacuraPanel(f"Mission set to '{_mission}'", title="Odometer"), markup=True)
             return
 
         rows = []
@@ -73,7 +73,7 @@ class OdometerController(LOKPlugin):
         self.last_kill = mob
         self.metrics.kills += 1
 
-    @event("core.prompt", priority=1)
+    @event("core.prompt")
     def got_prompt(self, _: AbacuraMessage):
         self.last_kill = ''
         self.last_skill = ''
