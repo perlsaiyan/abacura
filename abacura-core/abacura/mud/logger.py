@@ -9,7 +9,7 @@ from rich.text import Text
 
 from abacura import Config
 
-class LOKLogger:
+class AbacuraLogger:
 
     def __init__(self, name: str, config: Config):
         if config.get_specific_option(name, "log_dir"):

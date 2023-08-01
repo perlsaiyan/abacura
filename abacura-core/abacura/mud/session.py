@@ -18,7 +18,7 @@ from textual.widgets import TextLog
 
 from abacura.config import Config
 from abacura.mud import BaseSession, OutputMessage
-from abacura.mud.logger import LOKLogger
+from abacura.mud.logger import AbacuraLogger
 from abacura.mud.options.msdp import MSDP
 from abacura.plugins import command, ContextProvider, CommandError, CommandArgumentError
 from abacura.plugins.director import Director
@@ -80,7 +80,11 @@ class Session(BaseSession):
         self.speedwalk_re = re.compile(speedwalk_pattern)
         self.speedwalk_step_re = re.compile(speedwalk_step_pattern)
 
-        self.loklog = LOKLogger(self.name, self.config)
+        self.logger = AbacuraLogger(self.name, self.config)
+
+        ring_filename = self.config.ring_log(name) or ":memory:"
+        ring_size = self.config.get_specific_option(name, "ring_size", 10000)
+        self.ring_buffer = RingBufferLogSql(ring_filename, ring_size)
 
         self.director: Director = Director(session=self)
         self.director.register_object(obj=self)
@@ -107,22 +111,18 @@ class Session(BaseSession):
         self.additional_plugin_context = {**core_injections, **additional_injections}
 
         screen_class = load_class(self.config.get_specific_option(self.name, "screen_class", ""), SessionScreen)
-
         self.screen = screen_class(name, self)
         self.abacura.install_screen(self.screen, name=name)
-
-        ring_filename = self.config.ring_log(name) or ":memory:"
-        ring_size = self.config.get_specific_option(name, "ring_size", 10000)
-        self.ring_buffer = RingBufferLogSql(ring_filename, ring_size)
-
         self.abacura.push_screen(name)
         self.screen.set_interval(interval=0.01, callback=self.director.ticker_manager.process_tick, name="tickers")
 
     # TODO: This doesn't launch a screen anymore, it loads plugins
     def launch_screen(self):
         """Fired on screen mounting, so our Footer is updated and Session gets a TextLog handle"""
-        self.screen.query_one(AbacuraFooter).session = self.name
-        self.tl = self.screen.query_one(f"#output-{self.name}", expect_type=TextLog)
+        if self.screen.footer:
+            self.screen.footer.session_name = self.name
+
+        self.tl = self.screen.tl
         try:
             self.debugtl = self.screen.query_one("#debug", expect_type=TextLog)
         except NoMatches:
@@ -269,6 +269,8 @@ class Session(BaseSession):
                 self.debugtl.write(msg)
 
     def outputlog(self, message: OutputMessage):
+        """Write to long-term logger and short-term ring buffer"""
+        self.logger.info(message.message)
         self.ring_buffer.log(message)
 
     def output(self, msg,
@@ -297,7 +299,6 @@ class Session(BaseSession):
                 self.tl.write(Text.from_ansi(message.message))
             else:
                 self.tl.write(message.message)
-            self.loklog.info(message.message)
 
             if loggable:
                 self.outputlog(message)

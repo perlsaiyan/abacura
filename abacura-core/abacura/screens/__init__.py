@@ -40,8 +40,9 @@ class SessionScreen(Screen):
         self.tlid = f"output-{name}"
         # TODO: wrap should be a config file field option
         self.tl = TextLog(highlight=False, markup=False, wrap=True,
-                              name=self.tlid, classes="mudoutput", id=self.tlid, max_lines=10000)
+                          name=self.tlid, classes="mudoutput", id=self.tlid, max_lines=10000)
         self.tl.can_focus = False
+        self.footer = None
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the session"""
@@ -72,15 +73,6 @@ class SessionScreen(Screen):
     async def on_input_bar_user_command(self, command: InputBar.UserCommand) -> None:
         """Handle user input from InputBar"""
         self.session.player_input(command.command, gag=command.password)
-        #list = csv.reader(io.StringIO(command.command), delimiter=';', escapechar='\\')
-
-        #try:
-        #    lines = list.__next__()
-        #    for line in lines:
-        #        self.session.player_input(line)
-
-        #except StopIteration:
-        #    self.session.player_input("")
 
     def action_toggle_dark(self) -> None:
         """Dark mode"""

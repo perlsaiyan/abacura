@@ -17,14 +17,14 @@ class AbacuraFooter(Footer):
         super().__init__()
         self.id = id
 
-    session: reactive[str | None] = reactive[str | None]("null")
+    session_name: reactive[str | None] = reactive[str | None]("null")
     level: reactive[str] = reactive[str]("")
 
     def on_mount(self):
         self.screen.session.add_listener(self.update_level)
 
     def render(self) -> str:
-        return f"#{self.session} {self.level}"
+        return f"#{self.session_name} {self.level}"
 
     @event("core.msdp.LEVEL", priority=5)
     def update_level(self, message: MSDPMessage):
