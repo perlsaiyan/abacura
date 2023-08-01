@@ -40,7 +40,7 @@ class KallistiScreen(SessionScreen):
         super().__init__(name, session)
         self._map_overlay = False
         self.can_focus_children = False
-        
+
     def compose(self) -> ComposeResult:
         """Create child widgets for the session"""
         commslog = CommsLog(id="commslog")
@@ -54,13 +54,14 @@ class KallistiScreen(SessionScreen):
             yield commslog
             
             with Container(id="mudoutputs"):
-                # TODO: wrap should be a config file field option
-                #yield TextLog(highlight=False, markup=False, wrap=True,
-                #              name=self.tlid, classes="mudoutput", id=self.tlid)
                 self.tl.can_focus = False
                 yield self.tl
+
             yield InputBar(id="playerinput")
-        yield AbacuraFooter(id="footer")
+
+        self.footer = AbacuraFooter(id="footer")
+        yield self.footer
+
         if self.session.abacura.inspector:
             from abacura.widgets._inspector import Inspector
             inspector = Inspector()
