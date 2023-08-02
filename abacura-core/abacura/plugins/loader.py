@@ -60,7 +60,7 @@ class PluginLoader:
             session.show_exception(exc, msg=f"ERROR UNLOADING PLUGIN {plugin_module}", to_debuglog=True)
             plugin_module.exceptions.append(exc)
 
-    def load_plugin_module(self, plugin_module: PluginModule, reload: bool = False) -> PluginModule:
+    def load_plugin_module(self, plugin_module: PluginModule, reload: bool = False):
         module_start_time = datetime.utcnow()
 
         try:
@@ -78,7 +78,7 @@ class PluginLoader:
             session = plugin_module.context['session']
             session.show_exception(exc, msg=f"ERROR LOADING PLUGIN {plugin_module}", to_debuglog=True)
             plugin_module.exceptions.append(exc)
-            return plugin_module
+            return
 
         # Look for plugins subclasses within the module we just loaded and create a PluginHandler for each
         for name, cls in inspect.getmembers(module, inspect.isclass):
@@ -106,7 +106,7 @@ class PluginLoader:
                     log(f"Skipping duplicate plugin {name}.{plugin_name}")
 
         self.load_times[plugin_module.relative_filename] += (datetime.utcnow() - module_start_time).total_seconds()
-        return plugin_module
+        return
 
     def discover_plugin_modules_from_path(self, module_path: str) -> list[PluginModule]:
         discovered = []
@@ -162,8 +162,8 @@ class PluginLoader:
 
                 plugin_module.context = plugin_context
                 plugin_module.last_action = "reloaded" if reload else "loaded"
-                result = self.load_plugin_module(plugin_module, reload=reload)
-                load_results.append(result)
+                self.load_plugin_module(plugin_module, reload=reload)
+                load_results.append(plugin_module)
 
             # remove separately so we don't mutate the list in the iterator above
             discovered_files = {pm.absolute_filename for pm in discovered}
