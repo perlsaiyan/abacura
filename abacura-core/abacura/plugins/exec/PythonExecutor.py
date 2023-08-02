@@ -94,7 +94,7 @@ class PythonExecutor(Plugin):
                 self.exec_locals = {}
 
             if text.strip().startswith("def "):
-                result = exec(text, self.get_globals(), self.exec_locals)
+                _ = exec(text, self.get_globals(), self.exec_locals)
                 return
 
             # compile(text.strip(), '<string>', 'eval')

@@ -46,7 +46,7 @@ class BaseSession:
         self.outputlog(OutputMessage("".join(traceback.format_exception(type(exc), exc, exc.__traceback__))))
 
         if show_tb:
-            t = Traceback.from_exception(type(exc), exc, exc.__traceback__)
+            t = Traceback.from_exception(type(exc), exc, exc.__traceback__, show_locals=False)
             p = Panel(t, box=box.SIMPLE, expand=False)
             if to_debuglog:
                 self.debuglog(p, facility="error")
