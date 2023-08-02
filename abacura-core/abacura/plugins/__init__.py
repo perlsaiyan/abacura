@@ -31,6 +31,7 @@ class Plugin:
 
     def __init__(self):
         # super().__init__()
+        self._source_filename: str = ''
         self.session: Session = self._context['session']
         self.config: Config = self._context['config']
         self.director: Director = self._context['director']

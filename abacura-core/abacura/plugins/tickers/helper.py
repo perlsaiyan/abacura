@@ -39,8 +39,9 @@ class TickerCommand(Plugin):
 
         if delete:
             if not name:
-                raise CommandError("Must specify ticker name")
+                raise CommandError("Must specify ticker name to delete")
             self.remove_ticker(name)
+            self.output(AbacuraPanel(f"Removed ticker '{name}'", title="#ticker"))
             return
 
         if not name:
@@ -48,7 +49,7 @@ class TickerCommand(Plugin):
             return
 
         if not commands:
-            raise CommandError("Must specify a message")
+            raise CommandError("Must specify commands for the ticker")
 
         if seconds <= 0:
             raise CommandError("Seconds must be more than 0")

@@ -112,7 +112,7 @@ class ScannedMiniMap:
     def __init__(self, messages: List[OutputMessage] = None):
         self.you: Optional[tuple] = None
         self.grid: Dict[tuple, str] = {}
-        self.messages: List[OutputMessage] = messages
+        self.messages: List[OutputMessage] = messages or []
 
         if messages is None:
             return

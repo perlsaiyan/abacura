@@ -21,6 +21,8 @@ if TYPE_CHECKING:
 class SessionScreen(Screen):
     """Default Screen for sessions"""
 
+    MAX_LINES: int = 10000
+
     BINDINGS = [
         ("pageup", "pageup", "PageUp"),
         ("pagedown", "pagedown", "PageDown"),
@@ -40,7 +42,7 @@ class SessionScreen(Screen):
         self.tlid = f"output-{name}"
         # TODO: wrap should be a config file field option
         self.tl = TextLog(highlight=False, markup=False, wrap=True,
-                          name=self.tlid, classes="mudoutput", id=self.tlid, max_lines=10000)
+                          name=self.tlid, classes="mudoutput", id=self.tlid, max_lines=self.MAX_LINES)
         self.tl.can_focus = False
         self.footer = None
 
@@ -90,21 +92,25 @@ class SessionScreen(Screen):
 
     def action_pageup(self) -> None:
         self.tl.auto_scroll = False
+        self.tl.max_lines = self.MAX_LINES * 2
+
         self.tl.scroll_page_up(duration=0.3)
-        # self.tl.action_page_up()
 
     def action_pagedown(self) -> None:
-        self.tl.scroll_page_down(duration=0.3)
-        # self.tl.action_page_down()
         if self.tl.scroll_offset.y >= self.tl.virtual_size.height - self.tl.content_size.height:
             self.tl.auto_scroll = True
+            self.tl.max_lines = self.MAX_LINES
+
+        self.tl.scroll_page_down(duration=0.3)
 
     def action_scroll_home(self) -> None:
         self.tl.auto_scroll = False
+        self.tl.max_lines = self.MAX_LINES * 2
+
         self.tl.scroll_home(duration=0.3)
-        # self.tl.action_scroll_home()
 
     def action_scroll_end(self) -> None:
         self.tl.auto_scroll = True
-        # self.tl.action_scroll_end()
+        self.tl.max_lines = self.MAX_LINES
+
         self.tl.scroll_end(duration=0.3)

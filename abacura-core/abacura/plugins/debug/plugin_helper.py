@@ -3,7 +3,7 @@ from collections import Counter
 from rich.text import Text
 
 from abacura.plugins import Plugin, command
-from abacura.utils.renderables import tabulate, AbacuraPanel, AbacuraError
+from abacura.utils.renderables import tabulate, AbacuraPanel, AbacuraWarning, OutputColors
 
 
 class PluginHelper(Plugin):
@@ -12,8 +12,7 @@ class PluginHelper(Plugin):
     def show_all_plugins(self):
         plugin_rows = []
 
-        for name, loaded_plugin in self.session.plugin_loader.plugins.items():
-            plugin = loaded_plugin.plugin
+        for name, plugin in self.session.plugin_loader.plugins.items():
             registrations = self.director.get_registrations_for_object(plugin)
             counts = Counter([r.registration_type for r in registrations])
 
@@ -32,10 +31,13 @@ class PluginHelper(Plugin):
         self.output(AbacuraPanel(tbl, title="Loaded Plugins"))
 
     def show_failures(self):
-        if len(self.session.plugin_loader.load_failures):
-            rows = [(f.package, f.error) for f in self.session.plugin_loader.load_failures]
-            tbl = tabulate(rows, headers=["Filename", "Error"])
-            self.output(AbacuraError(tbl, title="Failed Package Loads", warning=True))
+        rows = [(m.relative_filename, str(m.exceptions)) for m in self.session.plugin_loader.get_failed_modules()]
+
+        if len(rows) == 0:
+            return
+
+        tbl = tabulate(rows, headers=["Filename", "Errors"])
+        self.output(AbacuraWarning(tbl, title="Failed Package Loads"))
 
     @command
     def plugins(self, name: str = '') -> None:
@@ -49,7 +51,7 @@ class PluginHelper(Plugin):
             self.show_failures()
             return
 
-        loaded_plugins = self.session.plugin_loader.plugins
+        loaded_plugins: dict[str, Plugin] = self.session.plugin_loader.plugins
         matches = [n for n in loaded_plugins.keys() if n.lower().startswith(name.lower())]
         exact = [n for n in loaded_plugins.keys() if n.lower() == name.lower()]
 
@@ -62,10 +64,10 @@ class PluginHelper(Plugin):
             self.session.show_warning(f"No plugin named '{name}'")
             return
 
-        loaded_plugin = loaded_plugins[matches[0]]
-        plugin = loaded_plugin.plugin
+        loaded_plugin: Plugin = loaded_plugins[matches[0]]
+        plugin_module = self.session.plugin_loader.plugin_modules[loaded_plugin._source_filename]
 
-        registrations = self.director.get_registrations_for_object(plugin)
+        registrations = self.director.get_registrations_for_object(loaded_plugin)
 
         rows = []
         for r in registrations:
@@ -73,29 +75,31 @@ class PluginHelper(Plugin):
 
         tbl = tabulate(rows, headers=["Type", "Name", "Callback", "Details"], title=f"Registered Callbacks")
 
-        self.output(AbacuraPanel(tbl, title=f"{loaded_plugin.package}.{plugin.get_name()}"))
+        self.output(AbacuraPanel(tbl, title=f"{plugin_module.import_path}.{loaded_plugin.get_name()}"))
 
     @command
-    def reload(self, plugin_name: str = ""):
+    def reload(self):
         """
-        Reload plugins
-
-        :param plugin_name: Reload a specific plugin, leave blank to load all changed files
+        Reload plugins that have been modified or added.  Unload plugins that have been deleted.
         """
 
-        if not plugin_name:
-            results = self.session.plugin_loader.autoreload_plugins()
-        else:
-            results = self.session.plugin_loader.reload_plugin_by_name(plugin_name)
+        results = self.session.plugin_loader.reload_plugins()
 
         rows = []
         for result in results:
-            s = "[green]Success" if result.exception is None else "[red]Failure"
-            rows.append((s, result.package_filename, str(result.exception)))
+            color = OutputColors.success
+            if len(result.exceptions) > 0:
+                color = OutputColors.error
+            elif result.plugin_count == 0:
+                continue
+            elif result.last_action == "unloaded":
+                color = OutputColors.warning
+
+            rows.append((f"[{color}]{result.last_action}", result.import_path, [str(e) for e in result.exceptions]))
 
         if len(rows):
-            tbl = tabulate(rows, headers=["Result", "Plugin Filename", "Error"])
+            tbl = tabulate(rows, headers=["Action", "Plugin Filename", "Errors"])
         else:
             tbl = Text("No plugins reloaded.")
 
-        self.output(AbacuraPanel(tbl, title="Reload Results"))
+        self.output(AbacuraPanel(tbl, title="Plugin Reload"))

@@ -128,17 +128,18 @@ class Session(BaseSession):
         except NoMatches:
             pass
 
-        self.plugin_loader.load_plugins(modules=["abacura"], plugin_context=self.core_plugin_context)
+        self.plugin_loader.load_plugins(module_paths=["abacura"], plugin_context=self.core_plugin_context)
         session_modules = self.config.get_specific_option(self.name, "modules")
         if isinstance(session_modules, list):
             self.plugin_loader.load_plugins(session_modules, plugin_context=self.additional_plugin_context)
 
-        num_failed = len(self.plugin_loader.load_failures)
+        num_failed = len(self.plugin_loader.get_failed_modules())
         if num_failed:
             s = 's' if num_failed > 1 else ''
             self.show_error(f"{num_failed} plugin{s} failed to load. See #plugin for details.", title="Plugin Error")
 
-        telnet_client = self.plugin_loader.plugins["TelnetPlugin"].plugin.telnet_client
+        telnet_client = getattr(self.plugin_loader.plugins["TelnetPlugin"], "telnet_client")
+
         if self.host and self.port:
             log.warning(f"Attempting connection to {self.host} and {self.port} for {self.name}")
             self.abacura.run_worker(
