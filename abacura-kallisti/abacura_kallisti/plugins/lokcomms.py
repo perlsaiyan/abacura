@@ -6,7 +6,7 @@ import re
 from typing import Optional
 
 from rich.text import Text
-from textual.widgets import TextLog
+from textual.widgets import RichLog
 
 from abacura.mud import OutputMessage
 from abacura.plugins import action, command, CommandError
@@ -26,7 +26,7 @@ class CommsMessage(AbacuraMessage):
 
 class LOKComms(LOKPlugin):
     """Puts all communcations into 'comms' window"""
-    comms_textlog: Optional[TextLog] = None
+    comms_textlog: Optional[RichLog] = None
 
     #valid channels in LOK
     channels = [
@@ -76,7 +76,7 @@ class LOKComms(LOKPlugin):
             self.comms_toggles[channel] = 'on'
         if self.comms_toggles[channel] == 'on' and speaker not in self.comms_gag_entities:
             if self.comms_textlog is None:
-                self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
+                self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=RichLog)
             self.comms_textlog.write(Text.from_ansi(msg.message))
 
     #<Gossip: Taszlehoff (Shade)> 'morning'
@@ -94,7 +94,7 @@ class LOKComms(LOKPlugin):
         channel = 'market_info'
         speaker = 'MGSE'
         if self.comms_textlog is None:
-            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=TextLog)
+            self.comms_textlog = self.session.screen.query_one("#commsTL", expect_type=RichLog)
         self.comms_textlog.write(Text.from_ansi(msg.message))
 
     #**Whitechain: 'huehuehue'
