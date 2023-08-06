@@ -45,6 +45,10 @@ class Group:
 
     def get_members_with_you(self) -> List[GroupMember]:
         return [m for m in self.members if m.with_you]
+    
+    @property
+    def members_with_you(self) -> List[GroupMember]:
+        return [m for m in self.members if m.with_you]
 
     def get_num_with_you(self) -> int:
         return len(self.get_members_with_you())
