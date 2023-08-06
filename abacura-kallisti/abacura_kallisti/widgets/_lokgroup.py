@@ -59,7 +59,7 @@ class LOKGroup(Static):
         self.group_block.clear()
 
         if self.group:
-            #self.styles.height = len(self.group) + 2
+            self.styles.height = len(self.group) + 1
             self.display = True
 
             for g_member in self.group:
