@@ -230,21 +230,25 @@ class Session(BaseSession):
             self.output(f"[bold red]# NO-SESSION SEND: {msg}", markup=True, highlight=True)
 
     def echo_command(self, cmd, color="white"):
-        if not self.tl or not len(self.tl.lines):
+        if not self.tl or len(self.tl.lines) < 2:
             return
 
-        strip = self.tl.lines[-1]
-        line_text = "".join([segment.text for segment in strip._segments])
         cmd_segment = Segment(cmd, Style(color=color, italic=True))
-        if not line_text.rstrip().endswith(">"):
-            self.output(Segments([cmd_segment]))
+
+        for i in (-1, -2):
+            strip = self.tl.lines[i]
+            line_text = "".join([segment.text for segment in strip._segments])
+            if not line_text.rstrip().endswith(">"):
+                continue
+
+            new_segments = strip._segments + [cmd_segment]
+            new_strip = Strip(segments=new_segments)
+            self.tl.lines[i] = new_strip
+            self.tl._line_cache.clear()
+            self.tl.render()
             return
 
-        new_segments = strip._segments + [cmd_segment]
-        new_strip = Strip(segments=new_segments)
-        self.tl.lines[-1] = new_strip
-        self.tl._line_cache.clear()
-        self.tl.render()
+        self.output(Segments([cmd_segment]))
 
     @command(name="debuglog")
     def debuglog_command(self, msg: str, _facility: str = "info", markup: bool = True, highlight: bool = True):
