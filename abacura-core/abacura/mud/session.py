@@ -14,7 +14,7 @@ from rich.text import Text
 from textual import log
 from textual.css.query import NoMatches
 from textual.strip import Strip
-from textual.widgets import TextLog
+from textual.widgets import RichLog
 
 from abacura.config import Config
 from abacura.mud import BaseSession, OutputMessage
@@ -28,7 +28,7 @@ from abacura.screens import SessionScreen
 from abacura.utils.fifo_buffer import FIFOBuffer
 from abacura.utils.ring_buffer import RingBufferLogSql
 from abacura.utils.renderables import AbacuraPanel, tabulate
-from abacura.widgets.footer import AbacuraFooter
+
 
 if TYPE_CHECKING:
     from abacura.abacura import Abacura
@@ -63,8 +63,8 @@ class Session(BaseSession):
         self.host: Optional[str] = None
         self.port: Optional[int] = None
         self.writer: Optional[asyncio.StreamWriter] = None
-        self.tl: Optional[TextLog] = None
-        self.debugtl: Optional[TextLog] = None
+        self.tl: Optional[RichLog] = None
+        self.debugtl: Optional[RichLog] = None
         self.output_history: FIFOBuffer = FIFOBuffer(1000)
 
         self.core_msdp: MSDP = MSDP(self.output, self.send, self)
@@ -118,13 +118,13 @@ class Session(BaseSession):
 
     # TODO: This doesn't launch a screen anymore, it loads plugins
     def launch_screen(self):
-        """Fired on screen mounting, so our Footer is updated and Session gets a TextLog handle"""
+        """Fired on screen mounting, so our Footer is updated and Session gets a RichLog handle"""
         if self.screen.footer:
             self.screen.footer.session_name = self.name
 
         self.tl = self.screen.tl
         try:
-            self.debugtl = self.screen.query_one("#debug", expect_type=TextLog)
+            self.debugtl = self.screen.query_one("#debug", expect_type=RichLog)
         except NoMatches:
             pass
 
@@ -278,9 +278,9 @@ class Session(BaseSession):
                markup: bool = False, highlight: bool = False, ansi: bool = False, actionable: bool = True,
                gag: bool = False, loggable: bool = True):
 
-        """Write to TextLog for this screen"""
+        """Write to RichLog for this screen"""
         if self.tl is None:
-            log.warning(f"Attempt to write to nonexistent TextLog: {msg}")
+            log.warning(f"Attempt to write to nonexistent RichLog: {msg}")
             return
 
         message = OutputMessage(msg, gag)

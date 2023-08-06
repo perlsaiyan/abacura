@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from textual.app import ComposeResult
 from textual.containers import Container
 from textual.screen import Screen
-from textual.widgets import Header, TextLog
+from textual.widgets import Header, RichLog
 
 from abacura.widgets import CommsLog, InputBar
 from abacura.widgets.debug import DebugDock
@@ -41,7 +41,7 @@ class SessionScreen(Screen):
         self.id = f"screen-{name}"
         self.tlid = f"output-{name}"
         # TODO: wrap should be a config file field option
-        self.tl = TextLog(highlight=False, markup=False, wrap=True,
+        self.tl = RichLog(highlight=False, markup=False, wrap=True,
                           name=self.tlid, classes="mudoutput", id=self.tlid, max_lines=self.MAX_LINES)
         self.tl.can_focus = False
         self.footer = None
