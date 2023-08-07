@@ -162,7 +162,7 @@ class TelnetPlugin(Plugin):
                 elif data == GA:
                     self.output(self.outb.decode("UTF-8", errors="ignore"), ansi=True)
                     self.dispatch(AbacuraMessage("core.prompt", self.outb.decode("UTF-8", errors="ignore")))
-                    self.output("")
+                    # self.output("")
 
                     self.outb = b''
 
