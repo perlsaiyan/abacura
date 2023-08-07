@@ -1,6 +1,6 @@
 import heapq
 from dataclasses import dataclass
-from typing import Dict, Set, List, Generator
+from typing import Dict, Set, List, Generator, Callable
 from itertools import groupby
 
 from abacura_kallisti.atlas.wilderness import WildernessGrid
@@ -65,6 +65,12 @@ class TravelPath:
         simplified = [f"{cnt if cnt > 1 else ''}{cmd}" for cnt, cmd in grouped]
 
         return ";".join(simplified)
+
+
+@dataclass(slots=True)
+class SpecialExit:
+    check: Callable
+    exit: Exit
 
 
 class TravelGuide:
@@ -157,52 +163,35 @@ class TravelGuide:
 
         return path
 
-    def _get_exit_cost(self, room_exit: Exit) -> int:
-        # special_unlock = room_exit.special_unlock is not None and room_exit.special_unlock != ''
-        if room_exit.to_vnum in ['?', 'L'] or room_exit.locks:  # and not special_unlock :
-            return -1
+    def _get_special_exits(self) -> List[SpecialExit]:
+        def can_go_home(room: Room):
+            if room.area_name == "The Wilderness":
+                return False
+            home_allowed = room.area_name in [HOMETOWN, HOME_AREA_NAME]
+            has_home = self.pc.home_vnum != ''
+            return not self.avoid_home and home_allowed and has_home
 
-        if room_exit.max_level < self.level:
-            return -1
+        def can_depart(room: Room):
+            if room.area_name == "The Wilderness":
+                return False
 
-        if room_exit.min_level > self.level:
-            return -1
+            is_home = room.area_name == HOME_AREA_NAME
+            has_egress = self.pc.egress_vnum != ''
+            return not self.avoid_home and is_home and has_egress
 
-        if room_exit.to_vnum not in self.world.rooms:
-            return -1
+        def can_recall(room: Room):
+            if room.area_name == "The Wilderness":
+                return False
 
-        to_room = self.world.rooms[room_exit.to_vnum]
+            recall_allowed = not room.no_recall and not room.silent and not room.no_magic
+            has_recall = self.pc.recall_vnum != ''
+            return recall_allowed and has_recall
 
-        if to_room.terrain.impassable:
-            return -1
-
-        if to_room.deathtrap:
-            return -1
-
-        # prefer not to open doors since it takes another command
-        return to_room.terrain.weight + room_exit.weight + room_exit.closes
-
-    def _get_special_exits(self, room_vnum: str) -> Generator:
-        current_room = self.world.rooms[room_vnum]
-
-        if current_room.area_name == 'The Wilderness':
-            return
-
-        can_go_home = current_room.area_name in [HOMETOWN, HOME_AREA_NAME] and self.pc.home_vnum != '' 
-        
-        if can_go_home and not self.avoid_home:
-            # from_room: str = '3001' if with_group else current_room.vnum
-            e = Exit(from_vnum=current_room.vnum, to_vnum=self.pc.home_vnum, direction='home', weight=2)
-            yield e
-
-        if current_room.area_name == HOME_AREA_NAME and self.pc.egress_vnum != '' and not self.avoid_home:
-            e = Exit(from_vnum=current_room.vnum, to_vnum=self.pc.egress_vnum, direction='depart', weight=2)
-            yield e
-
-        can_recall = not current_room.no_recall and not current_room.silent and not current_room.no_magic
-        if can_recall and self.pc.recall_vnum != '':
-            e = Exit(from_vnum=current_room.vnum, to_vnum=self.pc.recall_vnum, direction='recall', weight=3)
-            yield e
+        return [
+            SpecialExit(can_go_home, Exit(to_vnum=self.pc.home_vnum, direction='home', weight=2)),
+            SpecialExit(can_depart, Exit(to_vnum=self.pc.egress_vnum, direction='depart', weight=2)),
+            SpecialExit(can_recall, Exit(to_vnum=self.pc.recall_vnum, direction='recall', weight=3)),
+        ]
 
     # def _get_area_cost(self, start_vnum: str, room_exit: Exit, goal_vnums: set) -> int:
     #     if len(goal_vnums) != 1:
@@ -248,6 +237,8 @@ class TravelGuide:
         came_from: Dict[str, (str, Exit, int)] = {start_vnum: (start_vnum, Exit(), 0)}
         cost_so_far = {start_vnum: 0}
 
+        special_exits = self._get_special_exits()
+
         n = 0
         while len(frontier) > 0 and n <= 60000:
             n += 1
@@ -258,45 +249,36 @@ class TravelGuide:
                 yield self._convert_came_from_to_path(current_vnum, came_from)
 
             current_room = self.world.rooms[current_vnum]
-            # exits = self.get_standard_exits(current_room.vnum, self.char_level)
+            if current_room.vnum in avoid_vnums:
+                continue
 
-            # if current_room.vnum in self.world.temporary_portals:
-            # exits += self.get_temporary_exits(current_room.vnum, self.char_level)
+            if allowed_vnums and current_vnum not in allowed_vnums:
+                continue
 
-            # if self.check_specials:
-            # exits += self.get_special_exits(current_room.vnum)
+            if current_room.deathtrap or current_room.terrain.impassable:
+                continue
 
-            for room_exit in chain(current_room.exits.values(),
-                                   self._get_special_exits(current_room.vnum)):
+            room_se = [se.exit for se in special_exits if se.exit.to_vnum not in came_from and se.check(current_room)]
 
-                exit_cost = self._get_exit_cost(room_exit)
-                if exit_cost < 0:
-                    continue
-
-                if current_room.vnum in avoid_vnums:
-                    continue
+            for room_exit in chain(current_room.exits.values(), room_se):
 
                 if room_exit.to_vnum in came_from and room_exit.to_vnum not in goal_vnums:
                     continue
 
-                if allowed_vnums and current_vnum not in allowed_vnums:
+                if room_exit.locks:
                     continue
 
-                # compute weight
-                new_cost = cost_so_far.get(current_vnum, 0) + exit_cost
+                if not (room_exit.max_level >= self.level >= room_exit.min_level):
+                    continue
 
+                to_room = self.world.rooms.get(room_exit.to_vnum, None)
+                if to_room is None:
+                    continue
+
+                # compute cost
+                new_cost = cost_so_far.get(current_vnum, 0) + to_room.terrain.weight
                 if current_room.area_name == 'The Wilderness':
                     new_cost += self._get_wilderness_cost(current_room, room_exit, goal_vnums)
-
-                # TODO: Make it optional to try and stay within the area
-                # elif len(goal_vnums) == 1:
-                #    new_cost += self._get_area_cost(start_vnum, room_exit, goal_vnums)
-
-                # prefer going in the same direction if we are looking for one goal room
-                # just because this gives a shorter "speedwalk" view
-                # last_exit: Exit = came_from[current_vnum][1]
-                # if len(goal_vnums) == 1 and room_exit.direction != last_exit.direction and len(goal_vnums):
-                #     new_cost += 0.1
 
                 if room_exit.to_vnum not in cost_so_far or new_cost < cost_so_far[room_exit.to_vnum]:
                     heapq.heappush(frontier, (new_cost, room_exit.to_vnum))

@@ -55,4 +55,4 @@ class BaseSession:
         else:
             msg = repr(exc) if msg == "" else msg
             self.show_error(msg)
-            self.output(AbacuraError(msg, title="Exception"), markup=True, highlight=True)
+            # self.output(AbacuraError(msg, title="Exception"), markup=True, highlight=True)
