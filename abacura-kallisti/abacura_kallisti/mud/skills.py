@@ -60,7 +60,7 @@ SKILL_LIST: List[Skill] = [
     Skill("deadeyes", renewal="renew", train={"Demoniac": 26}),
     Skill("bloodlust", "Bloodlust", renewal="renew", train={"Demoniac": 40}),
     Skill("soul syphon", train={"Demoniac": 28}),
-    Skill("warcry", "Warcry", renewal="renew", train={"Valkyrie": 45, "Barbarian": 40}),
+    Skill("warcry", "warcry", renewal="renew", train={"Valkyrie": 45, "Barbarian": 40}),
     Skill("wraithform", "Wraithform", renewal="renew", train={"Dreadlord": 70}),
     Skill("aura", "Unholy aura", renewal="renew", train={"Dreadlord": 60}),
     Skill("bind", train={"Ranger": 21, "Barbarian": 60, "Assassin": 27}),
