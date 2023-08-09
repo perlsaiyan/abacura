@@ -84,6 +84,7 @@ class TravelGuide:
         self.pc: PlayerCharacter = pc
         self.level = level
         self.avoid_home = avoid_home
+        self.metrics = {}
 
     def get_path_to_room(self, start_vnum: str, goal_vnum: str,
                          avoid_vnums: Set[str], allowed_vnums: Set[str] = None) -> TravelPath:
@@ -110,35 +111,6 @@ class TravelGuide:
                 break
 
         return found
-
-    # def get_next_command(self, step: TravelStep) -> str:
-    #     if not step:
-    #         return ""
-    #
-    #     route_exit: Exit = step.exit
-    #     route_direction = route_exit.direction
-    #     move_direction = route_direction
-    #
-    #     room_exits = self.msdp.get_exits()
-    #
-    #     # self.session.debug("%s %s" % (route_direction, room_exits))
-    #     if route_exit.portal_method:
-    #         move_direction = route_exit.portal_method + " " + route_direction
-    #     elif route_direction in room_exits:
-    #         move_direction = route_direction
-    #         exit_status = room_exits[route_direction]
-    #         # self.session.debug("%s %s " % (route_direction, exit_self.msdp))
-    #         if exit_status == "C":
-    #             self.session.send("open %s %s" % (route_exit.door or "door", route_direction))
-    #         elif exit_status == 'L':
-    #             self.session.show_block("Unable to proceed through lock %s" % route_direction)
-    #             return ""
-    #     elif route_direction not in CARDINAL_DIRECTIONS:
-    #         # this is not north, south, east, west, etc., just use the direction as the command
-    #         move_direction = route_direction
-    #
-    #     # self.session.debug(f"Nav direction {move_direction}", show=True)
-    #     return move_direction
 
     def _convert_came_from_to_path(self, dest_vnum: str, came_from: Dict) -> TravelPath:
         if dest_vnum not in self.world.rooms:
@@ -193,25 +165,6 @@ class TravelGuide:
             SpecialExit(can_recall, Exit(to_vnum=self.pc.recall_vnum, direction='recall', weight=3)),
         ]
 
-    # def _get_area_cost(self, start_vnum: str, room_exit: Exit, goal_vnums: set) -> int:
-    #     if len(goal_vnums) != 1:
-    #         return 0
-    #
-    #     start_room = self.world.rooms.get(start_vnum, None)
-    #     exit_room = self.world.rooms.get(room_exit.to_vnum, None)
-    #     goal_room = self.world.rooms.get(list(goal_vnums)[0], None)
-    #
-    #     if not start_room or not exit_room or not goal_room:
-    #         return 0
-    #
-    #     egress_room = self.world.rooms.get(self.pc.egress_vnum, None)
-    #     egress_area = egress_room.area_name if egress_room else ''
-    #
-    #     if exit_room.area_name in [HOMETOWN, HOME_AREA_NAME, egress_area]:
-    #         return 0
-    #
-    #     return 0
-
     def _get_wilderness_cost(self, current_room: Room, room_exit: Exit, goal_vnums: set) -> int:
         cost = 0
 
@@ -239,6 +192,11 @@ class TravelGuide:
 
         special_exits = self._get_special_exits()
 
+        # explore_areas = set(self.world.rooms[vnum].area_name for vnum in goal_vnums)
+        # explore_areas.add(self.world.rooms[start_vnum].area_name)
+        # skip_areas = set()
+        # self.metrics['skip_areas'] = len(skip_areas)
+
         n = 0
         while len(frontier) > 0 and n <= 60000:
             n += 1
@@ -246,9 +204,23 @@ class TravelGuide:
 
             if current_vnum in goal_vnums:
                 # self.session.debug('NAV: gen examined %d rooms' % len(came_from))
+                # self.metrics['areas skipped'] = len(skip_areas)
+                self.metrics['rooms visited'] = n
                 yield self._convert_came_from_to_path(current_vnum, came_from)
 
             current_room = self.world.rooms[current_vnum]
+
+            # Future optimization, don't look in areas that don't lead to unvisited rooms
+            # current_area = current_room.area_name
+            # if current_area not in explore_areas and current_area not in skip_areas:
+            #     if current_area in self.world.area_transits:
+            #         transits = self.world.area_transits[current_area]
+            #         if all([vnum in came_from for vnum in transits]):
+            #             skip_areas.add(current_area)
+            #             # self.metrics['skip_areas'] = skip_areas
+            #             continue
+            #     explore_areas.add(current_area)
+
             if current_room.vnum in avoid_vnums:
                 continue
 

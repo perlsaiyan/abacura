@@ -118,7 +118,7 @@ class TravelScript(LOKPlugin):
                 continue
 
             for cmd in step.exit.get_commands():
-                if cmd.startswith("open") and self.msdp.room_exits.get(step.exit.direction) != 'C':
+                if cmd.startswith("open") and self.msdp.room_exits.get(step.exit.direction) not in ('C', ''):
                     continue
 
                 self.cq.add(cmd, dur=0, q="Move")
