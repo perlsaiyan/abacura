@@ -46,8 +46,10 @@ class PlayerCharacter:
     skills: dict[str, PlayerSkill] = field(default_factory=dict)
     buffs: list[str] = field(default_factory=list)
     # consumables: list[Consumable] = field(default_factory=list)
+    target_heros: int = 0
 
     def load(self, data_dir: str, name: str):
+        """Load a player character record from disk"""
         self.char_name = name.lower()
 
         char_file = os.path.join(data_dir, self.char_name)
