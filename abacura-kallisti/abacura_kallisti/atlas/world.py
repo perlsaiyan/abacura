@@ -29,6 +29,9 @@ class World:
         from datetime import datetime
         start_time = datetime.utcnow()
         self.load()
+        # Future - optimization
+        # self.area_transits = self.get_area_transits()
+
         self.load_time = (datetime.utcnow() - start_time).total_seconds()
 
     @staticmethod
@@ -67,6 +70,11 @@ class World:
         room.exits[direction] = exit
 
         self.save_room(vnum)
+
+        # to_room = self.rooms.get(to_vnum, None)
+        # if to_room is None or to_room.area_name != room.area_name:
+        #     # recompute transits
+        #     self.area_transits = self.get_area_transits()
 
     def search(self, word: str) -> List[Room]:
         word = word.lower()
@@ -246,6 +254,24 @@ class World:
                 self.rooms[new_exit.from_vnum].exits[new_exit.direction] = new_exit
 
         # print(len(rows), "exits loaded from db")
+
+    def get_area_transits(self):
+        """Return a list of rooms you can get to from each area"""
+        area_transits = {}
+
+        for r in self.rooms.values():
+            area_name = r.area_name
+            for e in r._exits.values():
+                try:
+                    if area_name != self.rooms[e.to_vnum].area_name:
+                        if area_name in area_transits:
+                            area_transits[area_name].add(e.to_vnum)
+                        else:
+                            area_transits[area_name] = {e.to_vnum}
+                except KeyError:
+                    continue
+
+        return area_transits
 
     def load_wilderness(self):
         if not self.wilderness_loaded:

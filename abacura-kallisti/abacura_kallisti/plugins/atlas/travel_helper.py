@@ -1,3 +1,5 @@
+import time
+
 from abacura.plugins import command
 from abacura.utils.timer import Timer
 from abacura_kallisti.atlas.travel_guide import TravelGuide
@@ -20,11 +22,11 @@ class TravelHelper(LOKPlugin):
         :param destination:  vnum or location name of travel destination
         :param detailed: display steps in a table with more information
         """
-        t = Timer()
+
         nav = TravelGuide(self.world, self.pc, level=self.msdp.level, avoid_home=False)
-        t.start()
+        start = time.monotonic()
         nav_path = nav.get_path_to_room(self.msdp.room_vnum, destination.vnum, avoid_vnums=set())
-        path_elapsed_time = t.stop()
+        path_elapsed_time = time.monotonic() - start
         if not nav_path.destination:
             self.session.show_error(f"Unable to compute path to {destination.vnum}")
             return
@@ -51,12 +53,13 @@ class TravelHelper(LOKPlugin):
         tbl = tabulate(rows, headers=("_Vnum", "_To Vnum", "Commands", "Direction", "Door",
                                       "Closes", "Locks", "Cost", "Terrain"),
                        title=f"Steps",
-                       caption=f" Path computed in {1000 * path_elapsed_time:.0f}ms",
+                       caption=f" Path computed in {1000 * path_elapsed_time:.1f}ms",
                        show_footer=True)
 
         tbl.columns[7].footer = str(nav_path.get_travel_cost())
         g = Group(speedwalk, Text(), tbl)
         self.output(AbacuraPanel(g, title=title), highlight=True)
+        self.debuglog(f"#path metrics: {nav.metrics}")
 
     @command
     def go(self, destination: Room, avoid_home: bool = False):

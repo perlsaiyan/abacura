@@ -41,7 +41,7 @@ class Exit:
         if self.commands:
             return self.commands.split(";")
 
-        if self.closes:
+        if self.closes or self.door:
             return [f"open {self.door or 'door'} {self.direction}", self.direction]
 
         if self.direction in ['home', 'depart', 'recall']:
