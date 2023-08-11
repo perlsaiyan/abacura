@@ -300,6 +300,8 @@ class Session(BaseSession):
             self.tl.markup = markup
             self.tl.highlight = highlight
 
+            scroll_end = self.tl.scroll_offset.y >= self.tl.virtual_size.height - self.tl.content_size.height
+
             if ansi:
                 self.tl.write(Text.from_ansi(message.message))
             else:
@@ -310,6 +312,9 @@ class Session(BaseSession):
 
             self.tl.markup = False
             self.tl.highlight = False
+
+            if scroll_end:
+                self.tl.scroll_end(animate=False)
 
     @command
     def connect(self, name: str, host: str = '', port: int = 0) -> None:

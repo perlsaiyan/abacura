@@ -41,7 +41,7 @@ class SessionScreen(Screen):
         self.id = f"screen-{name}"
         self.tlid = f"output-{name}"
         # TODO: wrap should be a config file field option
-        self.tl = RichLog(highlight=False, markup=False, wrap=True,
+        self.tl = RichLog(highlight=False, markup=False, wrap=True, auto_scroll=False,
                           name=self.tlid, classes="mudoutput", id=self.tlid, max_lines=self.MAX_LINES)
         self.tl.can_focus = False
         self.footer = None
@@ -91,26 +91,26 @@ class SessionScreen(Screen):
         commslog.display = not commslog.display
 
     def action_pageup(self) -> None:
-        self.tl.auto_scroll = False
-        self.tl.max_lines = self.MAX_LINES * 2
+        # self.tl.auto_scroll = False
+        # self.tl.max_lines = self.MAX_LINES * 2
 
         self.tl.scroll_page_up(duration=0.3)
 
     def action_pagedown(self) -> None:
-        if self.tl.scroll_offset.y >= self.tl.virtual_size.height - self.tl.content_size.height:
-            self.tl.auto_scroll = True
-            self.tl.max_lines = self.MAX_LINES
+        # if self.tl.scroll_offset.y >= self.tl.virtual_size.height - self.tl.content_size.height:
+            # self.tl.auto_scroll = True
+            # self.tl.max_lines = self.MAX_LINES
 
         self.tl.scroll_page_down(duration=0.3)
 
     def action_scroll_home(self) -> None:
-        self.tl.auto_scroll = False
-        self.tl.max_lines = self.MAX_LINES * 2
+        # self.tl.auto_scroll = False
+        # self.tl.max_lines = self.MAX_LINES * 2
 
         self.tl.scroll_home(duration=0.3)
 
     def action_scroll_end(self) -> None:
-        self.tl.auto_scroll = True
-        self.tl.max_lines = self.MAX_LINES
+        # self.tl.auto_scroll = True
+        # self.tl.max_lines = self.MAX_LINES
 
         self.tl.scroll_end(duration=0.3)
