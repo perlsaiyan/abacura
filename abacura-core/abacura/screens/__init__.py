@@ -8,6 +8,7 @@ from textual.app import ComposeResult
 from textual.containers import Container
 from textual.screen import Screen
 from textual.widgets import Header, RichLog
+from textual import events
 
 from abacura.widgets import CommsLog, InputBar
 from abacura.widgets.debug import DebugDock
@@ -16,6 +17,16 @@ from abacura.widgets.sidebar import Sidebar
 
 if TYPE_CHECKING:
     from abacura.mud.session import Session
+
+
+class SessionRichLog(RichLog):
+
+    def on_resize(self, _e: events.Resize):
+        # animate this to reduce "flicker" when toggling commslog, debuglog
+        self.scroll_end(duration=0.1)
+
+    def viewing_end(self) -> bool:
+        return self.scroll_offset.y >= self.virtual_size.height - self.content_size.height
 
 
 class SessionScreen(Screen):
@@ -41,8 +52,9 @@ class SessionScreen(Screen):
         self.id = f"screen-{name}"
         self.tlid = f"output-{name}"
         # TODO: wrap should be a config file field option
-        self.tl = RichLog(highlight=False, markup=False, wrap=True, auto_scroll=False,
-                          name=self.tlid, classes="mudoutput", id=self.tlid, max_lines=self.MAX_LINES)
+        self.tl: SessionRichLog = SessionRichLog(highlight=False, markup=False, wrap=True, auto_scroll=False,
+                                                 name=self.tlid, classes="mudoutput", id=self.tlid,
+                                                 max_lines=self.MAX_LINES)
         self.tl.can_focus = False
         self.footer = None
 
@@ -89,6 +101,7 @@ class SessionScreen(Screen):
     def action_toggle_commslog(self) -> None:
         commslog = self.query_one("#commslog")
         commslog.display = not commslog.display
+        self.refresh()
 
     def action_pageup(self) -> None:
         # self.tl.auto_scroll = False

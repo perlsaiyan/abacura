@@ -300,7 +300,7 @@ class Session(BaseSession):
             self.tl.markup = markup
             self.tl.highlight = highlight
 
-            scroll_end = self.tl.scroll_offset.y >= self.tl.virtual_size.height - self.tl.content_size.height
+            scroll_end = self.tl.viewing_end()
 
             if ansi:
                 self.tl.write(Text.from_ansi(message.message))

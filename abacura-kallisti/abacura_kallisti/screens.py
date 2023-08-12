@@ -82,10 +82,12 @@ class KallistiScreen(SessionScreen):
     def action_toggle_commslog(self) -> None:
         commslog = self.query_one("#commslog")
         commslog.display = not commslog.display
+        self.refresh()
 
     def action_toggle_debug(self) -> None:
         debugger = self.query_one("#debugger")
         debugger.display = not debugger.display
+        self.refresh()
 
     def action_toggle_map(self) -> None:
         def reset_mapkey():
