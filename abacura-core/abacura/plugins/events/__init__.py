@@ -7,7 +7,6 @@ from collections import Counter
 
 from textual import log
 
-
 @dataclass
 class AbacuraMessage:
     """Base message object to pass into events"""
@@ -17,6 +16,7 @@ class AbacuraMessage:
 
 @dataclass(order=True)
 class EventTask:
+    """Task for the event PriorityQueue"""
     priority: int
     source: object = field(compare=False)
     handler: Callable = field(compare=False)
@@ -43,6 +43,7 @@ class EventManager:
         self.event_counts = Counter()
 
     def register_object(self, obj: object):
+        """Find and register all events in an object"""
         # self.unregister_object(obj)  # prevent duplicates
 
         # Look for listeners in the plugin
@@ -52,6 +53,7 @@ class EventManager:
                 self.add_listener(member, source=obj)
 
     def unregister_object(self, obj: object):
+        """Remove an object's events from the manager"""
         for trigger, pq in self.events.items():
             pq.queue[:] = [e for e in pq.queue if e.source != obj]
 
@@ -62,21 +64,6 @@ class EventManager:
                          priority=getattr(listener, "event_priority"))
 
         self.events.setdefault(trigger, PriorityQueue()).put(task)
-
-    # def get_events(self, trigger):
-    #     """Return list of EventTasks in a queue"""
-    #     event_list = []
-    #     if trigger in self.events:
-    #         newqueue = PriorityQueue()
-    #
-    #         while not self.events[trigger].empty():
-    #             cur_event = self.events[trigger].get()
-    #             newqueue.put(cur_event)
-    #             event_list.append(cur_event)
-    #
-    #         self.events[trigger] = newqueue
-    #
-    #     return event_list
 
     def dispatch(self, message: AbacuraMessage):
         """Dispatch events"""

@@ -3,12 +3,8 @@ from abacura.plugins import Plugin, command, CommandError
 from abacura.plugins.events import AbacuraMessage
 from abacura.utils.renderables import tabulate, AbacuraPanel
 
-
 class EventPlugin(Plugin):
     """Commands and things """
-
-    def __init__(self):
-        super().__init__()
 
     @command(name="events")
     def eventscommand(self, name: str = ''):
