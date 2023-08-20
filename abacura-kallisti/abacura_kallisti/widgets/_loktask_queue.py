@@ -6,6 +6,7 @@ from textual.widgets import Static, DataTable
 from abacura.plugins.events import event
 from abacura.plugins.task_queue import CQMessage
 
+
 class LOKTaskQueue(Static):
 
     def __init__(self, *args, **kwargs):
@@ -14,7 +15,7 @@ class LOKTaskQueue(Static):
         self.queue_display.can_focus = False
 
     def compose(self) -> ComposeResult:
-        yield Static("Task Queue",classes="WidgetTitle", id="tq_title")
+        yield Static("Task Queue", classes="WidgetTitle", id="tq_title")
         yield self.queue_display
 
     def on_mount(self):
@@ -28,5 +29,6 @@ class LOKTaskQueue(Static):
     def update_task_queue(self, msg: CQMessage):
         self.queue_display.clear()
 
-        for task in msg.queue:
+        for task in msg.tasks:
             self.queue_display.add_row(f"{task.cmd:15.15s}", task.delay, task.dur, task.q)
+        self.refresh()

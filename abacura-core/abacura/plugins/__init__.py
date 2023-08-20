@@ -6,7 +6,7 @@ from abacura.plugins.actions import Action
 from abacura.plugins.director import Director
 from abacura.plugins.tickers import Ticker
 from abacura.plugins.commands import CommandError, CommandArgumentError
-from abacura.plugins.task_queue import QueueManager
+from abacura.plugins.task_queue import TaskManager
 from abacura.utils.fifo_buffer import FIFOBuffer
 from abacura.mud import OutputMessage
 
@@ -36,7 +36,7 @@ class Plugin:
         self.config: Config = self._context['config']
         self.director: Director = self._context['director']
         self.core_msdp: MSDP = self._context['core_msdp']
-        self.cq: QueueManager = self._context['cq']
+        self.cq: TaskManager = self._context['cq']
         self.output_history: FIFOBuffer[OutputMessage] = self._context['buffer']
         self.output = self.session.output
         self.debuglog = self.session.debuglog

@@ -12,13 +12,14 @@ from abacura.utils.renderables import tabulate, AbacuraPanel
 
 _RUNNER_INTERVAL: float = 0.1
 
+
 class QueueRunner(Plugin):
     """Manage action queues by priority"""
 
     def __init__(self):
         super().__init__()
         self.cq.set_command_inserter(self.insert_command)
-        #self.add_ticker(_RUNNER_INTERVAL, callback_fn=self.cq.run_queues, repeats=-1, name="Queue Runner")
+        #self.add_ticker(_RUNNER_INTERVAL, callback_fn=self.cq.run_tasks, repeats=-1, name="Queue Runner")
 
     def insert_command(self, cmd: str):
         self.session.player_input(cmd, echo_color="orange1")
@@ -26,19 +27,18 @@ class QueueRunner(Plugin):
     def show_queues(self, q: str):
         """Show current action queue depths"""
         rows = []
-        for task in self.cq._pq.queue:
+        for task in self.cq.tasks:
             if task.q.lower().startswith(q.lower()):
-                rows.append((task.q, task.cmd, task.priority, task.dur, task.delay))
+                rows.append((task.q, task.cmd, task.priority, task.dur, task.delay, task.insertable))
 
-        tbl = tabulate(rows, headers=("Queue", "Command", "Priority", "Duration", "Delay"),
+        tbl = tabulate(rows, headers=("Queue", "Command", "Priority", "Duration", "Delay", "Insertable"),
                        title=f"Queued Commands")
         self.output(AbacuraPanel(tbl, title=f"{q or 'All Queues'}"))
 
     @ticker(seconds=_RUNNER_INTERVAL, name="Queue Runner", repeats=-1)
     def queue_runner(self):
-        self.cq.run_queues()
-        cqm = CQMessage()
-        cqm.queue = self.cq._pq.queue
+        self.cq.run_tasks()
+        cqm = CQMessage(tasks=self.cq.tasks)
         self.dispatch(cqm)
 
     @command(name="queue")
