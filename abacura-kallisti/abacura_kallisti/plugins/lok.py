@@ -8,11 +8,13 @@ from abacura_kallisti.plugins import LOKPlugin
 
 from typing import Dict
 
+from abacura.plugins.task_queue import TaskQueue
 from abacura.mud.options.msdp import MSDPMessage
 from abacura.plugins import action
 from abacura.plugins.events import event, AbacuraMessage
 
 xp_kill_re = re.compile("(.*) is dead!")
+
 
 @dataclass
 class LOKKillMessage(AbacuraMessage):
@@ -33,7 +35,19 @@ class LegendsOfKallisti(LOKPlugin):
     def __init__(self):
         super().__init__()
         self.add_ticker(seconds=60, callback_fn=self.idle_check, repeats=-1, name="idle-watch")
-        self.cq.set_qpriorities({"priority": 10, "heal": 20, "combat": 30, "nco": 40, "any": 50, "move": 60})
+
+        def not_in_combat():
+            return self.msdp.opponent_number == 0
+
+        queues = {"priority": TaskQueue(10),
+                  "heal": TaskQueue(20),
+                  "combat": TaskQueue(30, lambda: self.msdp.opponent_number > 0),
+                  "nco": TaskQueue(40, not_in_combat),
+                  "any": TaskQueue(50, not_in_combat),
+                  "move": TaskQueue(60, not_in_combat)
+                  }
+        self.cq.set_queues(queues)
+
         if self.session.ring_buffer:
             self.session.ring_buffer.set_log_context_provider(self.get_log_context)
 

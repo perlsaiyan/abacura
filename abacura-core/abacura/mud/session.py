@@ -23,7 +23,7 @@ from abacura.mud.options.msdp import MSDP
 from abacura.plugins import command, ContextProvider, CommandError, CommandArgumentError
 from abacura.plugins.director import Director
 from abacura.plugins.loader import PluginLoader
-from abacura.plugins.task_queue import QueueManager
+from abacura.plugins.task_queue import TaskManager
 from abacura.screens import SessionScreen
 from abacura.utils.fifo_buffer import FIFOBuffer
 from abacura.utils.ring_buffer import RingBufferLogSql
@@ -94,7 +94,7 @@ class Session(BaseSession):
 
         core_injections = {"config": self.config, "session": self, "app": self.abacura,
                            "sessions": self.abacura.sessions, "core_msdp": self.core_msdp,
-                           "cq": QueueManager(),
+                           "cq": TaskManager(),
                            "director": self.director, "buffer": self.output_history}
         self.core_plugin_context = core_injections
 
