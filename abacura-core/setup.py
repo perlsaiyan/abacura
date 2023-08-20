@@ -18,7 +18,7 @@ setup(
     install_requires=[
         "asynctelnet~=0.2.5",
         "click==8.1.3",
-        "textual>=0.32.0",
+        "textual>=0.33.0",
         "tomlkit==0.11.8"
         ],
 
