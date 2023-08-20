@@ -29,6 +29,8 @@ class LOKTaskQueue(Static):
     def update_task_queue(self, msg: CQMessage):
         self.queue_display.clear()
 
+        self.styles.height = len(msg.queue) + 2
+
         for task in msg.tasks:
             self.queue_display.add_row(f"{task.cmd:15.15s}", task.delay, task.dur, task.q)
         self.refresh()
