@@ -20,8 +20,9 @@ class LOKTaskQueue(Static):
 
     def on_mount(self):
         self.screen.session.add_listener(self.update_task_queue)
+        self.queue_display.add_column("Id", key="id")
         self.queue_display.add_column("Cmd", key="cmd")
-        self.queue_display.add_column("Delay", key="delay")
+        self.queue_display.add_column("Wait", key="wait")
         self.queue_display.add_column("Duration", key="duration")
         self.queue_display.add_column("Queue", key="queue")
 
@@ -31,6 +32,19 @@ class LOKTaskQueue(Static):
 
         self.styles.height = len(msg.tasks) + 2
 
+        next_task = False
         for task in msg.tasks:
-            self.queue_display.add_row(f"{task.cmd:15.15s}", task.delay, task.dur, task.q)
+            wait = ""
+            if task.insertable and not next_task:
+                next_task = True
+                if msg.next_command_delay > 0:
+                    wait = f"{msg.next_command_delay:<5.1f}s "
+            elif task.wait_prior and not task.wait_prior.inserted:
+                wait = f"#{task.wait_prior.id}"
+            elif task.remaining_delay > 0:
+                wait = f"{task.remaining_delay:<5.1f}s "
+            elif task.insert_check or task._queue.insert_check:
+                wait = "check()"
+
+            self.queue_display.add_row(task.id, f"{task.cmd:15.15s}", wait, task.dur, task.q)
         self.refresh()

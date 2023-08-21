@@ -6,9 +6,10 @@ depending on the combat situation.
 """
 
 from dataclasses import dataclass, field
-from queue import PriorityQueue
+import bisect
 from time import monotonic
 from typing import Optional, Callable, Dict
+import itertools
 
 from textual import log
 
@@ -26,26 +27,55 @@ _DEFAULT_DURATION: float = 1.0
 @dataclass
 class TaskQueue:
     priority: int = _DEFAULT_PRIORITY
-    insertable: Callable = lambda: True
-
-
-@dataclass
-class Task:
-    cmd: str = ""
-    dur: float = 1
-    q: str = "any"
-    priority: int = _DEFAULT_PRIORITY
-    delay: float = 0
-    insert_time: float = field(default_factory=monotonic)
-    _queue: TaskQueue = field(default_factory=TaskQueue, init=True)
+    insert_check: Callable = lambda: True
 
     @property
     def insertable(self):
-        return self._queue.insertable() and monotonic() >= self.insert_time + self.delay
+        return self.insert_check()
+
+
+id_generator = itertools.count(0)
+
+
+@dataclass()
+class Task:
+    id: int = field(default_factory=lambda: next(id_generator), init=False)
+    cmd: str = ""
+    dur: float = 1.0
+    q: str = "any"
+    priority: int = _DEFAULT_PRIORITY
+    delay: float = 0
+    timeout: float = 0
+    insert_time: float = field(default_factory=monotonic)
+    insert_check: Callable = lambda: True
+    _wait_prior: Optional["Task"] = None
+    _inserted: bool = field(default=False, init=True)
+    _queue: TaskQueue = field(default_factory=TaskQueue, init=True)
+
+    def __hash__(self):
+        return self.id
+
+    @property
+    def remaining_delay(self) -> float:
+        return float(max(0.0, self.delay + self.insert_time - monotonic()))
+
+    @property
+    def timed_out(self) -> bool:
+        return 0 < self.timeout < (monotonic() - self.insert_time)
+
+    @property
+    def insertable(self):
+        checks = [self.remaining_delay == 0,
+                  self._queue.insertable,
+                  self.insert_check(),
+                  self._wait_prior is None or self._wait_prior._inserted
+                  ]
+
+        return all(checks)
 
     @property
     def overall_priority(self):
-        return self._queue.priority, self.priority, self.insert_time
+        return self._queue.priority, self.priority, self.id
 
     def __lt__(self, other):
         return self.overall_priority < other.overall_priority
@@ -53,19 +83,36 @@ class Task:
     def set_queue(self, queue: TaskQueue):
         self._queue = queue
 
+    @property
+    def inserted(self):
+        return self._inserted
+
+    @inserted.setter
+    def inserted(self, value: bool):
+        self._inserted = value
+
+    @property
+    def wait_prior(self):
+        return self._wait_prior
+
+    @wait_prior.setter
+    def wait_prior(self, value: "Task"):
+        self._wait_prior = value
+
 
 @dataclass
 class CQMessage(AbacuraMessage):
     event_type: str = "lok.cqmessage"
     value: str = ""
     tasks: list[Task] = field(default_factory=list)
+    next_command_delay: float = 0
 
 
 class TaskManager:
     """Manage tasks by priority"""
 
     def __init__(self, queues: Dict[str, TaskQueue] | None = None):
-        self._pq: PriorityQueue[Task] = PriorityQueue()
+        self.tasks: list[Task] = []
         self._NEXT_COMMAND_TIME: float = 0.0
         self._command_inserter: Optional[Callable] = None
         self._queues: dict[str, TaskQueue] = {}
@@ -74,26 +121,29 @@ class TaskManager:
             self._queues = queues
 
     @property
-    def tasks(self) -> list[Task]:
-        return self._pq.queue
+    def next_command_delay(self) -> float:
+        return max(0.0, self._NEXT_COMMAND_TIME - monotonic())
+
+    def set_command_inserter(self, f: Callable):
+        self._command_inserter = f
 
     def set_queues(self, queues: Dict[str, TaskQueue]):
         self._queues = queues
 
         # update queues for each task and re-sort in case priorities changed
-        for task in self._pq.queue:
+        for task in self.tasks:
             task._queue = queues.get(task.q, TaskQueue())
 
-        self._pq.queue.sort()
+        self.tasks.sort()
 
-    def get_next_insertable_task(self) -> Task | None:
+    def _get_next_insertable_task(self) -> Task | None:
         # Process these in queue priority order
-        for i, task in enumerate(self._pq.queue):
+        for i, task in enumerate(self.tasks):
             if not task.insertable:
                 continue
 
             # Note, popping mutates the list we are iterating, but we are returning so no problem...
-            self._pq.queue.pop(i)
+            self.tasks.pop(i)
             return task
 
         return None
@@ -105,37 +155,64 @@ class TaskManager:
             log.error(f"No command inserter")
             return
 
+        self._remove_timeouts()
+
         # process as many tasks as we can
         while self._NEXT_COMMAND_TIME < monotonic():
-            task = self.get_next_insertable_task()
+            task = self._get_next_insertable_task()
             if task is None:
                 break
 
             self._command_inserter(task.cmd)
-            log(f"Sent {task.cmd} inserted at {task.insert_time}")
+            task.inserted = True
+            log(f"Sent {task.cmd} inserted at {monotonic()}")
             self._NEXT_COMMAND_TIME = monotonic() + task.dur
 
     def flush(self, q: str = ''):
         if q == '':
-            self._pq = PriorityQueue()
+            self.tasks = []
             return
 
-        # change list in place
-        self._pq.queue[:] = [task for task in self._pq.queue if task.q.lower() != q.lower()]
+        removals = set(task for task in self.tasks if task.q.lower() == q.lower())
+        self._remove_tasks(removals)
 
     def add_task(self, task: Task):
         task.set_queue(self._queues.get(task.q, TaskQueue()))
-        self._pq.put(task)
+        bisect.insort(self.tasks, task)
+        # self._pq.put(task)
+        self.run_tasks()
+
+    def add_chain(self, *tasks):
+        prior = None
+        for task in tasks:
+            task._wait_prior = prior
+            task.set_queue(self._queues.get(task.q, TaskQueue()))
+            bisect.insort(self.tasks, task)
+            prior = task
+
         self.run_tasks()
 
     def add(self, cmd: str, q: str = "any",
-            priority: int = _DEFAULT_PRIORITY, dur: float = _DEFAULT_DURATION, delay: float = 0):
-        self.add_task(Task(cmd=cmd, priority=priority, dur=dur, delay=delay, q=q))
-
-    def set_command_inserter(self, f: Callable):
-        self._command_inserter = f
+            priority: int = _DEFAULT_PRIORITY, dur: float = _DEFAULT_DURATION, delay: float = 0, timeout: float = 0):
+        self.add_task(Task(cmd=cmd, priority=priority, dur=dur, delay=delay, q=q, timeout=timeout))
 
     def remove(self, cmd: str):
-        for task in self._pq.queue:
-            if task.cmd.lower() == cmd.lower():
-                self._pq.queue.remove(task)
+        removals = set(task for task in self.tasks if task.q.lower() == cmd.lower())
+        self._remove_tasks(removals)
+
+    def _remove_tasks(self, removals: set[Task]):
+        """Remove a set of tasks and clear tasks with related priors"""
+        self.tasks = [task for task in self.tasks if task not in removals]
+        # clear out any priors that got removed
+        for task in self.tasks:
+            if task.wait_prior in removals:
+                task.wait_prior = None
+
+    def _remove_timeouts(self):
+        timeouts = set()
+        for task in self.tasks:
+            if task.timed_out:
+                timeouts.add(task)
+                log(f"Task timed out: {task.cmd}@{task.timeout}s")
+
+        self._remove_tasks(timeouts)
