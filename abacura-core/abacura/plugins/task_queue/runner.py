@@ -29,16 +29,16 @@ class QueueRunner(Plugin):
         rows = []
         for task in self.cq.tasks:
             if task.q.lower().startswith(q.lower()):
-                rows.append((task.q, task.cmd, task.priority, task.dur, task.delay, task.insertable))
+                rows.append((task.id, task.q, task.cmd, task.priority, task.dur, task.delay, task.insertable))
 
-        tbl = tabulate(rows, headers=("Queue", "Command", "Priority", "Duration", "Delay", "Insertable"),
+        tbl = tabulate(rows, headers=("ID", "Queue", "Command", "Priority", "Duration", "Delay", "Insertable"),
                        title=f"Queued Commands")
         self.output(AbacuraPanel(tbl, title=f"{q or 'All Queues'}"))
 
     @ticker(seconds=_RUNNER_INTERVAL, name="Queue Runner", repeats=-1)
     def queue_runner(self):
         self.cq.run_tasks()
-        cqm = CQMessage(tasks=self.cq.tasks)
+        cqm = CQMessage(tasks=self.cq.tasks, next_command_delay=self.cq.next_command_delay)
         self.dispatch(cqm)
 
     @command(name="queue")
