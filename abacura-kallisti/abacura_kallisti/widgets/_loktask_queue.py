@@ -20,7 +20,6 @@ class LOKTaskQueue(Static):
 
     def on_mount(self):
         self.screen.session.add_listener(self.update_task_queue)
-        self.queue_display.add_column("Id", key="id")
         self.queue_display.add_column("Cmd", key="cmd")
         self.queue_display.add_column("Wait", key="wait")
         self.queue_display.add_column("Duration", key="duration")
@@ -32,19 +31,28 @@ class LOKTaskQueue(Static):
 
         self.styles.height = len(msg.tasks) + 2
 
-        next_task = False
         for task in msg.tasks:
             wait = ""
-            if task.insertable and not next_task:
-                next_task = True
-                if msg.next_command_delay > 0:
-                    wait = f"{msg.next_command_delay:<5.1f}s "
+            prefix = ""
+            delay = max(task.remaining_delay, msg.next_command_delay)
+            color = "gray"
+            if task.insertable:
+                color = "bold white"
+                if delay > 0:
+                    wait = f"{delay:<3.1f}s "
+            elif not task._queue.insertable:
+                color = "orange1"
+                wait = "fn()"
             elif task.wait_prior and not task.wait_prior.inserted:
-                wait = f"#{task.wait_prior.id}"
-            elif task.remaining_delay > 0:
-                wait = f"{task.remaining_delay:<5.1f}s "
-            elif task.insert_check or task._queue.insert_check:
-                wait = "check()"
+                wait = f"@{task.wait_prior.cmd:5.5s}"
+                prefix = " "
+            elif not task.insert_check():
+                wait = "fn()"
+            elif delay > 0:
+                wait = f"{delay:<3.1f}s "
 
-            self.queue_display.add_row(task.id, f"{task.cmd:15.15s}", wait, task.dur, task.q)
+            self.queue_display.add_row(f"[{color}]{prefix + task.cmd:15.15s}",
+                                       f"[{color}]{wait}",
+                                       f"[{color}]{task.dur:3.1f}",
+                                       f"[{color}]{task.q}[/{color}]")
         self.refresh()

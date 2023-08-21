@@ -41,12 +41,12 @@ id_generator = itertools.count(0)
 class Task:
     id: int = field(default_factory=lambda: next(id_generator), init=False)
     cmd: str = ""
-    dur: float = 1.0
     q: str = "any"
     priority: int = _DEFAULT_PRIORITY
+    dur: float = 1.0
     delay: float = 0
     timeout: float = 0
-    insert_time: float = field(default_factory=monotonic)
+    queued_time: float = field(default_factory=monotonic)
     insert_check: Callable = lambda: True
     _wait_prior: Optional["Task"] = None
     _inserted: bool = field(default=False, init=True)
@@ -57,11 +57,11 @@ class Task:
 
     @property
     def remaining_delay(self) -> float:
-        return float(max(0.0, self.delay + self.insert_time - monotonic()))
+        return float(max(0.0, self.delay + self.queued_time - monotonic()))
 
     @property
     def timed_out(self) -> bool:
-        return 0 < self.timeout < (monotonic() - self.insert_time)
+        return 0 < self.timeout < (monotonic() - self.queued_time)
 
     @property
     def insertable(self):
@@ -178,6 +178,8 @@ class TaskManager:
 
     def add_task(self, task: Task):
         task.set_queue(self._queues.get(task.q, TaskQueue()))
+        task.inserted = False
+        task.queued_time = monotonic()
         bisect.insort(self.tasks, task)
         # self._pq.put(task)
         self.run_tasks()
@@ -187,6 +189,8 @@ class TaskManager:
         for task in tasks:
             task._wait_prior = prior
             task.set_queue(self._queues.get(task.q, TaskQueue()))
+            task.queued_time = monotonic()
+            task.inserted = False
             bisect.insort(self.tasks, task)
             prior = task
 
