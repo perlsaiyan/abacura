@@ -112,17 +112,20 @@ class MapScreen(ModalScreen[bool]):
 
     def __init__(self, session: Session, **kwargs):
         super().__init__(id=kwargs["id"], *kwargs)
+        self.bigmap: LOKMap = LOKMap(id="bigmap", resizer=False)
         self.session = session
 
     def compose(self) -> ComposeResult:
-        bigmap = LOKMap(id="bigmap", resizer=False)
-        yield Grid(Container(bigmap), id="MapGrid")
+        yield Grid(Container(self.bigmap), id="MapGrid")
 
     def on_key(self, _event: events.Key) -> None:
         self.dismiss(True)
+        self.bigmap.unregister()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "quit":
             self.dismiss(True)
+            self.bigmap.unregister()
         else:
             self.dismiss(False)
+            self.bigmap.unregister()
