@@ -6,10 +6,6 @@ Screen {
     layers: below above;
 }
 
-#LOKMap {
-    align: center middle;
-}
-
 .odometer-detail {
     width: 30%;
     max-height: 80%;
@@ -22,12 +18,6 @@ Screen {
     background: $panel;
 }
 
-#map_progress {
-}
-#map_progress #bar {
-    width: 30;
-}
-
 #rightsidecontainer #minimap {
     min-height: 15;
 }
@@ -37,15 +27,24 @@ Screen {
 }
 
 Grid#MapGrid {
-    grid-size:1;
-    grid-gutter: 1 2;
-    grid-rows: 1fr 3;
-    padding: 0 1;
+    align: center middle;
+    grid-size: 1 1;
+    grid-gutter: 1 1;
+    grid-rows: 1fr;
+    padding: 1 1;
     width: 95%;
     height: 95%;
     border: thick $background 80%;
     background: $surface;
 }
+
+#bigmap {
+    align: center middle;
+    width: 100%;
+    height: 100%;
+
+}
+
 #LOKMap  #label {
     content-align: center middle;
     column-span: 2;

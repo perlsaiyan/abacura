@@ -99,9 +99,10 @@ class LOKMap(Container):
     def on_mount(self) -> None:
         # Register our listener until we have a RegisterableObject to descend from
         self.screen.session.director.register_object(self)
-        # self.screen.session.dispatch(MapUpdateRequest())
-        # self.screen.session.add_listener(self.recenter_map)
-        # self.screen.session.add_listener(self.toggle_map_type)
+        self.screen.session.dispatch(MapUpdateRequest())
+
+    def unregister(self):
+        self.screen.session.director.unregister_object(self)
 
     def on_resize(self, _event: Resize):
         self.update_map()

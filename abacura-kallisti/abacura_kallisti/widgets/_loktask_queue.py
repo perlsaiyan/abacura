@@ -31,6 +31,11 @@ class LOKTaskQueue(Static):
 
         self.styles.height = len(msg.tasks) + 2
 
+        def get_delay_str(delay: float) -> str:
+            if delay < 1:
+                return "<1s"
+            return f"{int(delay):2}s "
+
         for task in msg.tasks:
             wait = ""
             prefix = ""
@@ -39,17 +44,17 @@ class LOKTaskQueue(Static):
             if task.insertable:
                 color = "bold white"
                 if delay > 0:
-                    wait = f"{delay:<3.1f}s "
+                    wait = get_delay_str(delay)
             elif not task._queue.insertable:
                 color = "orange1"
-                wait = "fn()"
+                wait = " fn()"
             elif task.wait_prior and not task.wait_prior.inserted:
-                wait = f"@{task.wait_prior.cmd:5.5s}"
+                wait = f" @{task.wait_prior.cmd:5.5s}"
                 prefix = " "
             elif not task.insert_check():
-                wait = "fn()"
+                wait = " fn()"
             elif delay > 0:
-                wait = f"{delay:<3.1f}s "
+                wait = get_delay_str(delay)
 
             self.queue_display.add_row(f"[{color}]{prefix + task.cmd:15.15s}",
                                        f"[{color}]{wait}",
