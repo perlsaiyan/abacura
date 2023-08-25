@@ -6,6 +6,7 @@ from typing import Any
 from textual import log
 
 from abacura.mud.options import IAC, SE, SB, TelnetOption
+from abacura.mud import OutputMessage
 from abacura.plugins.events import AbacuraMessage
 
 VAR = b'\x01'
@@ -165,6 +166,9 @@ class MSDP(TelnetOption):
                 #    self.values[var] = int(self.values[var])
                 #except ValueError:
                 #    pass
+
+            # Write into the output log for debugging timing issues
+            self.session.outputlog(OutputMessage(f"!MSDP_{var}={value.decode()}"))
 
             # Two dispatchs here, first is for all-value listeners
             msg = MSDPMessage(subtype=var, value=self.values[var], oldvalue=oldvalue)
