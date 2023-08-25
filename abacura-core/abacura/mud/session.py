@@ -246,6 +246,7 @@ class Session(BaseSession):
             self.tl.lines[i] = new_strip
             self.tl._line_cache.clear()
             self.tl.render()
+            self.outputlog(OutputMessage(cmd))
             return
 
         self.output(Segments([cmd_segment]))

@@ -48,3 +48,56 @@ SessionName {
      dock: left;
      width: 45;
  }
+
+AbacuraWindow {
+    layer: above;
+    background: #334455;
+    width: 90%;
+    height: 70%;
+    offset: 5% 5%;
+}
+
+#logsearch-grid {
+    grid-size: 3 4;
+    grid-gutter: 1 1;
+    grid-columns: 1fr 32 12;
+    grid-rows: 3 1 1fr 1;
+    padding: 1 1;
+    border: heavy #DDEEFF;
+    border-title-style: bold;
+}
+
+#logsearch-label {
+    margin: 1 0 0 0;
+}
+
+#logsearch-rows {
+    width: 18;
+}
+
+#logsearch-input {
+    margin: 1 0 0 0;
+    width: 100%;
+}
+
+#logsearch-close {
+    margin: 0 2 0 1;
+    width: 12;
+}
+
+#logsearch-results-label {
+    column-span: 3;
+    color: #11EEFF;
+}
+
+#logsearch-log {
+    height: 100%;
+    width: 100%;
+    margin: 0 0 0 0;
+    column-span: 3;
+}
+
+#logsearch-footer {
+    column-span: 3;
+    color: #888888;
+}
