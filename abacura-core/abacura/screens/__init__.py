@@ -127,3 +127,23 @@ class SessionScreen(Screen):
         # self.tl.max_lines = self.MAX_LINES
 
         self.tl.scroll_end(duration=0.3)
+
+
+class AbacuraWindow(Container):
+    BINDINGS = [
+        ("escape", "escape", "Close Window")
+    ]
+
+    def __init__(self, title="Window", *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.close_color = "red"
+        self.border_title = f"[[{self.close_color}] X [/{self.close_color}]] [bold cyan]{title}"
+
+    def action_escape(self):
+        self.remove()
+
+    def on_click(self, event: events.Click):
+        # check if the click was on the border, on the "close" button [ X ] color
+        if event.y == 0 and event.style.color and event.style.color.name == self.close_color:
+            self.remove()

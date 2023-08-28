@@ -7,9 +7,9 @@ from textual import events
 from textual.app import ComposeResult
 from textual.containers import Container, Grid
 from textual.screen import ModalScreen
-from textual.widgets import Header, Button, Placeholder
+from textual.widgets import Header, Button
 
-from abacura.screens import SessionScreen
+from abacura.screens import SessionScreen, AbacuraWindow
 from abacura.widgets import CommsLog
 from abacura.widgets import InputBar
 from abacura.widgets.debug import DebugDock
@@ -28,7 +28,7 @@ class KallistiScreen(SessionScreen):
         ("f3", "toggle_right_sidebar", "F3"),
         ("f4", "toggle_commslog", "F4"),
         ("f5", "toggle_debug", "F5"),
-        ("f6", "toggle_map", "F6")
+        ("escape", "escape", "Close Windows")
     ]
 
     AUTO_FOCUS = "InputBar"
@@ -89,13 +89,10 @@ class KallistiScreen(SessionScreen):
         debugger.display = not debugger.display
         self.refresh()
 
-    def action_toggle_map(self) -> None:
-        def reset_mapkey():
-            self._map_overlay = False
-
-        if not self._map_overlay:
-            self._map_overlay = True
-            self.app.push_screen(MapScreen(id="LOKMap", session=self.session), reset_mapkey())
+    def action_escape(self):
+        for c in self.children:
+            if isinstance(c, AbacuraWindow):
+                c.remove()
 
 
 class BetterKallistiScreen(KallistiScreen):

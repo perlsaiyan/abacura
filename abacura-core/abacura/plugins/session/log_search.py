@@ -2,23 +2,15 @@ import time
 
 from rich.text import Text
 from textual import on
-from textual.app import ComposeResult, Binding
-from textual.containers import Grid, Horizontal, Container
+from textual.app import ComposeResult
+from textual.containers import Grid, Horizontal
 from textual.timer import Timer
 from textual.widgets import Button, Input, Label, RichLog, Select, Checkbox
 
-
+from abacura.screens import AbacuraWindow
 from abacura.plugins import Plugin, command, CommandError
 from abacura.utils.ring_buffer import RingBufferLogSql
-from abacura.utils.renderables import tabulate, AbacuraPropertyGroup, AbacuraPanel, Group, OutputColors, Style
-
-class AbacuraWindow(Container):
-    BINDINGS = [
-        Binding("escape", "escape", "escape")
-    ]
-
-    def action_escape(self):
-        self.remove()
+from abacura.utils.renderables import tabulate, AbacuraPropertyGroup, AbacuraPanel, Group, OutputColors
 
 
 class LogSearcher:
@@ -52,7 +44,7 @@ class LogSearchWindow(AbacuraWindow):
 
     # CSS_PATH = "css/kallisti.css"
     def __init__(self, searcher: LogSearcher, find: str = "%", show_msdp: bool = False):
-        super().__init__()
+        super().__init__(title="Log Search")
         self.searcher = searcher
         self.richlog = RichLog(id="logsearch-log")
         self.input = Input(id="logsearch-input", placeholder="search text")
@@ -69,7 +61,6 @@ class LogSearchWindow(AbacuraWindow):
         self.richlog.can_focus = False
         self.msdp_checkbox.can_focus = False
         self.row_limit.can_focus = False
-
 
     async def run_search(self, find: str = '%'):
         if self.populate_timer:
@@ -96,7 +87,6 @@ class LogSearchWindow(AbacuraWindow):
 
     def compose(self) -> ComposeResult:
         with Grid(id="logsearch-grid") as g:
-            g.border_title = "Log Search"
             with Horizontal():
                 yield Label("Search: ", id="logsearch-label")
                 yield self.input
@@ -151,6 +141,7 @@ class LogSearchWindow(AbacuraWindow):
     def action_scroll_end(self) -> None:
         self.richlog.scroll_end(duration=0.3)
 
+
 class LogSearch(Plugin):
 
     @command
@@ -193,8 +184,5 @@ class LogSearch(Plugin):
                 tbl.add_row(*row)
 
             results = tabulate(logs, headers=headers, title="Results", caption=caption, expand=True)
- #           results = tbl
 
         self.output(AbacuraPanel(Group(pview, Text(), results), "Log Search", expand=True))
-
-        # self.output(tbl)
