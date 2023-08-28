@@ -157,3 +157,8 @@ SessionName {
     display: block;
     layer: lower;
 }
+
+#bigmap-grid{
+    background: #101018;
+    padding: 1 1;
+}
