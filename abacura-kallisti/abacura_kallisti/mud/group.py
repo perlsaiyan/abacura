@@ -44,11 +44,11 @@ class Group:
         return len([m for m in self.get_pcs() if m.with_you])
 
     def get_members_with_you(self) -> List[GroupMember]:
-        return [m for m in self.members if m.with_you]
+        return [m for m in self.members if m.with_you and m.position != "Linkless"]
     
     @property
     def members_with_you(self) -> List[GroupMember]:
-        return [m for m in self.members if m.with_you]
+        return [m for m in self.members if m.with_you and m.position != "Linkless"]
 
     def get_num_with_you(self) -> int:
         return len(self.get_members_with_you())
