@@ -95,7 +95,6 @@ class LogSearchWindow(AbacuraWindow):
                 yield self.row_limit
                 yield self.msdp_checkbox
 
-            yield Button("Close", variant="primary", id="logsearch-close")
             yield Label("Search Results", id="logsearch-results-label")
             yield self.richlog
             yield self.footer
@@ -125,9 +124,6 @@ class LogSearchWindow(AbacuraWindow):
             self.populate_timer.stop()
 
         await self.run_search(event.value)
-
-    def on_button_pressed(self, _event: Button.Pressed) -> None:
-        self.remove()
 
     def action_pageup(self) -> None:
         self.richlog.scroll_page_up(duration=0.3)

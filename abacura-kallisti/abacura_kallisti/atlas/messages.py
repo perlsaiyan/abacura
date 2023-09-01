@@ -12,6 +12,8 @@ class MapUpdateMessage(AbacuraMessage):
     current_vnum: str = ''
     world: Optional[World] = None
     traveling: bool = False
+    wilderness: bool = False
+    ship: bool = False
     event_type: str = "lok.map.update"
 
 

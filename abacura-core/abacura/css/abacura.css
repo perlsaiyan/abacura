@@ -59,9 +59,9 @@ AbacuraWindow {
 }
 
 #logsearch-grid {
-    grid-size: 3 4;
+    grid-size: 2 4;
     grid-gutter: 1 1;
-    grid-columns: 1fr 32 12;
+    grid-columns: 1fr 30;
     grid-rows: 3 1 1fr 1;
     padding: 1 1;
 }
@@ -79,13 +79,8 @@ AbacuraWindow {
     width: 100%;
 }
 
-#logsearch-close {
-    margin: 0 2 0 1;
-    width: 12;
-}
-
 #logsearch-results-label {
-    column-span: 3;
+    column-span: 2;
     color: #11EEFF;
 }
 
@@ -93,10 +88,10 @@ AbacuraWindow {
     height: 100%;
     width: 100%;
     margin: 0 0 0 0;
-    column-span: 3;
+    column-span: 2;
 }
 
 #logsearch-footer {
-    column-span: 3;
+    column-span: 2;
     color: #888888;
 }
