@@ -27,8 +27,8 @@ class Group:
         for m in member_list:
             gm = GroupMember(name=m['name'], cls=m['class'], level=int(m['level']), position=m['position'],
                              flags=m['flags'], hp=int(m['health']), mp=int(m['mana']), sp=int(m['stamina']),
-                             is_leader=bool(m['is_leader']), is_subleader=bool(m['is_subleader']),
-                             with_leader=bool(m['with_leader']), with_you=bool(m['with_you']))
+                             is_leader=bool(int(m['is_leader'])), is_subleader=bool(int(m['is_subleader'])),
+                             with_leader=bool(int(m['with_leader'])), with_you=bool(int(m['with_you'])))
             self.members.append(gm)
 
     def get_leaders(self) -> List[GroupMember]:
