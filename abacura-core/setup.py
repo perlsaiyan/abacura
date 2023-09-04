@@ -4,7 +4,7 @@ setup(
     name="abacura",
     description="Multi-session MUD client written in Python with Textual library",
     python_requires='>3.10',
-    version="0.0.12",
+    version="0.0.13",
     packages=find_packages(),
     license="Proprietary",
     classifiers=[
@@ -18,8 +18,10 @@ setup(
     install_requires=[
         "asynctelnet~=0.2.5",
         "click==8.1.3",
-        "textual>=0.33.0",
-        "tomlkit==0.11.8"
+        "textual>=0.35.0",
+        "tomlkit==0.11.8",
+        "numpy",
+        "plotext"
         ],
 
     entry_points="""
