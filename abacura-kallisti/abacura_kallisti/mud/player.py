@@ -60,7 +60,6 @@ class PlayerCharacter:
     buffs: list[str] = field(default_factory=list)
     # consumables: list[Consumable] = field(default_factory=list)
     target_heros: int = 0
-    logging: bool = False
 
     harvesting: PlayerHarvesting = field(default_factory=PlayerHarvesting)
 
@@ -104,3 +103,4 @@ class PlayerCharacter:
             harvesting[skill.name] = getattr(self.harvesting, skill.name, False)
 
         self._config["harvesting"] = harvesting
+
