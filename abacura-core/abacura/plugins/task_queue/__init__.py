@@ -46,6 +46,7 @@ class Task:
     dur: float = 1.0
     delay: float = 0
     timeout: float = 0
+    exclusive: bool = False
     queued_time: float = field(default_factory=monotonic)
     insert_check: Callable = lambda: True
     _wait_prior: Optional["Task"] = None
@@ -178,6 +179,12 @@ class TaskManager:
 
     def add_task(self, task: Task):
         task.set_queue(self._queues.get(task.q, TaskQueue()))
+
+        if task.exclusive:
+            check = set(t for t in self.tasks if t.cmd.lower() == task.cmd.lower())
+            if check:
+                return
+
         task.inserted = False
         task.queued_time = monotonic()
         bisect.insort(self.tasks, task)
