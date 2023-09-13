@@ -86,6 +86,9 @@ class AutoBuff(LOKPlugin):
                     self.cq.remove(cmd=method[1:])
                     return
 
+                if buff.group and len(self.msdp.group.members_with_you) > 1:
+                    method += " group"
+
                 self.cq.add(cmd=method, dur=1.0, q="NCO")
             #else:
             #    self.output(f"[bold red]# No method of acquisition for {buf}!", markup=True)

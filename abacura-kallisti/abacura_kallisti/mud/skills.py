@@ -15,6 +15,7 @@ class Skill:
     delay: int = 2
     offensive: bool = False
     follower: str = ''
+    group: bool = False # can take "group" argument if grouped
     
     def __post_init__(self):
         self.command = self.command or self.skill_name
@@ -42,14 +43,14 @@ SKILL_LIST: List[Skill] = [
     Skill("cure", train={"Prophet": 9, "Templar": 9, "Priest": 9, "Druid": 9}),
     Skill("refresh", train={"Druid": 4, "Prophet": 4, "Priest": 4, "Templar": 4}),
     Skill("dehydrate", train={"Druid": 27, "Necromancer": 20}),
-    Skill("bless", renewal="renew", train={"Templar": 7, "Prophet": 7, "Druid": 7, "Priest": 7}),
+    Skill("bless", renewal="renew", group=True, train={"Templar": 7, "Prophet": 7, "Druid": 7, "Priest": 7}),
     Skill("true seeing", command="truesee", renewal="renew",
           train={"Templar": 8, "Prophet": 8, "Druid": 8, "Priest": 8, "Valkyrie": 50}),
     Skill("blade barrier", command="blade", renewal="renew", train={"Templar": 53}),
-    Skill("barkskin", renewal="renew", train={"Druid": 11}),
+    Skill("barkskin", renewal="renew", group=True, train={"Druid": 11}),
     Skill("spiritual guardian", command="spirit", renewal="expire", train={"Templar": 51, "Prophet": 39}),
-    Skill("vigor", renewal="renew", train={"Druid": 26, "Prophet": 26, "Priest": 26, "Templar": 26}),
-    Skill("haste", renewal="renew", train={"Wizard": 23}),
+    Skill("vigor", renewal="renew", group=True, train={"Druid": 26, "Prophet": 26, "Priest": 26, "Templar": 26}),
+    Skill("haste", renewal="renew", group=True, train={"Wizard": 23}),
     Skill("zap", train={"Mage": 1, "Wizard": 1, "Necromancer": 1}),
     Skill("chill touch", "ctouch", train={"Mage": 10, "Wizard": 10, "Necromancer": 10}),
     Skill("strength", renewal="renew", train={"Mage": 2, "Wizard": 2, "Necromancer": 2}),
@@ -72,7 +73,7 @@ SKILL_LIST: List[Skill] = [
                            "Barbarian": 42, "Samurai": 50}),
     Skill("werewolf", affect_name="shapechange"),
     Skill("call mount", train={"Dreadlord": 21, "Paladin": 21, "Ranger": 23, "Valkyrie": 27}),
-    Skill("sanctuary", renewal="renew", train={"Paladin": 70, "Prophet": 16, "Templar": 17}),
+    Skill("sanctuary", renewal="renew", group=True, train={"Paladin": 70, "Prophet": 16, "Templar": 17}),
     Skill("divine armor", command="darmor", renewal="renew", train={"Prophet": 10, "Templar": 11}),
     Skill("divine shield", command="dshield", renewal="expire", train={"Paladin": 50, "Templar": 70}),
     Skill("wio", train={"Valkyrie": 30}),
