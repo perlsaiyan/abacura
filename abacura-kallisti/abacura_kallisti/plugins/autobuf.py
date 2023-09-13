@@ -169,3 +169,16 @@ class AutoBuff(LOKPlugin):
             affects.append(Text.assemble((f"{affect.name:15.15s}", "purple"), (f"{affect.hours:2d}", "cyan")))
 
         self.output(Columns(affects, width=20))
+
+    @command(name="shapechange")
+    def shapechange_command(self, form: str = ""):
+        if not form or form == "normal":
+            self.cq.add("shapechange normal", dur=4.0)
+            new_buffs = [b for b in self.pc.buffs if not b.startswith("shapechange")]
+            self.pc.buffs = new_buffs
+            return
+
+        new_buffs = [b for b in self.pc.buffs if not b.startswith("shapechange")]
+        self.pc.buffs = new_buffs
+        self.pc.buffs.append(f"shapechange {form}")
+        self.cq.add(f"shapechange {form}")
