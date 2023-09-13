@@ -43,7 +43,7 @@ class LegendsOfKallisti(LOKPlugin):
                   "heal": TaskQueue(20),
                   "combat": TaskQueue(30, lambda: self.msdp.opponent_number > 0),
                   "nco": TaskQueue(40, not_in_combat),
-                  "any": TaskQueue(50, not_in_combat),
+                  "any": TaskQueue(50),
                   "move": TaskQueue(60, not_in_combat)
                   }
         self.cq.set_queues(queues)
