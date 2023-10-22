@@ -57,7 +57,7 @@ class TelnetPlugin(Plugin):
                 if self.go_ahead:
                     data = await reader.read(1)
                 else:
-                    data = await asyncio.wait_for(reader.read(1), self.poll_timeout)
+                    data = await asyncio.wait_for(reader.read(1), timeout=self.poll_timeout)
             except BrokenPipeError:
                 self.output("[bold red]# Lost connection to server.", markup=True)
                 self.connected = False
@@ -90,7 +90,7 @@ class TelnetPlugin(Plugin):
             # handle IAC sequences
             elif data == b'\xff':
                 data = await reader.read(1)
-                
+
                 # IAC DO
                 if data == b'\xfd':
                     data = await reader.read(1)
