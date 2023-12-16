@@ -1,5 +1,5 @@
 -r requirements.txt
-aiohttp==3.8.5
+aiohttp==3.9.1
 black
 msgpack==1.0.5
 sphinx ~= 7.0.1
