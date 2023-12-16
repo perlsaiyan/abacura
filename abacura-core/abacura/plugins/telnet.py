@@ -66,6 +66,10 @@ class TelnetPlugin(Plugin):
                 self.output("[bold red]# Connection reset by peer.", markup=True)
                 self.connected = False
                 return
+            except OSError:
+                self.output("[bold red]# No route to host? OS Error.", markup=True)
+                self.connect = False
+                return
             except asyncio.TimeoutError:
                 if len(self.outb) > 0:
                     self.output(self.outb.decode("UTF-8", errors="ignore").replace("\r", " ").replace("\t", "        "), ansi=True)

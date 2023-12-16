@@ -62,6 +62,9 @@ class AutoBuff(LOKPlugin):
         if self.msdp.character_name == "" or self.msdp.level > 199:
             return
 
+        if self.msdp.position not in ["Standing", "Flying"]:
+            return
+
         for buff in self.get_player_buffs():
             hours = 2 if buff.renewal == 'renew' else 1
             if self.msdp.get_affect_hours(buff.affect_name or buff.skill_name) < hours:

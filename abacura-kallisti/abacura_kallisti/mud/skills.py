@@ -16,7 +16,7 @@ class Skill:
     offensive: bool = False
     follower: str = ''
     group: bool = False # can take "group" argument if grouped
-    
+
     def __post_init__(self):
         self.command = self.command or self.skill_name
         self.affect_name = self.affect_name or self.skill_name
@@ -44,6 +44,7 @@ SKILL_LIST: List[Skill] = [
     Skill("refresh", train={"Druid": 4, "Prophet": 4, "Priest": 4, "Templar": 4}),
     Skill("dehydrate", train={"Druid": 27, "Necromancer": 20}),
     Skill("bless", renewal="renew", group=True, train={"Templar": 7, "Prophet": 7, "Druid": 7, "Priest": 7}),
+    Skill("tale of valor", command="tale of valor", renewal="expire", group=False, train={"Bard":70, "Valkyrie":58}),
     Skill("true seeing", command="truesee", renewal="renew",
           train={"Templar": 8, "Prophet": 8, "Druid": 8, "Priest": 8, "Valkyrie": 50}),
     Skill("blade barrier", command="blade", renewal="renew", train={"Templar": 53}),
@@ -87,7 +88,7 @@ SKILL_LIST: List[Skill] = [
     Skill("endurance", train={"Valkyrie": 44, "Barbarian": 44, "Ranger": 29, "Monk": 29}),
     # focus dex , for wilderness especially
     Skill("grim ward", "grimward", renewal="renew", train={"Demoniac": 60}),
-    Skill("demonform", affect_name="Shapechange.*", renewal="expire", train={"Demoniac": 49}),
+    Skill("demonform fire", affect_name="Shapechange.*", renewal="expire", train={"Demoniac": 49}),
     Skill("focus", renewal="renew", train={"Monk": 18, "Monastic": 18, "Samurai": 18,
                                            "Ranger": 40, "Barbarian": 36, "Valkyrie": 34,
                                            "Assassin": 75, "Bard": 75}),

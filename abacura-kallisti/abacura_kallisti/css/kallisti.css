@@ -167,6 +167,10 @@ SessionName {
      height: 3;
 }
 #telluria-widget-vertical {
+    height: 9;
+}
+
+#switch-option {
     height: 3;
 }
 
