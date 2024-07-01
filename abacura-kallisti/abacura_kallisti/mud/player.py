@@ -8,19 +8,6 @@ import os
 from typing import Dict
 from tomlkit import parse, TOMLDocument, document, table
 
-# class Consumable:
-#     short_name: str = ''
-#     inventory_name: str = ''
-#     min_quantity: int = 0
-#     extra_quantity: int = 0
-#     buff: str = ''
-#     acquire_vnum: str = ''
-#     acquire_command: str = ''
-#     acquire_hours: tuple = (0, 24)
-#     acquire_cost: int = 0
-#     check_function: Callable = lambda x: True
-
-
 @dataclass(slots=True)
 class PlayerSkill:
     skill: str = ""
