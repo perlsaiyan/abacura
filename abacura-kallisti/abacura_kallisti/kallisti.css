@@ -1,9 +1,6 @@
-App {
+App {}
 
-}
-
-Screen {
-}
+Screen {}
 
 Input {
     margin: 0 0;
@@ -23,7 +20,7 @@ Input {
 }
 
 #mudoutputs {
-
+    background-color: #553555;
 }
 
 SessionName {

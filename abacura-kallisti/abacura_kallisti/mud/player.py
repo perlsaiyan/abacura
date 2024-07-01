@@ -60,6 +60,8 @@ class PlayerCharacter:
     buffs: list[str] = field(default_factory=list)
     # consumables: list[Consumable] = field(default_factory=list)
     target_heros: int = 0
+    meditate: bool = False
+    refresher: bool = False
 
     harvesting: PlayerHarvesting = field(default_factory=PlayerHarvesting)
     meta_gold_cost: Dict[str, int] = field(default_factory=dict)

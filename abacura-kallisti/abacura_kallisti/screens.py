@@ -52,7 +52,6 @@ class KallistiScreen(SessionScreen):
 
         with Container(id="app-grid"):
             yield commslog
-            
             with Container(id="mudoutputs"):
                 self.tl.can_focus = False
                 yield self.tl

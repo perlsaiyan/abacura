@@ -1,6 +1,4 @@
-App {
-
-}
+App {}
 
 Screen {
     layers: below above;
@@ -45,14 +43,15 @@ Grid#MapGrid {
 
 }
 
-#LOKMap  #label {
+#LOKMap #label {
     content-align: center middle;
     column-span: 2;
 }
+
 #LOKMap #close {
-        column-span: 2;
-        width: 100%;
-        align: center middle;
+    column-span: 2;
+    width: 100%;
+    align: center middle;
 }
 
 QuitScreen#LOKMap {
@@ -68,10 +67,12 @@ QuitScreen#LOKMap {
     width: 100%;
     display: block;
 }
+
 .BKS #leftsidebar {
     dock: left;
     width: 45;
 }
+
 .BKS #rightsidebar {
     dock: right;
     width: 62;
@@ -82,6 +83,7 @@ QuitScreen#LOKMap {
 
     height: 2;
 }
+
 .lokmap {
     width: 100%;
     height: 100%;
@@ -95,6 +97,7 @@ QuitScreen#LOKMap {
 .BKS #RemortProgress {
     width: 5;
 }
+
 .BKS .Map {
     height: 15;
     background: gray;
@@ -103,6 +106,7 @@ QuitScreen#LOKMap {
 .BKS DebugDock {
     height: 4;
 }
+
 .BKS #lokmapcontainer {
     height: 15;
 }
@@ -116,8 +120,7 @@ QuitScreen#LOKMap {
     layout: vertical;
 }
 
-.BKS TextLog {
-}
+.BKS TextLog {}
 
 Input {
     margin: 0 0;
@@ -130,12 +133,9 @@ Input {
     display: none;
 }
 
-#mudoutputs {
+#mudoutputs {}
 
-}
-
-.BKS > * {
-}
+.BKS>* {}
 
 
 SessionName {
@@ -150,6 +150,7 @@ SessionName {
     height: 100%;
     width: 100%;
     display: block;
+    background: $primary-background-darken-1;
 }
 
 #motd {
@@ -158,14 +159,15 @@ SessionName {
     layer: lower;
 }
 
-#bigmap-grid{
+#bigmap-grid {
     background: #101018;
     padding: 1 1;
 }
 
 #telluria-widget-horizontal {
-     height: 3;
+    height: 3;
 }
+
 #telluria-widget-vertical {
     height: 9;
 }
@@ -175,6 +177,6 @@ SessionName {
 }
 
 #sample {
-        width: 100%;
-        height: 15;
+    width: 100%;
+    height: 15;
 }
