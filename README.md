@@ -14,13 +14,12 @@ a while, but I want to do more, and I want to enable you to as well.
 This project is named after Farancia abacura, the Mud snake.
 
 ## Installation
-Easiest method is to use pipx, as they are now in the test repositories and
-will migrate to the main repositories later.
+Via pipx:
 
 ```bash
-pipx install -i http://test.pypi.org/legacy/ abacura-kallisti
+pipx install abacura-kallisti --include-deps
 # or if you want the generic, non-kallisti version only
-pipx install -i http://test.pypi.org/legacy/ abacura-core
+pipx install abacura
 ```
 
 Check out the repository and run:
