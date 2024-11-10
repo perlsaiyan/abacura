@@ -36,8 +36,8 @@ Launch with `abacura`.  You can specify `--config /path/to/config.file`,
 abacura will look in ~/.abacura by default, but a config file is not required.
 
 ## Usage
-The app starts in the `#null` session.  You can use `@connect <name> <host> <port>`
-to connect to a MUD, or you can define a session in ~/.abacura and use `@connect <name>`.
+The app starts in the `#null` session.  You can use `#connect <name> <host> <port>`
+to connect to a MUD, or you can define a session in ~/.abacura and use `#connect <name>`.
   For Legends of Kallisti, there is an add-on module on github
 at [abacura-kallisti](https://github.com/perlsaiyan/abacura-kallisti) which contains
 more advanced features that are specific to that MUD.
@@ -57,7 +57,7 @@ Please include information about your PR.
 Will likely be [MIT](https://choosealicense.com/licenses/mit/)
 
 ## Sample configuration file (~/.abacura)
-* named sections can be used with `@connect <section>` to avoid typing host
+* named sections can be used with `#connect <section>` to avoid typing host
 * `css_path` can be used to replace the default Textual CSS configuration
 * `screen_class` can be used to replace the default screen layout
 
@@ -82,10 +82,10 @@ log_file = "%Y-%m-%d.log"
 ## State of things
 Working:
 * Custom per-session screen layouts
-* sessions via the `@connect` command (should rename to #session)
-* `@config` command to view config, or `@config <section>` to view specific section
+* sessions via the `#connect` command (should rename to #session)
+* `#config` command to view config, or `#config <section>` to view specific section
 * scrollback
-* MSDP parsing (specific to Legends of Kallisti for complex values, view with `@msdp` command)
+* MSDP parsing (specific to Legends of Kallisti for complex values, view with `#msdp` command)
 * TOML config in ~/.abacura, but defaults if it doesn't exist
 * Commands, Triggers, Actions, Timers
 * Session PluginManager - mud- or player-specific stuff goes here
