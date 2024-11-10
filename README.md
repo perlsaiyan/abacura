@@ -17,7 +17,9 @@ This project is named after Farancia abacura, the Mud snake.
 Via pipx:
 
 ```bash
+# for kallisti version
 pipx install abacura-kallisti --include-deps
+
 # or if you want the generic, non-kallisti version only
 pipx install abacura
 ```
