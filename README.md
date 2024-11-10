@@ -14,8 +14,14 @@ a while, but I want to do more, and I want to enable you to as well.
 This project is named after Farancia abacura, the Mud snake.
 
 ## Installation
+Easiest method is to use pipx, as they are now in the test repositories and
+will migrate to the main repositories later.
 
-I haven't published pip packages yet, waiting on some stability.
+```bash
+pipx install -i http://test.pypi.org/legacy/ abacura-kallisti
+# or if you want the generic, non-kallisti version only
+pipx install -i http://test.pypi.org/legacy/ abacura-core
+```
 
 Check out the repository and run:
 ```bash
@@ -55,14 +61,21 @@ Will likely be [MIT](https://choosealicense.com/licenses/mit/)
 * `screen_class` can be used to replace the default screen layout
 
 ```toml
+# Global config for abacura
 [global]
-module_paths = ["/path/to/additional/python_packages"]
-#css_path = "/path/to/custom.css"
+module_paths = []
+sound_dir = "/path/to/sounds"
 
-[kensho]
-#screen_class = "abacura_kallisti.screens.UpsideDownScreen"
+[samplecharactername]
+account_name = "accountname"
+character_name = "charname"
+modules = ["abacura_kallisti"]
+screen_class = "abacura_kallisti.screens.BetterKallistiScreen"
 host = "kallistimud.com"
 port = 4000
+ring_size = 1000000
+log_dir = "~/log/abacura/charname"
+log_file = "%Y-%m-%d.log"
 ```
 
 ## State of things
