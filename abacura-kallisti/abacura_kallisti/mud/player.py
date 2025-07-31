@@ -49,6 +49,9 @@ class PlayerCharacter:
     target_heros: int = 0
     meditate: bool = False
     refresher: bool = False
+    true_seeing: bool = False
+    valmeyjar: bool = False
+    casting_speed: int = 0
 
     harvesting: PlayerHarvesting = field(default_factory=PlayerHarvesting)
     meta_gold_cost: Dict[str, int] = field(default_factory=dict)

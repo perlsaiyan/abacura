@@ -2,16 +2,14 @@
 from time import monotonic
 from typing import Dict, Optional
 
-from rich.panel import Panel
-from rich.table import Table
-
-from abacura.plugins import command, action
-from abacura.plugins.events import event, AbacuraMessage
 from abacura_kallisti.mud.player import PlayerSkill
 from abacura_kallisti.mud.skills import SKILLS, Skill, SKILL_COMMANDS
 from abacura_kallisti.plugins import LOKPlugin
 from abacura.utils.renderables import AbacuraPanel, tabulate, Group, Text, OutputColors
 
+from abacura.plugins import command, action
+from abacura.plugins.events import event, AbacuraMessage
+from abacura.plugins.task_queue import Task
 
 class AutoBuff(LOKPlugin):
     """Handle application of buffs"""
@@ -89,10 +87,10 @@ class AutoBuff(LOKPlugin):
                     self.cq.remove(cmd=method[1:])
                     return
 
-                if buff.group and len(self.msdp.group.members_with_you) > 1:
+                if buff.group and len(self.msdp.group.members_with_you) > 1 and method != "bless":
                     method += " group"
 
-                self.cq.add(cmd=method, dur=1.0, q="NCO")
+                self.cq.add_task(Task(cmd=method, dur=1.0, q="NCO", exclusive=True))
             #else:
             #    self.output(f"[bold red]# No method of acquisition for {buf}!", markup=True)
 
@@ -152,6 +150,10 @@ class AutoBuff(LOKPlugin):
             locked = locked is not None
 
             p_skill = PlayerSkill(skill.strip(), clevel, mp_sp, skilled, rank, trained_rank, bonus, locked)
+
+            # Don't auto-buff familiar
+            if p_skill.skill == "familiar":
+                return
             self.player_skills[p_skill.skill] = p_skill
 
     @action("Spell Fail Modifier: .*Skill Fail Modifier: .*")

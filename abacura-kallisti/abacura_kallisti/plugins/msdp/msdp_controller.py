@@ -54,6 +54,10 @@ class LOKMSDPController(LOKPlugin):
         # self.msdp.values[message.type] = message.value
         attr_name = message.subtype.lower()
 
+        if attr_name == 'area_maxlevel':
+            if message.value == '100':
+                message.value = "110"
+
         renames = {'class': 'cls', 'str': 'str_', 'int': 'int_'}
         attr_name = renames.get(attr_name, attr_name)
 

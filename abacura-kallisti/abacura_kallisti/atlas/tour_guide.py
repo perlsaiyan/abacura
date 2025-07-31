@@ -176,7 +176,7 @@ class TourGuide:
         if len(allowed) == 0:
             return TourGuideResponse(error=f"LRV: No exit found [ {scanned_room.vnum} ]")
 
-        ordered = sorted(allowed, key=lambda x: (self.world.rooms[x.to_vnum].last_visited, random.random))
+        ordered = sorted(allowed, key=lambda x: (self.world.rooms[x.to_vnum].last_visited or 0, random.random))
         return TourGuideResponse(exit=ordered[0])
 
     def _next_step_telluria(self, scanned_room: ScannedRoom) -> TourGuideResponse:

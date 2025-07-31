@@ -22,7 +22,7 @@ class Exit:
     locks: bool = False
     key_name: str = ''
     weight: int = 0
-    max_level: int = 100
+    max_level: int = 110
     min_level: int = 0
     deathtrap: bool = False
     commands: str = ''
@@ -187,6 +187,7 @@ class RoomMob(Mob):
     following_you: bool = False
     ranged: bool = False
     flags: Set[str] = field(default_factory=set)
+    noattack: bool = False
 
     def copy_mob_properties(self, mob: Mob):
         for f in fields(Mob):

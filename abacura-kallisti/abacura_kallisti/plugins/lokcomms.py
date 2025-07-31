@@ -68,10 +68,21 @@ class LOKComms(LOKPlugin):
     for channel in channels:
         comms_toggles[channel] = 'on'
 
-    def comms_log(self, channel, speaker, msg):
+    def comms_log(self, channel, speaker, msg: OutputMessage):
         """Write to comms log"""
         channel = channel.lower()
         speaker = speaker.lower()
+
+        cm = CommsMessage(
+            value = msg.message,
+            stripped = msg.stripped,
+            message = msg.message,
+            channel=channel,
+            speaker = speaker,
+            speaker_account="TODO",
+        )
+        self.dispatch(cm)
+
         if channel not in self.channels:
             self.channels.append(channel)
             self.comms_toggles[channel] = 'on'

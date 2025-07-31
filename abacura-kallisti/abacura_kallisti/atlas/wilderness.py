@@ -198,7 +198,8 @@ class WildernessGrid:
     @lru_cache(5000)
     def get_exits(self, vnum: str) -> {}:
         remove_exits = {'87172': 'south', '87522': 'east',
-                        '87523': 'west', '87873': 'north'}
+                        '87523': 'west', '87873': 'north',
+                        '94739': 'north', '94389': 'west', '94037' :'south'}
 
         v = int(vnum)
         x, y = self.get_point(vnum)

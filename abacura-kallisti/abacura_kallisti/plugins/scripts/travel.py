@@ -57,7 +57,12 @@ class TravelScript(LOKPlugin):
     @action(r"^Your mount is too exhausted.")
     def mount_exhausted(self):
         if self.navigation_path:
-            self.cq.add(cmd="look", dur=0.1, delay=0, q="Move")
+            self.cq.add(cmd="look", dur=0, delay=4, q="Move")
+
+    @action(r"^You are too exhausted.")
+    def player_exhausted(self):
+        if self.navigation_path:
+            self.cq.add(cmd="look", dur=0, delay=4, q="Move")
 
     @action(r"^Alas, you cannot go (.*)")
     def cannot_go(self):

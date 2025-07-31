@@ -34,6 +34,9 @@ class Group:
     def get_leaders(self) -> List[GroupMember]:
         return [m for m in self.members if m.is_leader or m.is_subleader]
 
+    def leader_names(self) -> List[str]:
+        return [m.name for m in self.get_leaders() if m.is_leader or m.is_subleader]
+
     def get_pcs(self) -> List[GroupMember]:
         return [m for m in self.members if m.cls not in ('MOB', 'NPC') and m.flags.find('NPC') == -1]
 
@@ -45,7 +48,7 @@ class Group:
 
     def get_members_with_you(self) -> List[GroupMember]:
         return [m for m in self.members if m.with_you and m.position != "Linkless"]
-    
+
     @property
     def members_with_you(self) -> List[GroupMember]:
         return [m for m in self.members if m.with_you and m.position != "Linkless"]
@@ -56,3 +59,7 @@ class Group:
     def get_num_followers_with_you(self) -> int:
         followers = [m for m in self.members if m.with_you and (m.cls == 'MOB' or m.flags.find('NPC') >= 0)]
         return len(followers)
+
+    @property
+    def fighting(self) -> bool:
+        return any(m.position == "Fighting" for m in self.members)

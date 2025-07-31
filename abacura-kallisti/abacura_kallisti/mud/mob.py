@@ -41,3 +41,4 @@ class Mob:
     flees: bool = False
     blocks: bool = False
     quest: bool = False
+    noattack: bool = False

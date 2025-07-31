@@ -205,10 +205,13 @@ class World:
         if vnum in self.rooms:
             del self.rooms[vnum]
 
-        self.db_conn.execute("delete from exits where from_vnum = ?", vnum)
-        self.db_conn.execute("delete from exits where to_vnum = ?", vnum)
-        self.db_conn.execute("delete from room_tracking where vnum = ? ", vnum)
-        self.db_conn.execute("delete from rooms where vnum = ? ", vnum)
+
+        self.db_conn.execute("delete from exits where from_vnum = ?", (vnum,))
+        self.db_conn.execute("delete from exits where to_vnum = ?", (vnum,))
+        self.db_conn.execute("delete from room_tracking where vnum = ? ", (vnum,))
+        self.db_conn.execute("delete from rooms where vnum = ? ", (vnum,))
+        self.db_conn.commit()
+
 
     def save_room(self, vnum: str):
         if vnum not in self.rooms:
@@ -216,7 +219,7 @@ class World:
 
         room = self.rooms[vnum]
         room_fields = [getattr(room, pf) for pf in room.persistent_fields()]
-        
+
         room_binds = ",".join("?" * len(room_fields))
 
         self.db_conn.execute("BEGIN TRANSACTION")
