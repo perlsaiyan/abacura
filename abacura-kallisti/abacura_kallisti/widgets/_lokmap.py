@@ -116,6 +116,19 @@ class LOKMap(Container):
 
         self.map = LOKMapStatic(self.strips, id="minimap", classes="lokmap")
 
+    def is_mouse_over(self) -> bool:
+        """Override to handle Textual 5.x compatibility issues with mouse position."""
+        try:
+            if not self.screen.is_active:
+                return False
+            for widget, _ in self.screen.get_widgets_at(*self.app.mouse_position):
+                if widget is self:
+                    return True
+            return False
+        except (IndexError, AttributeError):
+            # Handle case where screen is not properly initialized or mouse position is invalid
+            return False
+
     def compose(self) -> ComposeResult:
         yield self.map
         if self.resizer:

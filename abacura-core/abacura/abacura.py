@@ -12,6 +12,8 @@ from textual.screen import Screen
 from abacura.config import Config
 from abacura.mud.session import Session
 from abacura.utils import pycharm
+from abacura.utils.renderables import OutputColors
+from abacura.utils.timer import Timer
 
 if TYPE_CHECKING:
     pass
@@ -23,6 +25,32 @@ class Abacura(App):
     CSS_PATH = ["./css/abacura.css"]
     SCREENS = {}
     START_SESSION: Optional[str] = None
+    THEME = "dark"  # Default Textual theme
+    COLOR_SYSTEM = "standard"  # Bold makes colors brighter
+    
+    # Custom ANSI color mappings
+    colors = {
+        # Standard colors (normal intensity)
+        "black": OutputColors.output,      # Dark background
+        "red": OutputColors.error,         # Error red
+        "green": OutputColors.success,     # Success green  
+        "yellow": OutputColors.warning,    # Warning yellow
+        "blue": "#4488FF",                # Blue
+        "magenta": "#FF44FF",             # Magenta
+        "cyan": OutputColors.section,      # Cyan (section color)
+        "white": OutputColors.field,       # White text
+        
+        # Bright colors (when bold is applied)
+        "bright_black": "#666666",        # Gray
+        "bright_red": "#FF6666",          # Bright red
+        "bright_green": "#66FF66",        # Bright green
+        "bright_yellow": "#FFFF66",       # Bright yellow
+        "bright_blue": "#6666FF",         # Bright blue
+        "bright_magenta": "#FF66FF",      # Bright magenta
+        "bright_cyan": "#66FFFF",         # Bright cyan
+        "bright_white": "#FFFFFF",        # Bright white
+    }
+    
     BINDINGS = [
         Binding("ctrl+d", "toggle_dark", "Toggle dark mode"),
         Binding("ctrl+q", "quit", "Quit", priority=True),
@@ -68,10 +96,13 @@ class Abacura(App):
     def action_toggle_inspector(self) -> None:
         if self.inspector:
             from abacura.widgets._inspector import Inspector
-            insp = self.query_one(Inspector)
+            # The inspector is added to the current screen, not the app
+            insp = self.screen.query_one(Inspector)
             insp.display = not insp.display
             if not insp.display:
                 insp.picking = False
+
+
 
 @click.command()
 @click.option("-c","--config", 'config')

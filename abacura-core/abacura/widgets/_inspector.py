@@ -786,6 +786,14 @@ class NodeInfo(Container):
                         line_number = i + 1
                         # TODO: find the specific line number of the rule set
                         break
+            # Check if the rule_set has a css attribute before trying to access it
+            if not hasattr(rule_set, 'css') or rule_set.css is None:
+                # Handle case where CSS source is not available (e.g., programmatically created rules)
+                return Text.assemble(
+                    "CSS source not available",
+                    " ",
+                    format_location_info((path, line_number) if path else None),
+                )
             css = rule_set.css
             selectors, declarations_and_end_curly = css.split("{", 1)
             return Text.assemble(

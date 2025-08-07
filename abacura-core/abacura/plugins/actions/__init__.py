@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Callable, Match
 from textual import log
 
 from abacura.mud import OutputMessage
+from abacura.utils.timer import Timer
 
 if TYPE_CHECKING:
     pass
@@ -30,6 +31,9 @@ class Action:
         self.priority = priority
         self.parameters = []
 
+        # Add fast pre-filtering hint
+        self.quick_check = self._extract_quick_check(pattern)
+
         self.parameters = list(inspect.signature(callback).parameters.values())
 
         self.parameter_types = [p.annotation for p in self.parameters]
@@ -43,6 +47,25 @@ class Action:
 
         if invalid_types:
             raise TypeError(f"Invalid action parameter type: {callback}({invalid_types})")
+
+    def _extract_quick_check(self, pattern: str) -> str:
+        """Extract a literal string that must be present for the regex to match"""
+        # Remove anchors
+        clean = pattern.replace('^', '').replace('$', '')
+        
+        # Handle escaped characters - remove backslashes and the char after
+        import re as regex_module
+        clean = regex_module.sub(r'\\(.)', r'\1', clean)
+        
+        # Get text before first regex metacharacter  
+        for char in ['(', '[', '*', '+', '?', '.', '|']:
+            if char in clean:
+                clean = clean[:clean.index(char)]
+                break
+        
+        # Clean up whitespace and only use if meaningful
+        clean = clean.strip()
+        return clean if len(clean) > 3 else ''
 
     def __lt__(self, other):
         return self.priority < other.priority
@@ -74,12 +97,52 @@ class ActionManager:
         if type(message.message) is not str:
             return
 
-        for act in self.actions.queue:
-            s = message.message if act.color else message.stripped
-            match = act.compiled_re.search(s)
+        # Count lines processed for accurate performance metrics
+        Timer.timers.setdefault("lines_processed", 0)
+        Timer.timers["lines_processed"] += 1
 
-            if match:
-                self.initiate_callback(act, message, match)
+        # Pre-compute both strings once instead of repeatedly in the loop
+        color_text = message.message
+        stripped_text = message.stripped
+        
+        with Timer("action_processing_total"):
+            action_count = 0
+            quick_check_count = 0
+            regex_check_count = 0
+            match_count = 0
+            
+            # Pre-extract all object attributes to eliminate expensive lookups in hot loop
+            with Timer("action_preparation"):
+                action_data = [(act.compiled_re, act.quick_check, act.color, act) 
+                              for act in self.actions.queue]
+            
+            for compiled_re, quick_check, use_color, action in action_data:
+                action_count += 1
+                s = color_text if use_color else stripped_text
+                
+                # Fast pre-filtering - skip expensive regex if simple string not present
+                if quick_check:
+                    quick_check_count += 1
+                    if quick_check not in s:
+                        continue
+                
+                # Only do expensive regex if quick check passed (or no quick check available)
+                regex_check_count += 1
+                match = compiled_re.search(s)
+                
+                if match:
+                    match_count += 1
+                    self.initiate_callback(action, message, match)
+                        
+            # Track detailed performance metrics
+            Timer.timers.setdefault("total_action_checks", 0)
+            Timer.timers.setdefault("total_quick_checks", 0)
+            Timer.timers.setdefault("total_regex_checks", 0)
+            Timer.timers.setdefault("total_matches", 0)
+            Timer.timers["total_action_checks"] += action_count
+            Timer.timers["total_quick_checks"] += quick_check_count
+            Timer.timers["total_regex_checks"] += regex_check_count
+            Timer.timers["total_matches"] += match_count
 
     @staticmethod
     def initiate_callback(action: Action, message: OutputMessage, match: Match):

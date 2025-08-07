@@ -116,3 +116,7 @@ class LegendsOfKallisti(LOKPlugin):
                                  experience=experience, rare_bonus=rare_bonus,)
             self.debuglog(msg)
             self.dispatch(msg)
+
+    @action(r"^Reconnecting.")
+    def reconnect(self):
+        self.dispatch(AbacuraMessage("core.password_mode", "true"))

@@ -43,14 +43,14 @@ class LOKGroup(Static):
     def update_group(self, message: MSDPMessage):
         def with_color(g):
             buf = "white"
-            if g['is_leader'] == "1":
+            if g.get('is_leader') == "1":
                 buf = "bold gold3"
-            elif g['is_subleader'] == "1":
+            elif g.get('is_subleader') == "1":
                 buf = "gold3"
-            elif g['class'] in ["TEM", "DRU", "PRO"]:
+            elif g.get('cls') in ["TEM", "DRU", "PRO"]:
                 buf = "#48D1CC"
 
-            if not g['with_leader'] == "1":
+            if not g.get('with_leader') == "1":
                 buf += " italic"
 
             return f"[{buf}]"
@@ -58,22 +58,36 @@ class LOKGroup(Static):
         self.group = message.value
         self.group_block.clear()
 
+        # Debug: Log the group data
+        log.info(f"Group data received: {len(self.group) if self.group else 0} members")
+        if self.group:
+            for i, member in enumerate(self.group):
+                log.info(f"Member {i}: {member.get('name', 'Unknown')} - {member.get('class', 'Unknown')} {member.get('level', 'Unknown')}")
+
         if self.group:
             self.styles.height = len(self.group) + 1
             self.display = True
 
             for g_member in self.group:
                 w_color = with_color(g_member)
-                # TODO with LOK/typed MSDP we can drop the int casting here
+                # Use the correct field names from the data structure
+                level = g_member.get('level', 0)
+                cls = g_member.get('cls', '')
+                name = g_member.get('name', '')
+                health = g_member.get('health', 0)
+                mana = g_member.get('mana', 0)
+                stamina = g_member.get('stamina', 0)
+                flags = g_member.get('flags', '')
+                
                 row = [
-                    f"[{g_member['level']:>3} {g_member['class']}]",
-                    f"{w_color}{g_member['name']}",
-                    f"[{percent_color(int(g_member['health']))}]{g_member['health']}",
-                    f"[{percent_color(int(g_member['mana']))}]{g_member['mana']}",
-                    f"[{percent_color(int(g_member['stamina']))}]{g_member['stamina']}",
-                    g_member['flags']
+                    f"[{level:>3} {cls}]",
+                    f"{w_color}{name}",
+                    f"[{percent_color(int(health))}]{health}",
+                    f"[{percent_color(int(mana))}]{mana}",
+                    f"[{percent_color(int(stamina))}]{stamina}",
+                    flags
                 ]
-                self.group_block.add_row(*row, label=g_member["name"])
+                self.group_block.add_row(*row, label=name)
             return
         
         self.display = False

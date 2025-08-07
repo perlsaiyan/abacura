@@ -78,7 +78,13 @@ class LogSearchWindow(AbacuraWindow):
             self.richlog.auto_scroll = True
             if len(results):
                 for lt, lc, ll in results:
-                    self.richlog.write(Text.from_ansi(f"{lt:15} {lc:>6} {ll[:300]}"))
+                    try:
+                        self.richlog.write(Text.from_ansi(f"{lt:15} {lc:>6} {ll[:300]}"))
+                    except Exception:
+                        # If ANSI conversion fails, write as plain text
+                        from rich.markup import escape
+                        safe_text = escape(f"{lt:15} {lc:>6} {ll[:300]}")
+                        self.richlog.write(Text(safe_text))
             else:
                 self.richlog.write(Text("No results found", style="red"))
 
@@ -162,7 +168,18 @@ class LogSearch(Plugin):
             return
 
         logs = ls.search_logs(find, limit, show_msdp=msdp)
-        logs = [(t, c, Text.from_ansi(l).markup) for t, c, l in logs]
+        # Convert logs with safe markup handling to avoid MarkupError
+        safe_logs = []
+        for t, c, l in logs:
+            try:
+                # Try to convert ANSI to markup safely
+                markup_text = Text.from_ansi(l).markup
+                safe_logs.append((t, c, markup_text))
+            except Exception:
+                # If markup conversion fails, use the raw text
+                from rich.markup import escape
+                safe_logs.append((t, c, escape(l)))
+        logs = safe_logs
 
         pview = AbacuraPropertyGroup({"Find": find, "Limit": limit, "MSDP": msdp}, title="Properties")
 

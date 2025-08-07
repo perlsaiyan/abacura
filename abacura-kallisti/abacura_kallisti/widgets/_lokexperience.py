@@ -73,10 +73,8 @@ class LOKExperience(Static):
             self.remort_line.update(f"[cyan]Remorts: [white]{self.c_remorts} [cyan]In Class: [white]{self.c_laps_in_class}")
 
             if message.subtype in ["LEVEL"]:
-                self.pb_xp.remove()
-                self.pb_xpsack.remove()
-                self.pb_herp.remove()
-                self.setup_progress_bars()
+                # Update progress bar totals based on new level
+                # No need to recreate the progress bars
 
                 # no need to progress
                 if self.c_level > 199:
@@ -89,10 +87,18 @@ class LOKExperience(Static):
                     self.query_one("#herplabel").display = False
                     self.pb_herp.display = False
 
+                # Update progress bar totals for the new level
                 if self.c_level > 19 and self.c_level < 95:
                     self.pb_xpsack.total = LEVEL_VALUES[self.c_level + 1].xp * 5
                 else:
-                    self.pb_xpsack.total = pow(2,32) - 1                    
+                    self.pb_xpsack.total = pow(2,32) - 1
+                    
+                # Update XP progress bar total
+                self.pb_xp.total = int(self.c_exp) + int(self.c_exp_tnl)
+                
+                # Update hero points progress bar total
+                self.pb_herp.total = self.c_hero_points + self.c_hero_points_tnl
+                    
                 return
 
             if message.subtype in ["EXPERIENCE", "EXPERIENCE_TNL"]:

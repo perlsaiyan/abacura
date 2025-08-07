@@ -21,7 +21,7 @@ Screen {
 }
 
 #rightsidecontainer #lokmap {
-    height: 15;
+    height: 10;
 }
 
 Grid#MapGrid {
@@ -111,13 +111,14 @@ QuitScreen#LOKMap {
     height: 15;
 }
 
-.BKS .WidgetTitle {
-    background: $primary;
-    text-style: italic;
-}
-
 .BKS #SidebarContainer {
     layout: vertical;
+}
+
+/* Ensure group widget can expand to show all members */
+#rightsidecontainer #lokgroup {
+    min-height: 9;
+    height: auto;
 }
 
 .BKS TextLog {}
@@ -146,11 +147,11 @@ SessionName {
     display: block;
 }
 
-.mudoutput {
+.BKS .mudoutput {
     height: 100%;
     width: 100%;
     display: block;
-    background: $primary-background-darken-1;
+    background: $panel;
 }
 
 #motd {

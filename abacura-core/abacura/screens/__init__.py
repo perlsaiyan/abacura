@@ -136,9 +136,8 @@ class AbacuraWindow(Container):
 
     def __init__(self, title="Window", *args, **kwargs):
         super().__init__(*args, **kwargs)
-
         self.close_color = "red"
-        self.border_title = f"[[{self.close_color}] X [/{self.close_color}]] [bold cyan]{title}"
+        self.border_title = f"[red] X [/red][bold cyan]{title}"
 
     def action_escape(self):
         self.remove()

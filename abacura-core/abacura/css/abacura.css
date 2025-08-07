@@ -5,6 +5,21 @@ Input {
     margin: 0 0;
     padding: 0 0;
     border: none;
+    height: 1;
+    min-height: 1;
+    max-height: 1;
+}
+
+InputBar {
+    height: 1;
+    min-height: 1;
+    max-height: 1;
+}
+
+#InputBar {
+    height: 1;
+    min-height: 1;
+    max-height: 1;
 }
 
 #sidebar {
@@ -35,7 +50,7 @@ SessionName {
     height: 100%;
     width: 100%;
     display: block;
-    background: #101018;
+    background: $background-lighten-1;
 }
 
 #motd {
@@ -94,4 +109,13 @@ AbacuraWindow {
 #logsearch-footer {
     column-span: 2;
     color: #888888;
+}
+
+/* Widget title styling - much nicer than the old pink bars */
+.WidgetTitle {
+    background: $primary-darken-3;
+    color: $text-primary;
+    text-style: bold;
+    padding: 0 1;
+    margin: 1 0 0 0;
 }
