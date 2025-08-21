@@ -65,14 +65,15 @@ class LOKGroup(Static):
                 log.info(f"Member {i}: {member.get('name', 'Unknown')} - {member.get('class', 'Unknown')} {member.get('level', 'Unknown')}")
 
         if self.group:
-            self.styles.height = len(self.group) + 1
+            # Set height to accommodate title + all group members + some padding
+            self.styles.height = len(self.group) + 2
             self.display = True
 
             for g_member in self.group:
                 w_color = with_color(g_member)
                 # Use the correct field names from the data structure
                 level = g_member.get('level', 0)
-                cls = g_member.get('cls', '')
+                cls = g_member.get('class', '')
                 name = g_member.get('name', '')
                 health = g_member.get('health', 0)
                 mana = g_member.get('mana', 0)

@@ -57,11 +57,14 @@ class PlayerCharacter:
     meta_gold_cost: Dict[str, int] = field(default_factory=dict)
     meta_xp_cost: Dict[str, int] = field(default_factory=dict)
     meta_exp_per_hero: Dict[str, float] = field(default_factory=dict)
+    normal_attack: str = ""
+    aoe_attack: str = ""
 
     def save(self):
         # convert our convenience stuff back into the _config
         self.save_harvesting()
         self.save_meta()
+        self.save_combat_attacks()
 
         # write to disk
         with open(self.char_file, "w", encoding="UTF-8") as fp:
@@ -85,6 +88,9 @@ class PlayerCharacter:
 
         # populating harvesting record
         self.parse_harvesting()
+        
+        # populating combat attack record
+        self.parse_combat_attacks()
 
     def parse_harvesting(self):
         """Pull harvesting settings out of config"""
@@ -104,3 +110,15 @@ class PlayerCharacter:
         self._config["meta_gold_cost"] = self.meta_gold_cost
         self._config["meta_xp_cost"] = self.meta_xp_cost
         self._config["meta_exp_per_hero"] = self.meta_exp_per_hero
+
+    def parse_combat_attacks(self):
+        """Pull combat attack settings out of config"""
+        self.normal_attack = self._config.get("normal_attack", "")
+        self.aoe_attack = self._config.get("aoe_attack", "")
+
+    def save_combat_attacks(self):
+        """Put combat attack settings into config"""
+        if self.normal_attack:
+            self._config["normal_attack"] = self.normal_attack
+        if self.aoe_attack:
+            self._config["aoe_attack"] = self.aoe_attack

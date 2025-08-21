@@ -117,8 +117,9 @@ QuitScreen#LOKMap {
 
 /* Ensure group widget can expand to show all members */
 #rightsidecontainer #lokgroup {
-    min-height: 9;
+    min-height: 3;
     height: auto;
+    max-height: 15;
 }
 
 .BKS TextLog {}
