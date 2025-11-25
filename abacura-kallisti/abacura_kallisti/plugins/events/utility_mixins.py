@@ -8,7 +8,7 @@ This includes experience gain, exhaustion, material swapping, purchases, and NPC
 from abacura.plugins import action
 from .messages import (
     ExhaustionMessage, ExperienceGainMessage,
-    ItemPurchaseMessage, MaterialGivenMessage
+    ItemPurchaseMessage, MaterialGivenMessage, LostConcentrationMessage
 )
 
 
@@ -40,3 +40,9 @@ class UtilityEventsMixin:
         """Item purchased"""
         self.debuglog("info", "Item purchased: black cloth")
         self.dispatch(ItemPurchaseMessage(item="black_cloth"))
+
+    @action(r"You lost concentration casting '(.*)\.")
+    def lost_concentration(self, spell: str):
+        """Lost concentration"""
+        self.debuglog("Lost concentration casting " + spell, "info")
+        self.dispatch(LostConcentrationMessage(spell=spell))

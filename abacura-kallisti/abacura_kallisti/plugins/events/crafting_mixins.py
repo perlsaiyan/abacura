@@ -33,7 +33,7 @@ class CraftingEventsMixin:
         self.dispatch(CraftedItemMessage(success=False))
 
     # Generic crafting success pattern
-    @action(r"^You (?:craft|weave|mill|tan|smelt|carve|forge|brew) (?:some |an? )(\w+) (?:.*?)(?:armor|cloth|wood|leather|metal|bone|poison|axe|machete|hammer|maul|lance|dagger|\w+)\.$")
+    @action(r"^You (?:craft|weave|mill|tan|smelt|carve|forge) (?:some |an? )(\w+) (?:.*?)(?:armor|cloth|wood|leather|metal|bone|poison|axe|machete|hammer|maul|lance|dagger|\w+)\.$")
     def crafting_success(self, quality: str):
         """Generic crafting success"""
         self.debuglog("info", f"Generic crafting success: {quality} quality")
@@ -53,7 +53,7 @@ class CraftingEventsMixin:
     @action(r"^(?:Was that salt or sugar\?|The smell coming from the recipe makes you gag\.|Oops, you cracked it a little\.|You failed to craft anything useful\.?)")
     def crafting_failure(self):
         """Generic crafting failure"""
-        self.debuglog("info", "Generic crafting failure")
+        self.debuglog("Generic crafting failure", "info")
         self.dispatch(CraftFailureMessage(method="crafting", reason="failed"))
 
     # Specific crafting success patterns
@@ -88,7 +88,7 @@ class CraftingEventsMixin:
             source="metal"
         ))
 
-    @action(r"^You carve (.*) gigasaur tooth into some (.*) bone from gigasaur\.?$")
+    @action(r"^You carve (.*) gigasaur tooth into some (.*) bone from gigasaur")
     def gigasaur_tooth_carved(self, original_quality: str, new_quality: str):
         """Gigasaur tooth carving"""
         self.debuglog("info", f"Gigasaur tooth carved: {original_quality} -> {new_quality} bone")
@@ -158,7 +158,19 @@ class CraftingEventsMixin:
             source="hide"
         ))
 
-    @action(r"^You smelt some (.*) (?:ore) into an? (.*) (metal)\.?$")
+    @action(r"You craft a (\w+) nature symbol made from a (.*) bone.")
+    def nature_symbol_crafted(self, quality: str, original_quality: str):
+        """Nature symbol crafted"""
+        self.debuglog("info", f"Nature symbol crafted: {quality} from {original_quality}")
+        self.dispatch(SpecificCraftMessage(
+            craft_type="phylactery",
+            quality=MaterialQuality.find(quality),
+            output="nature_symbol",
+            source="bone"
+            ))
+
+
+    @action(r"^You smelt some (.*) (?:ore) into an? (.*) (metal)\.")
     def ore_smelted(self, original_quality: str, quality: str, output: str):
         """Ore smelting success"""
         self.debuglog("info", f"Ore smelted: {original_quality} -> {quality} {output}")
@@ -170,10 +182,10 @@ class CraftingEventsMixin:
             source="ore"
         ))
 
-    @action(r"^You brew an? (.*)\.?$")
-    def potion_brewed(self, potion: str):
+    @action(r"^You brew (an?) (.*)", priority=-10)
+    def potion_brewed(self, _an: str, potion: str):
         """Brewing/potion creation"""
-        self.debuglog("info", f"Potion brewed: {potion}")
+        self.debuglog(f"Potion brewed: {potion}", "info")
         self.dispatch(BrewingMessage(potion_type=potion))
 
     @action(r"^You forge an? (.*) (axe|machete|hammer|maul|lance)\.?$")
@@ -185,13 +197,14 @@ class CraftingEventsMixin:
             weapon_type=weapon
         ))
 
-    @action(r"^You craft an? (.*) dagger made from (.*)\.?$")
+    @action(r"^You craft (?:an? )?(.*) dagger made from (.*)\.?\s*$", priority=-10)
     def dagger_crafted(self, quality: str, source: str):
         """Dagger crafting success"""
-        self.debuglog("info", f"Dagger crafted: {quality} quality from {source}")
+        self.debuglog(f"[DAGGER ACTION] Dagger crafted: {quality} quality from {source}", "info")
         self.dispatch(SpecificCraftMessage(
             craft_type="weaponcraft",
             quality=MaterialQuality.find(quality),
             output="dagger",
             source=source
         ))
+

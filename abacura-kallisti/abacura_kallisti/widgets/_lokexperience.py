@@ -69,7 +69,10 @@ class LOKExperience(Static):
         """Update reactive values for this widget"""
         
         if message.subtype in self.my_reactives:
-            setattr(self, self.my_reactives[message.subtype], int(message.value))
+            val = int(message.value)
+            if message.subtype in ["EXPERIENCE", "EXPERIENCE_TNL"] and val < 0:
+                val = val & 0xffffffff
+            setattr(self, self.my_reactives[message.subtype], val)
             self.remort_line.update(f"[cyan]Remorts: [white]{self.c_remorts} [cyan]In Class: [white]{self.c_laps_in_class}")
 
             if message.subtype in ["LEVEL"]:

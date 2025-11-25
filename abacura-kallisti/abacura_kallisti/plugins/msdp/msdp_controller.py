@@ -71,6 +71,8 @@ class LOKMSDPController(LOKPlugin):
         value = message.value
         if self.msdp_types[attr_name] == int:
             value = 0 if len(message.value) == 0 else int(message.value)
+            if attr_name in ['experience', 'experience_tnl'] and value < 0:
+                value = value & 0xffffffff
         elif self.msdp_types[attr_name] == str:
             value = str(message.value)
 

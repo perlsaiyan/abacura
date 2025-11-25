@@ -40,6 +40,7 @@ __all__ = [
     "GetItemMessage",
     "ArrivalMessage",
     "MaterialFoundMessage",
+    "LostConcentrationMessage",
     "LowQualityMaterialMessage",
     "CraftFailureMessage",
     "MaterialGivenMessage",

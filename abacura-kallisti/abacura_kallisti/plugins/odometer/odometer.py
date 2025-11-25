@@ -71,7 +71,7 @@ class OdometerController(LOKPlugin):
     @action(r"^(.*) is dead!.*R.I.P.")
     def killed(self, mob: str):
         self.last_kill = mob
-        self.metrics.kills += 1
+        self.metrics.kill(victim=mob, area=self.msdp.area_name, vnum=self.msdp.room_vnum)
 
     @event("core.prompt")
     def got_prompt(self, _: AbacuraMessage):

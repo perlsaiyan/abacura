@@ -16,13 +16,13 @@ class HarvestEventsMixin:
     """Mixin for harvest-related event handlers"""
     
     # Basic harvest patterns
-    @action(r"^You can't seem to find anything\.$")
+    @action(r"^You can't seem to find anything nearby\.")
     def no_harvest(self):
         """No harvestable resources found"""
         self.debuglog("info", "No harvestable resources found")
         self.dispatch(HarvestMessage(success=False))
 
-    @action(r"^You (mine|gather|chop down) some (\w+) (herbs|ore|wood)\.$")
+    @action(r"^You (mine|gather|chop down) some (\w+) (herbs|ore|wood)\.")
     def harvesting_success(self, _verb: str, quality: str, material: str):
         """Successful harvesting attempt, dispatch HarvestMessage"""
         mq = MaterialQuality.find(quality)
@@ -44,7 +44,7 @@ class HarvestEventsMixin:
         self.debuglog("info", f"Harvested {quality} {material} -> {material_type.value}")
         self.dispatch(harvest_msg)
 
-    @action(r"^You (search|look|prospect) for (decent fibers|the good stuff|good timber|decent ore veins) nearby\.\.\.$")
+    @action(r"^You (search|look|prospect) for (decent fibers|the good stuff|good timber|decent ore veins) nearby\.\.\.")
     def prospecting_action(self, method: str, material: str):
         """Fire a prospecting event"""
         self.debuglog("info", f"Prospecting: {method} for {material}")
@@ -72,7 +72,7 @@ class HarvestEventsMixin:
         self.dispatch(LowQualityMaterialMessage(material=base_material, quality="low"))
 
     # Advanced harvest patterns (butcher, skin, etc.)
-    @action(r"^You (butcher|skin|extract|gather) some (\w+)( quality)? (\w+)( from (.*))?\.?$")
+    @action(r"^You (butcher|skin|extract|gather) some (\w+)( quality)? (\w+)( from (.*))?\.?")
     def material_harvested(self, method: str, quality: str, _quality_word: str, output: str, _from: str, source: str):
         """Material harvesting success"""
         material_type = Material.NONE
@@ -95,6 +95,7 @@ class HarvestEventsMixin:
         )
         self.debuglog(f"Material harvested: {method} -> {quality} {output}", "info")
         self.dispatch(harvest_msg)
+
 
     @action(r"^You (butcher|skin) it but you make a mess of it\.$")
     def harvest_failure(self, method: str):

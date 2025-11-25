@@ -79,8 +79,12 @@ class ActionManager:
         # self.unregister_object(obj)  # prevent duplicates
         for name, member in inspect.getmembers(obj, callable):
             if hasattr(member, "action_pattern"):
+                priority = getattr(member, "action_priority", 0)
                 act = Action(pattern=getattr(member, "action_pattern"), callback=member, source=obj,
-                             flags=getattr(member, "action_flags"), color=getattr(member, "action_color"))
+                             flags=getattr(member, "action_flags"), color=getattr(member, "action_color"),
+                             priority=priority)
+                if "dagger" in getattr(member, "action_pattern", "").lower():
+                    log.debug(f"Registered dagger action '{name}' with priority {priority}")
                 self.add(act)
 
     def unregister_object(self, obj: object):
@@ -132,6 +136,9 @@ class ActionManager:
                 
                 if match:
                     match_count += 1
+                    # Debug logging for dagger actions
+                    if "dagger" in action.pattern.lower():
+                        log.debug(f"[ACTION MATCH] Dagger action '{action.name}' matched with priority {action.priority}")
                     self.initiate_callback(action, message, match)
                         
             # Track detailed performance metrics

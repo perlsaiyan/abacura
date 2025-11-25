@@ -96,7 +96,16 @@ class LOKCharacterStatic(Static):
         }
 
         if message.subtype in MY_REACTIVES:
-            setattr(self, MY_REACTIVES[message.subtype], message.value)
+            val = message.value
+            if message.subtype in ["EXPERIENCE", "EXPERIENCE_TNL"]:
+                try:
+                    ival = int(val)
+                    if ival < 0:
+                        val = ival & 0xffffffff
+                except ValueError:
+                    pass
+
+            setattr(self, MY_REACTIVES[message.subtype], val)
 
         if not self.display and self.c_name is not None:
             self.display = True

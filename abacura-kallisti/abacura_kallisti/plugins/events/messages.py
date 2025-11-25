@@ -222,3 +222,9 @@ class ItemPurchaseMessage(AbacuraMessage):
     """Item purchase event"""
     event_type: str = "lok.item_purchase"
     item: str = ""
+
+@dataclass
+class LostConcentrationMessage(AbacuraMessage):
+    """Lost concentration event"""
+    event_type: str = "lok.lost_concentration"
+    spell: str = ""

@@ -22,6 +22,14 @@ class EarnedGold:
     gold: int = 0
 
 
+@dataclass(slots=True)
+class KillEvent:
+    victim: str = ""
+    area: str = ""
+    vnum: str = ""
+    timestamp: datetime = field(default_factory=datetime.now)
+
+
 @dataclass
 class MudMetrics:
     mission: str = ""
@@ -33,6 +41,7 @@ class MudMetrics:
 
     xp_events: List[EarnedXP] = field(default_factory=list)
     gold_events: List[EarnedGold] = field(default_factory=list)
+    kill_events: List[KillEvent] = field(default_factory=list)
 
     counters: Counter = field(default_factory=Counter)
     info: Dict = field(default_factory=dict)
@@ -85,6 +94,21 @@ class MudMetrics:
         return self.kills / (secs / 3600)
 
     @property
+    def kills_per_hour_last_15min(self) -> float:
+        if not self.kill_events:
+            return 0
+        
+        now = datetime.now()
+        fifteen_minutes_ago = now.timestamp() - (15 * 60)  # 15 minutes in seconds
+        
+        # Count kills in the last 15 minutes
+        recent_kills = sum(1 for kill in self.kill_events 
+                          if kill.timestamp.timestamp() >= fifteen_minutes_ago)
+        
+        # Calculate kills per hour based on 15-minute window
+        return recent_kills * 4  # 4 * 15 minutes = 1 hour
+
+    @property
     def gold_per_hour(self) -> float:
         secs = self.elapsed
         if secs == 0:
@@ -102,3 +126,8 @@ class MudMetrics:
         if self.stop_time is None:
             self.gold_events.append(EarnedGold(source=source, gold=gold, victim=victim, area=area, vnum=vnum))
             self.earned_gold += gold
+
+    def kill(self, victim: str = '', area: str = '', vnum: str = ''):
+        if self.stop_time is None:
+            self.kill_events.append(KillEvent(victim=victim, area=area, vnum=vnum))
+            self.kills += 1
