@@ -7,7 +7,7 @@ This includes basic crafting, specific crafting types, and crafting failures.
 
 from abacura.plugins import action
 from .messages import (
-    MaterialQuality, CraftedItemMessage, CraftFailureMessage,
+    MaterialQuality, CraftedItemMessage, CraftFailureMessage,LowQualityMaterialMessage,
     SpecificCraftMessage, PoisonCraftMessage, WeaponForgeMessage, BrewingMessage
 )
 
@@ -33,7 +33,7 @@ class CraftingEventsMixin:
         self.dispatch(CraftedItemMessage(success=False))
 
     # Generic crafting success pattern
-    @action(r"^You (?:craft|weave|mill|tan|smelt|carve|forge) (?:some |an? )(\w+) (?:.*?)(?:armor|cloth|wood|leather|metal|bone|poison|axe|machete|hammer|maul|lance|dagger|\w+)\.$")
+    @action(r"^You (?:weave|mill|tan|smelt|carve|forge) (?:some |an? )(\w+) (?:.*?)(?:armor|cloth|wood|leather|metal|bone|poison|axe|machete|hammer|maul|lance|dagger)\.", priority=-20)
     def crafting_success(self, quality: str):
         """Generic crafting success"""
         self.debuglog("info", f"Generic crafting success: {quality} quality")
@@ -55,6 +55,12 @@ class CraftingEventsMixin:
         """Generic crafting failure"""
         self.debuglog("Generic crafting failure", "info")
         self.dispatch(CraftFailureMessage(method="crafting", reason="failed"))
+
+    @action(r"The a (\w+) gigasaur tooth isn't high enough")
+    def tooth_carve_failure(self, quality: str):
+        """Tooth carving failure"""
+        self.debuglog("Tooth carving failure", "info")
+        self.dispatch(LowQualityMaterialMessage(material="tooth", quality=MaterialQuality.find(quality)))
 
     # Specific crafting success patterns
     @action(r"^You craft some (\w+) poison from (.*) from the corpse of (.*)\.?$")
@@ -158,7 +164,7 @@ class CraftingEventsMixin:
             source="hide"
         ))
 
-    @action(r"You craft a (\w+) nature symbol made from a (.*) bone.")
+    @action(r"You craft an? (\w+) nature symbol made from a (.*) bone.")
     def nature_symbol_crafted(self, quality: str, original_quality: str):
         """Nature symbol crafted"""
         self.debuglog("info", f"Nature symbol crafted: {quality} from {original_quality}")
@@ -168,6 +174,17 @@ class CraftingEventsMixin:
             output="nature_symbol",
             source="bone"
             ))
+
+    @action(r"^You craft a (\w+) unholy symbol made from a (?:an?) (.*) bone")
+    def unholy_symbol_crafted(self, quality: str, original_quality: str):
+        """Unholy symbol crafted"""
+        self.debuglog("info", f"Unholy symbol crafted: {quality} from {original_quality}")
+        self.dispatch(SpecificCraftMessage(
+            craft_type="phylactery",
+            quality=MaterialQuality.find(quality),
+            output="unholy symbol",
+            source="bone"
+        ))
 
 
     @action(r"^You smelt some (.*) (?:ore) into an? (.*) (metal)\.")
@@ -208,3 +225,13 @@ class CraftingEventsMixin:
             source=source
         ))
 
+    @action(r"You craft (?:an? )?(.*) leather armor made from (.*).?\s*$", priority=-10)
+    def leather_armor_crafted(self, quality: str, source: str):
+        """Leather armor crafting success"""
+        self.debuglog("info", f"Leather armor crafted: {quality} from {source}")
+        self.dispatch(SpecificCraftMessage(
+            craft_type="leatherwork",
+            quality=MaterialQuality.find(quality),
+            output="armor",
+            source=source
+        ))

@@ -2,11 +2,11 @@
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry]
+[project]
 name = "abacura"
 version = "1.0.0"
 description = "Multi-session MUD client written in Python with Textual library"
-authors = ["Tom Allen <tom@nonserviam.net>"]
+authors = [{ name = "Tom Allen"}]
 license = "Other/Proprietary License"
 homepage = "https://github.com/perlsaiyan/abacura"
 documentation = "https://perlsaiyan.github.io/abacura"
@@ -23,7 +23,7 @@ plotext = "*"
 pillow = "*"
 textual_image = { version = "*" }
 
-[tool.poetry.scripts]
+[project.scripts]
 abacura = "abacura.abacura:main"
 
 [tool.poetry.dev-dependencies]

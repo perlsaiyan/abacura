@@ -50,6 +50,11 @@ class HarvestEventsMixin:
         self.debuglog("info", f"Prospecting: {method} for {material}")
         self.dispatch(ProspectMessage(method=method, material=material))
 
+    @action(r"^You reckon there might be big lunkers swimming")
+    def prospecting_fish(self):
+        """Fire a prospecting event"""
+        self.debuglog("info", "Prospecting: fish")
+        self.dispatch(ProspectMessage(method="fish", material="fish"))
     @action(r"^There's nothing to mine here\.$")
     def mining_failed(self):
         """Mining failed, look for more"""
@@ -70,6 +75,19 @@ class HarvestEventsMixin:
         base_material = material.split()[0] if " " in material else material
         self.debuglog("info", f"Low quality material detected: {base_material}")
         self.dispatch(LowQualityMaterialMessage(material=base_material, quality="low"))
+
+
+    @action(r"You catch some (\w+) fish")
+    def material_harvested_fish(self, quality: str):
+        """Material harvesting success"""
+        material_type = Material.FISH
+        harvest_msg = HarvestMessage(
+            success=True,
+            quality=MaterialQuality.find(quality),
+            material=material_type
+        )
+        self.debuglog(f"Material harvested: fishing -> {quality} fish", "info")
+        self.dispatch(harvest_msg)
 
     # Advanced harvest patterns (butcher, skin, etc.)
     @action(r"^You (butcher|skin|extract|gather) some (\w+)( quality)? (\w+)( from (.*))?\.?")
