@@ -44,6 +44,8 @@ class LOKCharacterStatic(Static):
     c_xp_tnl: reactive[int] = reactive[int](0)
     c_gold: reactive[int] = reactive[int](0)
     c_gold_bank: reactive[int] = reactive[int](0)
+    c_qpoints: reactive[int] = reactive[int](0)
+    c_qpoints_bank: reactive[int] = reactive[int](0)
 
     def on_mount(self):
         # Register our listener until we have a RegisterableObject to descend from
@@ -68,6 +70,7 @@ class LOKCharacterStatic(Static):
         table2.add_row("[cyan]Heros",f"[white]{self.c_heros}","[cyan]TNL",f"[white]{self.c_heros_tnl}")
         table2.add_row("[cyan]XP", f"[white]{human_format(self.c_xp)}", "[cyan]TNL", f"[white]{human_format(self.c_xp_tnl)}")
         table2.add_row("[cyan]Gold", f"[white]{human_format(self.c_gold)}", "[cyan]Bank", f"[white]{human_format(self.c_gold_bank)}")
+        table2.add_row("[cyan]QPoints", f"[white]{human_format(self.c_qpoints)}", "[cyan]QBank", f"[white]{human_format(self.c_qpoints_bank)}")
         table.add_row(table2)
 
         return table
@@ -91,6 +94,8 @@ class LOKCharacterStatic(Static):
           "EXPERIENCE_TNL": "c_xp_tnl",
           "GOLD": "c_gold",
           "BANK_GOLD": "c_gold_bank",
+          "QPOINTS": "c_qpoints",
+          "BANK_QPOINTS": "c_qpoints_bank",
           "RACE": "c_race",
 
         }
