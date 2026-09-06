@@ -17,6 +17,7 @@ class TypedMSDP:
     area_minlevel: int = 0
     area_name: str = ""
     bank_gold: int = 0
+    bank_qpoints: int = 0
     bardsong: str = ""
     character_name: str = ""
     client_id: str = ""
@@ -190,14 +191,22 @@ class TypedMSDP:
 
     def get_affect_hours(self, name: str) -> int:
         # lowercase and drop anything after the first space to handle 'focus dex', 'warpaint crimson', etc
-        name = name.split(' ')[0].lower()
-
-        # allow lookup by exact affect name, by a skill name (valmeyjar), or by a skill command (darmor)
+        # accept that some skills are multi-word, so try to find them first
+        name = name.lower()
         affect_pattern = name
+
         if name in SKILLS:
-            affect_pattern = SKILLS[name].affect_name
+            affect_pattern = SKILLS[name].affect_name or name
         elif name in SKILL_COMMANDS:
-            affect_pattern = SKILL_COMMANDS[name].affect_name
+            affect_pattern = SKILL_COMMANDS[name].affect_name or name
+        elif ' ' in name:
+            name = name.split(' ')[0]
+            if name in SKILLS:
+                affect_pattern = SKILLS[name].affect_name or name
+            elif name in SKILL_COMMANDS:
+                affect_pattern = SKILL_COMMANDS[name].affect_name or name
+            else:
+                affect_pattern = name
 
         # handle case where command is different from spell name
         # darmor -> Divine Armor, aura -> Unholy Aura, etc

@@ -20,6 +20,7 @@ class LOKMSDPController(LOKPlugin):
     def __init__(self):
         super().__init__()
         self.msdp_types = {f.name: f.type for f in fields(self.msdp)}
+        self._unknown_msdp_seen: set[str] = set()
         print(self.msdp_types)
 
     @command(name="msdp", override=True)
@@ -64,9 +65,23 @@ class LOKMSDPController(LOKPlugin):
         if attr_name == 'ranged':
             pass
 
-        # if not hasattr(self.msdp, attr_name):
-        #     self.output(f"[red]Missing msdp attribute {attr_name} {message.type}", markup=True)
-        #     return
+        # An MSDP variable the server has but TypedMSDP does not must not be
+        # fatal. self.msdp_types is built from TypedMSDP's fields, so an
+        # unknown subtype raised KeyError two lines below and killed the
+        # client ON ENTRY -- which is what happened when Kallisti v5.3.82
+        # added BANK_QPOINTS. The server is entitled to add variables; a
+        # client that dies rather than ignoring one is the bug.
+        #
+        # This guard existed and was commented out. Restored, and narrowed to
+        # a single warning line rather than the original per-message output,
+        # because the whole point is that this is survivable.
+        if attr_name not in self.msdp_types:
+            if attr_name not in self._unknown_msdp_seen:
+                self._unknown_msdp_seen.add(attr_name)
+                self.output(f"[yellow]MSDP: ignoring unknown variable "
+                            f"{message.subtype} (client needs a TypedMSDP field)",
+                            markup=True)
+            return
 
         value = message.value
         if self.msdp_types[attr_name] == int:
